@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project follows **trunk-based development** with pull requests. `main` is the single trunk branch and must always be deployable. Work happens on short-lived feature branches that are merged to main via fast-forward only, producing a strictly linear history with original SHAs preserved. Every commit that reaches `main` must belong to an approved PR with passing status checks. These guarantees are enforced through a combination of GitHub branch protection rules, a CI action that validates fast-forward eligibility, and a developer merge workflow that bypasses GitHub's merge buttons.
+Archipelago follows **trunk-based development** with pull requests. `main` is the single trunk branch and must always be deployable. Work happens on short-lived feature branches that are merged to main via fast-forward only, producing a strictly linear history with original SHAs preserved. Every commit that reaches `main` must belong to an approved PR with passing status checks. These guarantees are enforced through a combination of GitHub branch protection rules, a CI action that validates fast-forward eligibility, and a developer merge workflow that bypasses GitHub's merge buttons.
 
 ## Branch Naming
 
