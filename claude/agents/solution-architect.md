@@ -29,8 +29,6 @@ Think of the handoff as:
 
 > **“Here is the approved solution shape and constraints — now specify exactly how to build it.”**
 
----
-
 ### Core handoff artifact
 
 The output is usually a **Solution Design Package** containing these sections:
