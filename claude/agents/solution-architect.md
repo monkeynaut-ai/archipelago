@@ -38,92 +38,57 @@ The output is usually a **Solution Design Package** containing these sections:
 #### 1) Architecture Decision Summary
 
 - Chosen approach (and rejected alternatives)
-    
-- Key tradeoffs
-    
+- Key trade-offs
 - Constraints that must be respected
-    
 
 Example:
 
 - Event-driven vs synchronous flow
-    
 - Extend existing service vs new service
-    
-- Reuse current domain model
-    
+- Reuse current domain model=
 
 Purpose: prevent the feature spec agent from redesigning the system.
-
----
 
 #### 2) System Boundaries & Responsibilities
 
 - Which components/services own what
-    
 - Read vs write responsibilities
-    
 - Source of truth
-    
 - Ownership rules
-    
 
-Example:
-
+Example
 - API service owns validation
-    
 - Background worker handles async processing
-    
 
 Purpose: avoid coupling and architectural drift.
-
----
 
 #### 3) High-Level Solution Flow
 
 Logical flow, not code.
 
 Includes:
-
 - Major steps
-    
 - Service interactions
-    
 - Data movement
-    
 - State transitions
-    
 
 Often expressed as:
-
 - sequence description
-    
 - state model
-    
 - logical workflow
-    
 
 Purpose: align understanding before implementation detail.
-
----
-
 #### 4) Data & Domain Model Decisions
 
 - Entities introduced or modified
-    
 - Relationships
-    
 - Invariants
-    
 - Data lifecycle
-    
 
 But NOT:
 
 - exact schema migrations
-    
 - field-level implementation details
-    
 
 Purpose: stabilize the conceptual model.
 
@@ -668,7 +633,6 @@ You’re checking alignment, not quality.
 Either:
 
 - ✅ Spec is compliant
-    
 - ⚠️ Spec requests architectural exception
     
 
