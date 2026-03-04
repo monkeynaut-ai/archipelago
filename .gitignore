@@ -2,6 +2,7 @@
 output/
 logs/
 .obsidian/
+*/hide
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

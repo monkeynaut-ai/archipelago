@@ -54,7 +54,6 @@ Finally, break the work into deliverable slices:
 - Slices should be independently deployable and testable
 - Order slices to deliver value incrementally
 - Each slice maps to a single PR with focused commits
-- Aim for slices that can be completed in 1-3 days maximum
 - Identify dependencies between slices
 - Consider feature flags for incomplete functionality
 
