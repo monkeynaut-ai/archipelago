@@ -1,2 +1,3 @@
-# archipelago
-AI powered software engineering
+# Archipelago
+
+Autonomous system for software engineering.
