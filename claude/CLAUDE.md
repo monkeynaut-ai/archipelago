@@ -16,16 +16,23 @@ The workflow you follow depends on their choice.
     - If they say no, run the spec-collaborator agent
 1. Iterate over each PR in the plane in order. If the PR has commits, iterate over each commit in order
     1. Explain the objective of the commit
-    2. Create a list of test names in the given/when/then format. List only test names—no code.
-    3. Create the tests.
-    4. Analyze existing tests for conflicts and potential changes or deletions. 
+    2. Before proposing test names, ask the user these probing questions to establish the right test design:
+       - What is this component? Where does it run — in-process library, CLI, container process, web service?
+       - Who calls it — orchestration code, another process, or is it standalone?
+       - What are the real failure modes worth catching?
+       - What is the right abstraction level — unit, integration, or E2E?
+       - If mocks are needed, do they preserve real behavior or hollow the test out?
+       Wait for answers before proceeding. The quality of software that TDD delivers is entirely dependent on the quality of the tests.
+    3. Create a list of test names in the given/when/then format. List only test names—no code.
+    4. Create the tests.
+    5. Analyze existing tests for conflicts and potential changes or deletions.
 	    1. If conflicts are found, list the conflicts, suggest changes, and ask for my input.
         - First need to design implementation and refine design
-    5. Implement code changes that satisfy the commit objective. Run the tests you created in step 3. Iterate over code changes and tests until all tests are green. During this step, NEVER modify any test code.
-    6. Run regression tests. If there are regressions, we will discuss a plan to address them.
+    6. Implement code changes that satisfy the commit objective. Run the tests you created in step 4. Iterate over code changes and tests until all tests are green. During this step, NEVER modify any test code.
+    7. Run regression tests. If there are regressions, we will discuss a plan to address them.
         - If necessary, you will implement the plan to address regressions.
-    7. Ask for my approval to commit the changes.
-    8. Create a NEW PR ... ?? FORMAT ?? ... ?? AGENT ??
+    8. Ask for my approval to commit the changes.
+    9. Create a NEW PR ... ?? FORMAT ?? ... ?? AGENT ??
 
 ### If they want to define features from a product compass
 
