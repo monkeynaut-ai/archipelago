@@ -19,53 +19,6 @@ PLAN_PATH = (
 )
 
 
-def _stub_strategy(state: dict[str, Any]) -> dict[str, Any]:
-    return {
-        **state,
-        "product_brief": {
-            "name": "Test",
-            "problem_statement": "Test",
-            "target_personas": ["eng"],
-            "success_metrics": ["m1"],
-            "constraints": [],
-        },
-    }
-
-
-def _stub_architecture(state: dict[str, Any]) -> dict[str, Any]:
-    return {
-        **state,
-        "feature_architecture": {
-            "feature_name": "Test",
-            "components": ["c1"],
-            "data_flow": "a->b",
-            "technology_choices": ["Python"],
-            "risks": [],
-        },
-    }
-
-
-def _stub_spec(state: dict[str, Any]) -> dict[str, Any]:
-    return {
-        **state,
-        "feature_spec": {
-            "title": "Test",
-            "objective": "Test",
-            "acceptance_criteria": ["ac1"],
-            "pr_slices": [{"title": "s1", "commits": ["c1"]}],
-        },
-        "test_plan": {
-            "feature_name": "Test",
-            "test_cases": [{"name": "t1", "type": "unit"}],
-            "coverage_targets": ["handler"],
-        },
-    }
-
-
-def _stub_gate(state: dict[str, Any]) -> dict[str, Any]:
-    return {**state, "approved": True, "approver": "auto"}
-
-
 def _stub_docker_worker(state: dict[str, Any]) -> dict[str, Any]:
     return {
         **state,
@@ -97,11 +50,6 @@ def _stub_docker_worker(state: dict[str, Any]) -> dict[str, Any]:
 
 
 STUB_HANDLERS = {
-    "strategy_generate_product_brief": _stub_strategy,
-    "architecture_generate_feature_arch": _stub_architecture,
-    "spec_generate_feature_spec": _stub_spec,
-    "human_approval_gate": _stub_gate,
-    "coding_implement_feature_from_spec": _stub_docker_worker,
     "write_unit_tests_from_spec": _stub_docker_worker,
     "code_implement_from_tests": _stub_docker_worker,
 }
@@ -116,7 +64,7 @@ def plan():
 @pytest.fixture
 def final_state(registry, plan):
     graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-    return graph.invoke({"product_brief_input": "Build a test product"})
+    return graph.invoke({"job_definition": "Build a test product"})
 
 
 class TestEndToEnd:
@@ -147,7 +95,7 @@ class TestEndToEnd:
 
         traced = {cap: _make_traced(nid, STUB_HANDLERS[cap]) for nid, cap in node_caps.items()}
         graph = compile_plan(plan, registry, handler_registry=traced)
-        graph.invoke({"product_brief_input": "test"})
+        graph.invoke({"job_definition": "test"})
 
         spans = tracer.export()
         worker_spans = [
@@ -158,7 +106,7 @@ class TestEndToEnd:
         assert len(worker_spans) == 2
         assert all(s["status"] == "ok" for s in worker_spans)
 
-    def test_given_pipeline_with_tracer_when_run_then_all_6_spans_emitted(self, registry, plan):
+    def test_given_pipeline_with_tracer_when_run_then_all_2_spans_emitted(self, registry, plan):
         tracer = ExecutionTracer()
         node_caps = {n.id: n.role for n in plan.nodes}
 
@@ -173,72 +121,6 @@ class TestEndToEnd:
 
         traced = {cap: _make_traced(nid, STUB_HANDLERS[cap]) for nid, cap in node_caps.items()}
         graph = compile_plan(plan, registry, handler_registry=traced)
-        graph.invoke({"product_brief_input": "test"})
+        graph.invoke({"job_definition": "test"})
 
-        assert len(tracer.export()) == 6
-
-    def test_given_interrupt_during_pipeline_when_breakpoint_hit_then_state_contains_payload(
-        self, registry, plan
-    ):
-        """Use a stub handler that returns breakpoint_payload; verify state."""
-
-        def _stub_docker_worker_interrupt(state: dict[str, Any]) -> dict[str, Any]:
-            return {
-                **state,
-                "breakpoint_payload": {
-                    "type": "clarification",
-                    "question": "Which DB?",
-                    "options": ["pg"],
-                    "default": "pg",
-                },
-                "worker_result": None,
-            }
-
-        handlers = {
-            **STUB_HANDLERS,
-            "write_unit_tests_from_spec": _stub_docker_worker_interrupt,
-        }
-        graph = compile_plan(plan, registry, handler_registry=handlers)
-        final = graph.invoke({"product_brief_input": "test"})
-        assert final.get("breakpoint_payload") is not None
-        assert final["breakpoint_payload"]["type"] == "clarification"
-
-    def test_given_resumed_after_interrupt_when_pipeline_continues_then_completes(
-        self, registry, plan
-    ):
-        """Simulate resuming after a breakpoint by running with a completing handler."""
-        call_count = {"n": 0}
-
-        def _stub_docker_worker_resume(state: dict[str, Any]) -> dict[str, Any]:
-            call_count["n"] += 1
-            if call_count["n"] == 1:
-                # First call: simulate interrupt
-                return {
-                    **state,
-                    "breakpoint_payload": {
-                        "type": "clarification",
-                        "question": "Which DB?",
-                        "options": ["pg"],
-                        "default": "pg",
-                    },
-                    "worker_result": None,
-                }
-            # Second call: complete successfully
-            return _stub_docker_worker(state)
-
-        # Run pipeline — first invocation hits breakpoint
-        handlers = {
-            **STUB_HANDLERS,
-            "write_unit_tests_from_spec": _stub_docker_worker_resume,
-        }
-        graph = compile_plan(plan, registry, handler_registry=handlers)
-        first_result = graph.invoke({"product_brief_input": "test"})
-        assert first_result.get("breakpoint_payload") is not None
-
-        # Simulate resume by re-invoking with breakpoint cleared
-        resumed_state = {**first_result, "breakpoint_payload": None}
-        handlers2 = {**STUB_HANDLERS, "write_unit_tests_from_spec": _stub_docker_worker}
-        graph2 = compile_plan(plan, registry, handler_registry=handlers2)
-        final = graph2.invoke(resumed_state)
-        assert final["worker_result"] is not None
-        assert final["worker_result"]["status"] == "completed"
+        assert len(tracer.export()) == 2

@@ -8,10 +8,10 @@ import yaml
 class TestCLI:
     def test_given_valid_yaml_file_when_cli_invoked_then_runs_pipeline(self, tmp_path):
         input_file = tmp_path / "input.yaml"
-        input_file.write_text(yaml.dump({"product_brief_input": "Build a task management app"}))
+        input_file.write_text(yaml.dump({"job_definition": "Build a task management app"}))
 
         fake_result = {
-            "product_brief_input": "Build a task management app",
+            "job_definition": "Build a task management app",
             "product_brief": {"name": "Test"},
         }
 
@@ -32,7 +32,7 @@ class TestCLI:
         assert exit_code == 1
         assert "not found" in captured.err.lower() or "error" in captured.err.lower()
 
-    def test_given_yaml_without_product_brief_input_when_cli_invoked_then_exits_with_error(
+    def test_given_yaml_without_job_definition_when_cli_invoked_then_exits_with_error(
         self, tmp_path, capsys
     ):
         input_file = tmp_path / "input.yaml"

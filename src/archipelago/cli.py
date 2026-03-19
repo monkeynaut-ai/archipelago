@@ -36,14 +36,14 @@ def main(argv: list[str] | None = None) -> int:
         print(yaml.dump(result, default_flow_style=False))
         return 0
 
-    if "product_brief_input" not in data:
+    if "job_definition" not in data:
         print(
-            "Error: YAML must contain 'product_brief_input' or 'dev_test_input' key",
+            "Error: YAML must contain 'job_definition' or 'dev_test_input' key",
             file=sys.stderr,
         )
         return 1
 
-    result = run_archipelago(data["product_brief_input"])
+    result = run_archipelago(data["job_definition"])
     print(yaml.dump(result, default_flow_style=False))
     return 0
 

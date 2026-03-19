@@ -20,7 +20,7 @@ class TestRunArchipelago:
 
         mock_run_plan.assert_called_once()
         call_kwargs = mock_run_plan.call_args
-        assert call_kwargs.kwargs["initial_state"] == {"product_brief_input": "Build a test app"}
+        assert call_kwargs.kwargs["initial_state"] == {"job_definition": "Build a test app"}
         assert result == {"product_brief": {"name": "Test"}}
 
 

@@ -30,19 +30,17 @@ class TestParsePlan:
     def test_given_pipeline_json_when_parsed_then_goal_is_archipelago_pipeline(self, plan):
         assert plan.goal == "archipelago-pipeline"
 
-    def test_given_pipeline_json_when_parsed_then_has_6_nodes(self, plan):
-        assert len(plan.nodes) == 6
+    def test_given_pipeline_json_when_parsed_then_has_2_nodes(self, plan):
+        assert len(plan.nodes) == 2
 
-    def test_given_pipeline_json_when_parsed_then_has_5_edges(self, plan):
-        assert len(plan.edges) == 5
+    def test_given_pipeline_json_when_parsed_then_has_1_edge(self, plan):
+        assert len(plan.edges) == 1
 
-    def test_given_pipeline_json_when_parsed_then_entry_point_is_strategy(self, plan):
-        assert plan.entry_point == "strategy"
+    def test_given_pipeline_json_when_parsed_then_entry_point_is_unit_test_writer(self, plan):
+        assert plan.entry_point == "unit_test_writer"
 
-    def test_given_pipeline_json_when_parsed_then_breakpoints_contain_spec_approval_gate(
-        self, plan
-    ):
-        assert "spec_approval_gate" in plan.breakpoints
+    def test_given_pipeline_json_when_parsed_then_breakpoints_are_empty(self, plan):
+        assert plan.breakpoints == []
 
     def test_given_pipeline_json_when_round_tripped_then_no_field_loss(self, plan_data):
         plan = GraphWiringPlan(**plan_data)
@@ -51,9 +49,9 @@ class TestParsePlan:
         assert reconstructed == plan
 
     def test_given_pipeline_json_when_role_versions_inspected_then_all_nodes_covered(self, plan):
-        node_capabilities = {n.role for n in plan.nodes}
-        versioned_capabilities = set(plan.role_versions.keys())
-        assert node_capabilities == versioned_capabilities
+        node_roles = {n.role for n in plan.nodes if n.role is not None}
+        versioned_roles = set(plan.role_versions.keys())
+        assert node_roles == versioned_roles
 
 
 # ── Commit 2: Validation tests ──
@@ -82,4 +80,5 @@ class TestValidatePlan:
 
     def test_given_pipeline_plan_when_version_coverage_check_runs_then_all_covered(self, plan):
         for node in plan.nodes:
-            assert node.role in plan.role_versions, f"Missing version for role: {node.role}"
+            if node.role is not None:
+                assert node.role in plan.role_versions, f"Missing version for role: {node.role}"

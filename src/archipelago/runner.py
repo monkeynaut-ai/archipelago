@@ -7,6 +7,7 @@ from typing import Any
 from agent_foundry.compiler.compiler import run_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
 from agent_foundry.registry.registry import RoleRegistry
+
 from archipelago.docker_worker.handler import docker_worker_handler
 from archipelago.docker_worker.models import WorkerConstraints, WorkerInput
 from archipelago.handlers import ARCHIPELAGO_HANDLERS
@@ -21,14 +22,14 @@ def load_archipelago_plan() -> GraphWiringPlan:
 
 
 def run_archipelago(
-    product_brief_input: str,
+    job_definition: str,
     registry: RoleRegistry | None = None,
     plan: GraphWiringPlan | None = None,
 ) -> dict[str, Any]:
     """Run the Archipelago pipeline end-to-end.
 
     Args:
-        product_brief_input: High-level product idea text.
+        job_definition: High-level product idea text.
         registry: Optional role registry (auto-loaded if None).
         plan: Optional plan (auto-loaded if None).
 
@@ -41,7 +42,7 @@ def run_archipelago(
     if plan is None:
         plan = load_archipelago_plan()
 
-    initial_state = {"product_brief_input": product_brief_input}
+    initial_state = {"job_definition": job_definition}
     return run_plan(
         plan, registry, handler_registry=ARCHIPELAGO_HANDLERS, initial_state=initial_state
     )
