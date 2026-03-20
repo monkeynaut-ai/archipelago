@@ -1,6 +1,7 @@
 """Archipelago pipeline CLI."""
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from archipelago.runner import run_archipelago, run_dev_test
 
 def main(argv: list[str] | None = None) -> int:
     load_dotenv()
+    logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="Run the Archipelago pipeline")
     parser.add_argument("-f", "--file", required=True, help="Path to YAML input file")
     args = parser.parse_args(argv)

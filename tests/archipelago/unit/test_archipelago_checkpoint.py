@@ -67,7 +67,7 @@ class TestPipelineExecution:
     ):
         plan = GraphWiringPlan(**base_plan_data)
         graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-        job_def = {"objective": "test", "commits": [{"title": "c1"}]}
+        job_def = {"objective": "test", "repo_url": "https://github.com/org/repo", "commits": [{"title": "c1"}]}
         result = graph.invoke({"job_definition": job_def})
         assert result["has_more_commits"] is False
         assert result["commit_passed"] is True

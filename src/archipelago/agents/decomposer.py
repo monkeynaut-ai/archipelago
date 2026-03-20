@@ -27,6 +27,8 @@ def decomposer_handler(state: dict[str, Any]) -> dict[str, Any]:
         **state,
         "global_context": {
             "objective": job.objective,
+            "repo_url": job.repo_url,
+            "repo_ref": job.repo_ref,
             "constraints": job.constraints,
         },
         "commit_slices": [c.model_dump() for c in job.commits],

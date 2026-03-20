@@ -9,6 +9,7 @@ class TestCLI:
     def test_given_valid_yaml_file_when_cli_invoked_then_runs_pipeline(self, tmp_path):
         job_def = {
             "objective": "Build a task management app",
+            "repo_url": "https://github.com/org/repo",
             "commits": [{"title": "c1"}],
         }
         input_file = tmp_path / "input.yaml"

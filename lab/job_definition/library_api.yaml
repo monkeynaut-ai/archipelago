@@ -1,0 +1,31 @@
+job_definition:
+  objective: "Implement a REST API server with two resources: Book and Library. Use FastAPI with Pydantic models. Book has title (str) and author (str). Library has name (str) and books (list of Book). Each resource supports full CRUD (GET list, GET by id, POST, PUT, DELETE)."
+  repo_url: "https://github.com/730alchemy/library-api"
+  repo_ref: "main"
+  constraints:
+    - "Use FastAPI as the web framework"
+    - "Use Pydantic for request/response models"
+    - "In-memory storage (no database)"
+    - "Return 404 for missing resources"
+    - "All endpoints return JSON"
+  commits:
+    - title: "Add Book resource with CRUD endpoints"
+      acceptance_criteria:
+        - "GET /books returns empty list initially"
+        - "POST /books creates a book and returns it with an id"
+        - "GET /books/{id} returns a single book"
+        - "GET /books/{id} returns 404 for missing book"
+        - "PUT /books/{id} updates a book"
+        - "DELETE /books/{id} removes a book"
+      test_focus: "Test all Book CRUD operations including 404 cases"
+      implementation_focus: "Book Pydantic model, in-memory store, FastAPI router with all CRUD endpoints"
+    - title: "Add Library resource with CRUD endpoints and book association"
+      acceptance_criteria:
+        - "GET /libraries returns empty list initially"
+        - "POST /libraries creates a library with a name and empty book list"
+        - "GET /libraries/{id} returns a library with its books"
+        - "PUT /libraries/{id} updates library name and book list"
+        - "DELETE /libraries/{id} removes a library"
+        - "Library books reference Book ids that exist"
+      test_focus: "Test all Library CRUD operations, including book association"
+      implementation_focus: "Library Pydantic model, in-memory store, FastAPI router with all CRUD endpoints"

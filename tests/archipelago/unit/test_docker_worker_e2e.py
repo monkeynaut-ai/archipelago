@@ -65,7 +65,7 @@ def plan():
 @pytest.fixture
 def final_state(registry, plan):
     graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-    job_def = {"objective": "Build a test product", "commits": [{"title": "c1"}]}
+    job_def = {"objective": "Build a test product", "repo_url": "https://github.com/org/repo", "commits": [{"title": "c1"}]}
     return graph.invoke({"job_definition": job_def})
 
 

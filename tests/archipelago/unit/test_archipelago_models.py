@@ -53,23 +53,28 @@ class TestJobDefinition:
     def test_given_valid_job_when_instantiated_then_commits_parsed(self):
         job = JobDefinition(
             objective="Add auth",
+            repo_url="https://github.com/org/repo",
             commits=[{"title": "Add models"}, {"title": "Add endpoints"}],
         )
         assert job.objective == "Add auth"
+        assert job.repo_url == "https://github.com/org/repo"
+        assert job.repo_ref == "main"
         assert len(job.commits) == 2
         assert job.constraints == []
 
     def test_given_empty_commits_when_instantiated_then_raises_validation_error(self):
         with pytest.raises(ValidationError, match="commits must not be empty"):
-            JobDefinition(objective="Add auth", commits=[])
+            JobDefinition(objective="Add auth", repo_url="https://github.com/org/repo", commits=[])
 
     def test_given_missing_objective_when_instantiated_then_raises_validation_error(self):
         with pytest.raises(ValidationError):
-            JobDefinition(commits=[{"title": "c1"}])
+            JobDefinition(repo_url="https://github.com/org/repo", commits=[{"title": "c1"}])
 
     def test_given_valid_job_when_json_round_tripped_then_no_field_loss(self):
         job = JobDefinition(
             objective="Add auth",
+            repo_url="https://github.com/org/repo",
+            repo_ref="develop",
             constraints=["No new deps"],
             commits=[{"title": "Add models", "acceptance_criteria": ["Model exists"]}],
         )

@@ -12,6 +12,8 @@ class CommitSlice(BaseModel):
 
 class JobDefinition(BaseModel):
     objective: str
+    repo_url: str
+    repo_ref: str = "main"
     constraints: list[str] = []
     commits: list[CommitSlice]
 

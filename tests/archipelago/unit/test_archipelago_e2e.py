@@ -41,6 +41,7 @@ STUB_HANDLERS = {
 def _job_definition(num_commits: int = 2) -> dict:
     return {
         "objective": "Add user authentication",
+        "repo_url": "https://github.com/org/repo",
         "constraints": ["Must use OAuth2"],
         "commits": [
             {"title": f"commit-{i}", "test_focus": f"tests-{i}"}
