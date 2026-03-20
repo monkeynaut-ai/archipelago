@@ -792,7 +792,7 @@ class TestProtocolEndToEnd:
 
 
 class TestPipelineIntegration:
-    def test_given_updated_plan_when_validated_then_all_7_checks_pass(self, plan, registry):
+    def test_given_updated_plan_when_validated_then_all_checks_pass(self, plan, registry):
         validate_plan(plan, registry)
 
     def test_given_handler_registry_with_docker_worker_when_compile_plan_called_then_compiles(
@@ -802,11 +802,9 @@ class TestPipelineIntegration:
             return state
 
         handlers = {
-            "strategy_generate_product_brief": _stub,
-            "architecture_generate_feature_arch": _stub,
-            "spec_generate_feature_spec": _stub,
-            "human_approval_gate": _stub,
-            "coding_implement_feature_from_spec": _stub,
+            "decompose_job_definition": _stub,
+            "dispatch_commit": _stub,
+            "evaluate_commit": _stub,
             "write_unit_tests_from_spec": _stub,
             "code_implement_from_tests": _stub,
         }

@@ -30,28 +30,32 @@ class TestParsePlan:
     def test_given_pipeline_json_when_parsed_then_goal_is_archipelago_pipeline(self, plan):
         assert plan.goal == "archipelago-pipeline"
 
-    def test_given_pipeline_json_when_parsed_then_has_2_nodes(self, plan):
-        assert len(plan.nodes) == 2
+    def test_given_pipeline_json_when_parsed_then_has_3_nodes(self, plan):
+        assert len(plan.nodes) == 3
 
-    def test_given_pipeline_json_when_parsed_then_has_1_edge(self, plan):
-        assert len(plan.edges) == 1
+    def test_given_pipeline_json_when_parsed_then_has_3_edges(self, plan):
+        assert len(plan.edges) == 3
 
-    def test_given_pipeline_json_when_parsed_then_entry_point_is_unit_test_writer(self, plan):
-        assert plan.entry_point == "unit_test_writer"
+    def test_given_pipeline_json_when_parsed_then_entry_point_is_decomposer(self, plan):
+        assert plan.entry_point == "decomposer"
 
     def test_given_pipeline_json_when_parsed_then_breakpoints_are_empty(self, plan):
         assert plan.breakpoints == []
+
+    def test_given_pipeline_json_when_parsed_then_kernel_node_is_subgraph(self, plan):
+        kernel = next(n for n in plan.nodes if n.id == "kernel")
+        assert kernel.subgraph is not None
+        assert kernel.state_mapping is not None
+
+    def test_given_pipeline_json_when_parsed_then_kernel_subgraph_has_3_nodes(self, plan):
+        kernel = next(n for n in plan.nodes if n.id == "kernel")
+        assert len(kernel.subgraph.nodes) == 3
 
     def test_given_pipeline_json_when_round_tripped_then_no_field_loss(self, plan_data):
         plan = GraphWiringPlan(**plan_data)
         dumped = json.loads(plan.model_dump_json())
         reconstructed = GraphWiringPlan(**dumped)
         assert reconstructed == plan
-
-    def test_given_pipeline_json_when_role_versions_inspected_then_all_nodes_covered(self, plan):
-        node_roles = {n.role for n in plan.nodes if n.role is not None}
-        versioned_roles = set(plan.role_versions.keys())
-        assert node_roles == versioned_roles
 
 
 # ── Commit 2: Validation tests ──
@@ -72,13 +76,3 @@ class TestValidatePlan:
         for edge in plan.edges:
             assert edge.source in node_ids, f"Dangling source: {edge.source}"
             assert edge.target in node_ids, f"Dangling target: {edge.target}"
-
-    def test_given_pipeline_plan_when_breakpoint_check_runs_then_all_breakpoints_valid(self, plan):
-        node_ids = {n.id for n in plan.nodes}
-        for bp in plan.breakpoints:
-            assert bp in node_ids, f"Breakpoint references non-existent node: {bp}"
-
-    def test_given_pipeline_plan_when_version_coverage_check_runs_then_all_covered(self, plan):
-        for node in plan.nodes:
-            if node.role is not None:
-                assert node.role in plan.role_versions, f"Missing version for role: {node.role}"

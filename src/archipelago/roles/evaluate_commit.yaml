@@ -1,0 +1,26 @@
+name: evaluate_commit
+description: Evaluates whether a commit slice meets its acceptance criteria
+version: "1.0.0"
+implementation:
+  module: archipelago.agents.evaluator
+  class_name: EvaluatorHandler
+inputs_schema:
+  type: object
+  properties:
+    current_commit:
+      type: object
+  required:
+    - current_commit
+outputs_schema:
+  type: object
+  properties:
+    commit_passed:
+      type: boolean
+  required:
+    - commit_passed
+tags:
+  - archipelago
+  - evaluator
+quality_controls:
+  timeout_seconds: 30
+  max_retries: 0

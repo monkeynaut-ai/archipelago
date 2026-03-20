@@ -1,4 +1,4 @@
-"""Archipelago checkpoint/resume — compilation, breakpoint pause, and resume tests."""
+"""Archipelago checkpoint/resume — compilation tests."""
 
 import json
 from pathlib import Path
@@ -8,65 +8,40 @@ import pytest
 
 from agent_foundry.compiler.compiler import compile_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
+from archipelago.agents.decomposer import decomposer_handler
+from archipelago.agents.dispatcher import dispatcher_handler
+from archipelago.agents.evaluator import evaluator_handler
 
 PLAN_PATH = (
     Path(__file__).parent.parent.parent.parent / "src" / "archipelago" / "archipelago_system.json"
 )
 
 
-# ── Stub handlers ──
-
-_execution_log: list[str] = []
-
-
-def _make_logging_handler(node_id: str, state_updates: dict[str, Any]):
-    def handler(state: dict[str, Any]) -> dict[str, Any]:
-        _execution_log.append(node_id)
-        return {**state, **state_updates}
-
-    return handler
+def _stub_docker_worker(state: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **state,
+        "worker_result": {
+            "result_summary": "completed",
+            "workspace_ref": "/workspace",
+            "patches": [],
+            "evidence": [],
+            "status": "completed",
+        },
+    }
 
 
 STUB_HANDLERS = {
-    "write_unit_tests_from_spec": _make_logging_handler(
-        "unit_test_writer",
-        {
-            "worker_result": {
-                "result_summary": "Tests written",
-                "workspace_ref": "/workspace",
-                "patches": [],
-                "evidence": [],
-                "status": "completed",
-            },
-            "workspace_volume": "archipelago-test",
-        },
-    ),
-    "code_implement_from_tests": _make_logging_handler(
-        "code_writer",
-        {
-            "worker_result": {
-                "result_summary": "Code implemented",
-                "workspace_ref": "/workspace",
-                "patches": [],
-                "evidence": [],
-                "status": "completed",
-            },
-        },
-    ),
+    "decompose_job_definition": decomposer_handler,
+    "dispatch_commit": dispatcher_handler,
+    "evaluate_commit": evaluator_handler,
+    "write_unit_tests_from_spec": _stub_docker_worker,
+    "code_implement_from_tests": _stub_docker_worker,
 }
 
 
 @pytest.fixture
 def base_plan_data():
     return json.loads(PLAN_PATH.read_text())
-
-
-@pytest.fixture(autouse=True)
-def clear_execution_log():
-    _execution_log.clear()
-
-
-# ── Commit 1: Checkpoint compilation tests ──
 
 
 class TestCheckpointCompilation:
@@ -86,26 +61,13 @@ class TestCheckpointCompilation:
         assert graph.checkpointer is None
 
 
-# ── Commit 2: Execution tests ──
-
-
 class TestPipelineExecution:
-    def test_given_pipeline_when_invoked_then_both_nodes_execute(
+    def test_given_pipeline_when_invoked_then_produces_result(
         self, registry, base_plan_data
     ):
         plan = GraphWiringPlan(**base_plan_data)
         graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-        graph.invoke({"job_definition": "test"})
-
-        assert "unit_test_writer" in _execution_log
-        assert "code_writer" in _execution_log
-
-    def test_given_pipeline_when_invoked_then_worker_result_present(
-        self, registry, base_plan_data
-    ):
-        plan = GraphWiringPlan(**base_plan_data)
-        graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-        result = graph.invoke({"job_definition": "test"})
-
-        assert "worker_result" in result
-        assert result["worker_result"]["status"] == "completed"
+        job_def = {"objective": "test", "commits": [{"title": "c1"}]}
+        result = graph.invoke({"job_definition": job_def})
+        assert result["has_more_commits"] is False
+        assert result["commit_passed"] is True

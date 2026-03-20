@@ -5,6 +5,8 @@ from pydantic import ValidationError
 
 from archipelago.models import (
     CodePatch,
+    CommitSlice,
+    JobDefinition,
     TestResults,
 )
 
@@ -26,6 +28,53 @@ def _valid_test_results() -> dict:
         "test_output": "12 passed in 0.5s",
         "all_green": True,
     }
+
+
+class TestCommitSlice:
+    def test_given_title_only_when_instantiated_then_defaults_applied(self):
+        cs = CommitSlice(title="Add models")
+        assert cs.title == "Add models"
+        assert cs.acceptance_criteria == []
+        assert cs.test_focus == ""
+        assert cs.implementation_focus == ""
+
+    def test_given_all_fields_when_json_round_tripped_then_no_field_loss(self):
+        cs = CommitSlice(
+            title="Add models",
+            acceptance_criteria=["Model exists"],
+            test_focus="unit tests",
+            implementation_focus="Pydantic models",
+        )
+        reconstructed = CommitSlice.model_validate_json(cs.model_dump_json())
+        assert reconstructed == cs
+
+
+class TestJobDefinition:
+    def test_given_valid_job_when_instantiated_then_commits_parsed(self):
+        job = JobDefinition(
+            objective="Add auth",
+            commits=[{"title": "Add models"}, {"title": "Add endpoints"}],
+        )
+        assert job.objective == "Add auth"
+        assert len(job.commits) == 2
+        assert job.constraints == []
+
+    def test_given_empty_commits_when_instantiated_then_raises_validation_error(self):
+        with pytest.raises(ValidationError, match="commits must not be empty"):
+            JobDefinition(objective="Add auth", commits=[])
+
+    def test_given_missing_objective_when_instantiated_then_raises_validation_error(self):
+        with pytest.raises(ValidationError):
+            JobDefinition(commits=[{"title": "c1"}])
+
+    def test_given_valid_job_when_json_round_tripped_then_no_field_loss(self):
+        job = JobDefinition(
+            objective="Add auth",
+            constraints=["No new deps"],
+            commits=[{"title": "Add models", "acceptance_criteria": ["Model exists"]}],
+        )
+        reconstructed = JobDefinition.model_validate_json(job.model_dump_json())
+        assert reconstructed == job
 
 
 class TestCodePatch:

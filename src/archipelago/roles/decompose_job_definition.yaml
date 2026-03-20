@@ -1,0 +1,43 @@
+name: decompose_job_definition
+description: Parses a job definition into global context and an ordered list of commit slices
+version: "1.0.0"
+implementation:
+  module: archipelago.agents.decomposer
+  class_name: DecomposerHandler
+inputs_schema:
+  type: object
+  properties:
+    job_definition:
+      type: object
+  required:
+    - job_definition
+outputs_schema:
+  type: object
+  properties:
+    global_context:
+      type: object
+      properties:
+        objective:
+          type: string
+        constraints:
+          type: array
+          items:
+            type: string
+      required:
+        - objective
+    commit_slices:
+      type: array
+      items:
+        type: object
+    current_index:
+      type: integer
+  required:
+    - global_context
+    - commit_slices
+    - current_index
+tags:
+  - archipelago
+  - decomposer
+quality_controls:
+  timeout_seconds: 30
+  max_retries: 0

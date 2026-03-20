@@ -292,6 +292,7 @@ def docker_worker_handler(state: dict[str, Any]) -> dict[str, Any]:
         worker_input.prompt_preamble = prompt_preamble
 
     auto_approve_low_risk = worker_input.constraints.network_policy != "none"
+    logger.info("worker_input: %s", worker_input)
 
     # Initialize Docker
     try:

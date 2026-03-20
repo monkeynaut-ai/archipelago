@@ -1,6 +1,26 @@
 """Canonical artifact models for the Archipelago pipeline."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+class CommitSlice(BaseModel):
+    title: str
+    acceptance_criteria: list[str] = []
+    test_focus: str = ""
+    implementation_focus: str = ""
+
+
+class JobDefinition(BaseModel):
+    objective: str
+    constraints: list[str] = []
+    commits: list[CommitSlice]
+
+    @field_validator("commits")
+    @classmethod
+    def _commits_not_empty(cls, v: list[CommitSlice]) -> list[CommitSlice]:
+        if not v:
+            raise ValueError("commits must not be empty")
+        return v
 
 
 class CodePatch(BaseModel):

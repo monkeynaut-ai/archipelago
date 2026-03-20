@@ -7,20 +7,21 @@ import yaml
 
 class TestCLI:
     def test_given_valid_yaml_file_when_cli_invoked_then_runs_pipeline(self, tmp_path):
-        input_file = tmp_path / "input.yaml"
-        input_file.write_text(yaml.dump({"job_definition": "Build a task management app"}))
-
-        fake_result = {
-            "job_definition": "Build a task management app",
-            "product_brief": {"name": "Test"},
+        job_def = {
+            "objective": "Build a task management app",
+            "commits": [{"title": "c1"}],
         }
+        input_file = tmp_path / "input.yaml"
+        input_file.write_text(yaml.dump({"job_definition": job_def}))
+
+        fake_result = {"commit_passed": True}
 
         with patch("archipelago.cli.run_archipelago", return_value=fake_result) as mock_run:
             from archipelago.cli import main
 
             exit_code = main(["-f", str(input_file)])
 
-        mock_run.assert_called_once_with("Build a task management app")
+        mock_run.assert_called_once_with(job_def)
         assert exit_code == 0
 
     def test_given_missing_file_when_cli_invoked_then_exits_with_error(self, capsys):

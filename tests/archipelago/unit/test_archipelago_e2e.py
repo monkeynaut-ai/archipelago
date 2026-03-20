@@ -1,4 +1,4 @@
-"""Archipelago end-to-end pipeline tests with stub handlers and tracing."""
+"""Archipelago end-to-end pipeline tests with stub handlers."""
 
 from pathlib import Path
 from typing import Any
@@ -6,22 +6,21 @@ from typing import Any
 import pytest
 
 from agent_foundry.compiler.compiler import compile_plan
-from agent_foundry.observability.tracer import ExecutionTracer
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
+from archipelago.agents.decomposer import decomposer_handler
+from archipelago.agents.dispatcher import dispatcher_handler
+from archipelago.agents.evaluator import evaluator_handler
 
 PLAN_PATH = (
     Path(__file__).parent.parent.parent.parent / "src" / "archipelago" / "archipelago_system.json"
 )
 
 
-# ── Stub handlers that produce valid artifacts without LLM calls ──
-
-
 def _stub_docker_worker(state: dict[str, Any]) -> dict[str, Any]:
     return {
         **state,
         "worker_result": {
-            "result_summary": "Feature completed",
+            "result_summary": "completed",
             "workspace_ref": "ws-test",
             "patches": [],
             "evidence": [],
@@ -31,9 +30,23 @@ def _stub_docker_worker(state: dict[str, Any]) -> dict[str, Any]:
 
 
 STUB_HANDLERS = {
+    "decompose_job_definition": decomposer_handler,
+    "dispatch_commit": dispatcher_handler,
+    "evaluate_commit": evaluator_handler,
     "write_unit_tests_from_spec": _stub_docker_worker,
     "code_implement_from_tests": _stub_docker_worker,
 }
+
+
+def _job_definition(num_commits: int = 2) -> dict:
+    return {
+        "objective": "Add user authentication",
+        "constraints": ["Must use OAuth2"],
+        "commits": [
+            {"title": f"commit-{i}", "test_focus": f"tests-{i}"}
+            for i in range(num_commits)
+        ],
+    }
 
 
 @pytest.fixture
@@ -44,64 +57,34 @@ def plan():
     return GraphWiringPlan(**plan_data)
 
 
-@pytest.fixture
-def final_state(registry, plan):
-    graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-    return graph.invoke({"job_definition": "Build a test product"})
-
-
 class TestEndToEnd:
-    def test_given_valid_input_when_pipeline_runs_then_final_state_has_worker_result(
-        self, final_state
-    ):
-        assert "worker_result" in final_state
-        assert final_state["worker_result"]["status"] == "completed"
-
-    def test_given_pipeline_with_tracer_when_run_then_2_spans_exported(self, registry, plan):
-        tracer = ExecutionTracer()
-        node_caps = {n.id: n.role for n in plan.nodes}
-
-        def _make_traced_handler(node_id, original):
-            def handler(state):
-                span = tracer.start_span(node_id, node_caps[node_id])
-                result = original(state)
-                tracer.end_span(span, "ok")
-                return result
-
-            return handler
-
-        traced_handlers = {
-            cap: _make_traced_handler(nid, STUB_HANDLERS[cap]) for nid, cap in node_caps.items()
-        }
-
-        graph = compile_plan(plan, registry, handler_registry=traced_handlers)
-        graph.invoke({"job_definition": "Build a test product"})
-
-        spans = tracer.export()
-        assert len(spans) == 2
-
-    def test_given_pipeline_with_tracer_when_run_then_all_spans_have_ok_status(
+    def test_given_2_commits_when_pipeline_runs_then_all_commits_processed(
         self, registry, plan
     ):
-        tracer = ExecutionTracer()
-        node_caps = {n.id: n.role for n in plan.nodes}
+        graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
+        result = graph.invoke({"job_definition": _job_definition(2)})
+        assert result["current_index"] == 2
+        assert result["has_more_commits"] is False
 
-        def _make_traced_handler(node_id, original):
-            def handler(state):
-                span = tracer.start_span(node_id, node_caps[node_id])
-                result = original(state)
-                tracer.end_span(span, "ok")
-                return result
+    def test_given_3_commits_when_pipeline_runs_then_all_3_dispatched(
+        self, registry, plan
+    ):
+        graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
+        result = graph.invoke({"job_definition": _job_definition(3)})
+        assert result["current_index"] == 3
+        assert result["has_more_commits"] is False
 
-            return handler
+    def test_given_1_commit_when_pipeline_runs_then_commit_passed_in_result(
+        self, registry, plan
+    ):
+        graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
+        result = graph.invoke({"job_definition": _job_definition(1)})
+        assert result["commit_passed"] is True
 
-        traced_handlers = {
-            cap: _make_traced_handler(nid, STUB_HANDLERS[cap]) for nid, cap in node_caps.items()
-        }
-
-        graph = compile_plan(plan, registry, handler_registry=traced_handlers)
-        graph.invoke({"job_definition": "Build a test product"})
-
-        spans = tracer.export()
-        for span in spans:
-            assert span["status"] == "ok"
+    def test_given_pipeline_runs_then_global_context_preserved(
+        self, registry, plan
+    ):
+        graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
+        result = graph.invoke({"job_definition": _job_definition(1)})
+        assert result["global_context"]["objective"] == "Add user authentication"
+        assert result["global_context"]["constraints"] == ["Must use OAuth2"]

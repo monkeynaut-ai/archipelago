@@ -1,31 +1,64 @@
 {
   "goal": "archipelago-pipeline",
   "nodes": [
-    {"id": "unit_test_writer", "role": "write_unit_tests_from_spec", "config": {
-      "worker_mode": "unit_test_writer",
-      "acp_hidden_dirs": ["/workspace/src"],
-      "role_instructions_path": "/home/claude/.claude/CLAUDE-unit-test-writer.md",
-      "prompt_preamble": [
-        "Write unit tests for the following feature specification.",
-        "Do not write production code. Focus on test coverage for the acceptance criteria."
-      ]
-    }},
-    {"id": "code_writer", "role": "code_implement_from_tests", "config": {
-      "worker_mode": "code_writer",
-      "acp_readonly_dirs": ["/workspace/tests"],
-      "prompt_preamble": [
-        "Implement production code to make the existing tests pass.",
-        "Do not modify any test files."
-      ]
-    }}
+    {"id": "decomposer", "role": "decompose_job_definition", "config": {}},
+    {"id": "dispatcher", "role": "dispatch_commit", "config": {"max_iterations": 100}},
+    {
+      "id": "kernel",
+      "subgraph": {
+        "goal": "implementation-kernel",
+        "nodes": [
+          {"id": "unit_test_writer", "role": "write_unit_tests_from_spec", "config": {
+            "worker_mode": "unit_test_writer",
+            "acp_hidden_dirs": ["/workspace/src"],
+            "role_instructions_path": "/home/claude/.claude/CLAUDE-unit-test-writer.md",
+            "prompt_preamble": [
+              "Write unit tests for the following feature specification.",
+              "Do not write production code. Focus on test coverage for the acceptance criteria."
+            ]
+          }},
+          {"id": "code_writer", "role": "code_implement_from_tests", "config": {
+            "worker_mode": "code_writer",
+            "acp_readonly_dirs": ["/workspace/tests"],
+            "prompt_preamble": [
+              "Implement production code to make the existing tests pass.",
+              "Do not modify any test files."
+            ]
+          }},
+          {"id": "evaluator", "role": "evaluate_commit", "config": {}}
+        ],
+        "edges": [
+          {"source": "unit_test_writer", "target": "code_writer"},
+          {"source": "code_writer", "target": "evaluator"}
+        ],
+        "entry_point": "unit_test_writer",
+        "role_versions": {
+          "write_unit_tests_from_spec": "1.0.0",
+          "code_implement_from_tests": "1.0.0",
+          "evaluate_commit": "1.0.0"
+        }
+      },
+      "state_mapping": {
+        "input": {
+          "current_commit": "current_commit",
+          "workspace_volume": "workspace_volume"
+        },
+        "output": {
+          "commit_passed": "commit_passed",
+          "workspace_volume": "workspace_volume"
+        }
+      }
+    }
   ],
   "edges": [
-    {"source": "unit_test_writer", "target": "code_writer"}
+    {"source": "decomposer", "target": "dispatcher", "condition": "commit_slices"},
+    {"source": "dispatcher", "target": "kernel", "condition": "has_more_commits"},
+    {"source": "kernel", "target": "dispatcher", "condition": "commit_passed"}
   ],
-  "entry_point": "unit_test_writer",
+  "entry_point": "decomposer",
   "breakpoints": [],
   "role_versions": {
-    "write_unit_tests_from_spec": "1.0.0",
-    "code_implement_from_tests": "1.0.0"
+    "decompose_job_definition": "1.0.0",
+    "dispatch_commit": "1.0.0"
   }
 }

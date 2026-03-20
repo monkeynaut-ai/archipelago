@@ -1,0 +1,38 @@
+name: dispatch_commit
+description: Advances to the next commit slice, merging global context with per-commit data
+version: "1.0.0"
+implementation:
+  module: archipelago.agents.dispatcher
+  class_name: DispatcherHandler
+inputs_schema:
+  type: object
+  properties:
+    commit_slices:
+      type: array
+      items:
+        type: object
+    current_index:
+      type: integer
+    global_context:
+      type: object
+  required:
+    - commit_slices
+    - current_index
+outputs_schema:
+  type: object
+  properties:
+    current_commit:
+      type: object
+    current_index:
+      type: integer
+    has_more_commits:
+      type: boolean
+  required:
+    - current_index
+    - has_more_commits
+tags:
+  - archipelago
+  - dispatcher
+quality_controls:
+  timeout_seconds: 30
+  max_retries: 0

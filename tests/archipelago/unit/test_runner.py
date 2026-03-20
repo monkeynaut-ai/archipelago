@@ -14,14 +14,15 @@ class TestRunArchipelago:
         mock_plan = MagicMock()
         mock_load_plan.return_value = mock_plan
 
-        mock_run_plan.return_value = {"product_brief": {"name": "Test"}}
+        mock_run_plan.return_value = {"commit_passed": True}
 
-        result = run_archipelago("Build a test app")
+        job_def = {"objective": "Build a test app", "commits": [{"title": "c1"}]}
+        result = run_archipelago(job_def)
 
         mock_run_plan.assert_called_once()
         call_kwargs = mock_run_plan.call_args
-        assert call_kwargs.kwargs["initial_state"] == {"job_definition": "Build a test app"}
-        assert result == {"product_brief": {"name": "Test"}}
+        assert call_kwargs.kwargs["initial_state"] == {"job_definition": job_def}
+        assert result == {"commit_passed": True}
 
 
 class TestRunDevTest:
