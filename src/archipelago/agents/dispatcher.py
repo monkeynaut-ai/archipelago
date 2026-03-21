@@ -9,11 +9,11 @@ class DispatcherHandler:
     def __init__(self, spec: RoleSpec) -> None:
         self.spec = spec
 
-    def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
-        return dispatcher_handler(state)
+    def __call__(self, state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+        return dispatcher_handler(state, node_config or {})
 
 
-def dispatcher_handler(state: dict[str, Any]) -> dict[str, Any]:
+def dispatcher_handler(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Advance to the next commit slice, merging global context."""
     commit_slices = state.get("commit_slices", [])
     current_index = state.get("current_index", 0)

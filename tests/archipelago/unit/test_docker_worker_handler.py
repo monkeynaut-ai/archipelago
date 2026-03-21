@@ -798,7 +798,7 @@ class TestPipelineIntegration:
     def test_given_handler_registry_with_docker_worker_when_compile_plan_called_then_compiles(
         self, plan, registry
     ):
-        def _stub(state: dict[str, Any]) -> dict[str, Any]:
+        def _stub(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
             return state
 
         handlers = {
@@ -957,26 +957,26 @@ class TestWorkspaceVolumeSharing:
         assert result_state["workspace_volume"].startswith("archipelago-")
 
 
-class TestConfigInjectionFromState:
+class TestConfigFromNodeConfig:
     @patch("archipelago.docker_worker.handler._HandlerWSServer")
     @patch("archipelago.docker_worker.handler.docker")
-    def test_given_state_with_role_when_called_then_worker_input_has_role(
+    def test_given_node_config_with_role_when_called_then_worker_input_has_role(
         self, mock_docker, mock_ws_cls
     ):
         mock_client, _ = _mock_docker_env(mock_docker)
         mock_ws_cls.return_value = _preload_ws_server([_status_msg("exited", 0)])
-        state = {
-            "worker_input": _valid_worker_input(),
+        state = {"worker_input": _valid_worker_input()}
+        node_config = {
             "worker_mode": "unit_test_writer",
             "acp_hidden_dirs": ["/workspace/src"],
         }
-        docker_worker_handler(state)
+        docker_worker_handler(state, node_config)
         env = mock_client.containers.create.call_args.kwargs["environment"]
         assert env["ACP_HIDDEN_DIRS"] == "/workspace/src"
 
     @patch("archipelago.docker_worker.handler._HandlerWSServer")
     @patch("archipelago.docker_worker.handler.docker")
-    def test_given_code_writer_with_workspace_volume_when_called_then_volume_reused(
+    def test_given_code_writer_with_workspace_volume_in_state_when_called_then_volume_reused(
         self, mock_docker, mock_ws_cls
     ):
         mock_client, _ = _mock_docker_env(mock_docker)
@@ -984,26 +984,26 @@ class TestConfigInjectionFromState:
         state = {
             "worker_input": _valid_worker_input(),
             "workspace_volume": "archipelago-from-test-writer",
-            "worker_mode": "code_writer",
         }
-        docker_worker_handler(state)
+        node_config = {"worker_mode": "code_writer"}
+        docker_worker_handler(state, node_config)
         volumes = mock_client.containers.create.call_args.kwargs["volumes"]
         assert "archipelago-from-test-writer" in volumes
 
     @patch("archipelago.docker_worker.handler._HandlerWSServer")
     @patch("archipelago.docker_worker.handler.docker")
-    def test_given_prompt_preamble_in_state_when_called_then_prompt_uses_preamble(
+    def test_given_prompt_preamble_in_node_config_when_called_then_prompt_uses_preamble(
         self, mock_docker, mock_ws_cls
     ):
         _mock_docker_env(mock_docker)
         ws_server = _preload_ws_server([_status_msg("exited", 0)])
         mock_ws_cls.return_value = ws_server
 
-        state = {
-            "worker_input": _valid_worker_input(),
+        state = {"worker_input": _valid_worker_input()}
+        node_config = {
             "prompt_preamble": ["Custom role instruction.", "Do not touch config files."],
         }
-        docker_worker_handler(state)
+        docker_worker_handler(state, node_config)
 
         # Verify the prompt sent to the adapter contains the preamble
         input_msgs = []

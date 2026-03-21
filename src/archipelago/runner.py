@@ -10,7 +10,6 @@ from agent_foundry.registry.registry import RoleRegistry
 
 from archipelago.docker_worker.handler import docker_worker_handler
 from archipelago.docker_worker.models import WorkerConstraints, WorkerInput
-from archipelago.handlers import ARCHIPELAGO_HANDLERS
 
 PLAN_PATH = Path(__file__).parent / "archipelago_system.json"
 
@@ -43,9 +42,7 @@ def run_archipelago(
         plan = load_archipelago_plan()
 
     initial_state = {"job_definition": job_definition}
-    return run_plan(
-        plan, registry, handler_registry=ARCHIPELAGO_HANDLERS, initial_state=initial_state
-    )
+    return run_plan(plan, registry, initial_state=initial_state)
 
 
 def run_dev_test(dev_test_input: dict[str, Any]) -> dict[str, Any]:

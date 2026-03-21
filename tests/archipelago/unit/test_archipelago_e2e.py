@@ -16,7 +16,7 @@ PLAN_PATH = (
 )
 
 
-def _stub_docker_worker(state: dict[str, Any]) -> dict[str, Any]:
+def _stub_docker_worker(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
     return {
         **state,
         "worker_result": {

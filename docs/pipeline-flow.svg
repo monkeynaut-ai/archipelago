@@ -1,0 +1,283 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1600" font-family="monospace" font-size="11">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1565c0"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c44"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2e7d32"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e65100"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#222">Archipelago Pipeline — Compile-Time &amp; Runtime Flow</text>
+
+  <!-- Legend -->
+  <rect x="20" y="50" width="500" height="55" rx="5" fill="#f8f8f8" stroke="#ccc"/>
+  <line x1="30" y1="72" x2="80" y2="72" stroke="#1565c0" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <text x="85" y="76" fill="#1565c0" font-size="10">Compile-time</text>
+  <line x1="170" y1="72" x2="220" y2="72" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="225" y="76" fill="#333" font-size="10">Runtime control</text>
+  <line x1="330" y1="72" x2="380" y2="72" stroke="#c44" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrow-red)"/>
+  <text x="385" y="76" fill="#c44" font-size="10">Data flow</text>
+  <line x1="30" y1="92" x2="80" y2="92" stroke="#2e7d32" stroke-width="2" stroke-dasharray="3,3" marker-end="url(#arrow-green)"/>
+  <text x="85" y="96" fill="#2e7d32" font-size="10">Config (closure-captured)</text>
+  <line x1="250" y1="92" x2="300" y2="92" stroke="#e65100" stroke-width="2" marker-end="url(#arrow-orange)"/>
+  <text x="305" y="96" fill="#e65100" font-size="10">State mapping (subgraph boundary)</text>
+
+  <!-- SECTION 1: INPUT FILES                     -->
+  <rect x="20" y="120" width="1360" height="200" rx="8" fill="#f5f5f5" stroke="#999"/>
+  <text x="40" y="142" font-size="14" font-weight="bold" fill="#555">Input Files (on disk)</text>
+
+  <!-- job_definition YAML -->
+  <rect x="40" y="155" width="350" height="155" rx="5" fill="#fff" stroke="#e65100" stroke-width="2"/>
+  <text x="50" y="175" font-weight="bold" fill="#e65100">lab/job_definition/library_api.yaml</text>
+  <text x="50" y="195" fill="#555" font-size="10">job_definition:</text>
+  <text x="60" y="208" fill="#555" font-size="10">objective: "Implement REST API..."</text>
+  <text x="60" y="221" fill="#555" font-size="10">repo_url: "https://github.com/..."</text>
+  <text x="60" y="234" fill="#555" font-size="10">repo_ref: "main"</text>
+  <text x="60" y="247" fill="#555" font-size="10">constraints: ["Use FastAPI", ...]</text>
+  <text x="60" y="260" fill="#555" font-size="10">commits:</text>
+  <text x="70" y="273" fill="#555" font-size="10">- {title, acceptance_criteria, test_focus, ...}</text>
+  <text x="70" y="286" fill="#555" font-size="10">- {title, acceptance_criteria, test_focus, ...}</text>
+
+  <!-- archipelago_system.json -->
+  <rect x="420" y="155" width="940" height="155" rx="5" fill="#fff" stroke="#1565c0" stroke-width="2"/>
+  <text x="430" y="175" font-weight="bold" fill="#1565c0">src/archipelago/archipelago_system.json</text>
+
+  <!-- JSON nodes -->
+  <rect x="430" y="185" width="290" height="115" rx="3" fill="#e3f2fd" stroke="#90caf9"/>
+  <text x="440" y="200" font-weight="bold" font-size="10" fill="#1565c0">nodes:</text>
+  <text x="445" y="215" font-size="9" fill="#555">decomposer  role: decompose_job_definition  config: {}</text>
+  <text x="445" y="228" font-size="9" fill="#555">dispatcher   role: dispatch_commit          config: {max_iter:100}</text>
+  <text x="445" y="241" font-size="9" fill="#555">kernel       subgraph: ↴</text>
+  <text x="455" y="254" font-size="9" fill="#888">unit_test_writer  role: write_unit_tests...  config: {worker_mode,</text>
+  <text x="455" y="267" font-size="9" fill="#888">    acp_hidden_dirs, prompt_preamble, role_instructions_path}</text>
+  <text x="455" y="280" font-size="9" fill="#888">code_writer       role: code_implement...    config: {worker_mode, ...}</text>
+  <text x="455" y="293" font-size="9" fill="#888">evaluator         role: evaluate_commit      config: {}</text>
+
+  <!-- JSON edges -->
+  <rect x="730" y="185" width="200" height="55" rx="3" fill="#e3f2fd" stroke="#90caf9"/>
+  <text x="740" y="200" font-weight="bold" font-size="10" fill="#1565c0">edges:</text>
+  <text x="745" y="215" font-size="9" fill="#555">decomposer → dispatcher  cond: commit_slices</text>
+  <text x="745" y="228" font-size="9" fill="#555">dispatcher → kernel      cond: has_more_commits</text>
+  <text x="745" y="238" font-size="9" fill="#555">kernel → dispatcher      cond: commit_passed</text>
+
+  <!-- JSON state_mapping -->
+  <rect x="940" y="185" width="410" height="55" rx="3" fill="#fff8e1" stroke="#f57f17"/>
+  <text x="950" y="200" font-weight="bold" font-size="10" fill="#f57f17">kernel.state_mapping:</text>
+  <text x="955" y="215" font-size="9" fill="#555">input:  {current_commit → current_commit, workspace_volume → workspace_volume}</text>
+  <text x="955" y="228" font-size="9" fill="#555">output: {commit_passed → commit_passed, workspace_volume → workspace_volume}</text>
+
+  <!-- JSON role_versions -->
+  <rect x="730" y="250" width="200" height="40" rx="3" fill="#e3f2fd" stroke="#90caf9"/>
+  <text x="740" y="265" font-weight="bold" font-size="10" fill="#1565c0">role_versions:</text>
+  <text x="745" y="280" font-size="9" fill="#555">decompose_job_definition, dispatch_commit</text>
+
+  <!-- role YAMLs -->
+  <rect x="940" y="250" width="410" height="40" rx="3" fill="#e8f5e9" stroke="#66bb6a"/>
+  <text x="950" y="265" font-weight="bold" font-size="10" fill="#2e7d32">Role YAMLs (src/archipelago/roles/*.yaml)</text>
+  <text x="955" y="280" font-size="9" fill="#555">implementation pointers → handler classes, inputs_schema, outputs_schema</text>
+
+  <!-- SECTION 2: COMPILE TIME                    -->
+  <rect x="20" y="335" width="1360" height="130" rx="8" fill="#e8eaf6" stroke="#3f51b5"/>
+  <text x="40" y="357" font-size="14" font-weight="bold" fill="#3f51b5">Compile Time (compile_plan)</text>
+
+  <rect x="40" y="370" width="200" height="40" rx="5" fill="#fff" stroke="#3f51b5"/>
+  <text x="140" y="395" text-anchor="middle" font-size="10" fill="#3f51b5">Parse JSON → GraphWiringPlan</text>
+
+  <line x1="240" y1="390" x2="270" y2="390" stroke="#1565c0" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+  <rect x="270" y="370" width="250" height="40" rx="5" fill="#fff" stroke="#3f51b5"/>
+  <text x="395" y="388" text-anchor="middle" font-size="10" fill="#3f51b5">For each node: resolve handler</text>
+  <text x="395" y="400" text-anchor="middle" font-size="9" fill="#888">RoleRegistry → import class → instantiate</text>
+
+  <line x1="520" y1="390" x2="550" y2="390" stroke="#1565c0" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+  <rect x="550" y="365" width="250" height="50" rx="5" fill="#e8f4e8" stroke="#4a4" stroke-width="2"/>
+  <text x="675" y="383" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">Wrap: _make_config_provider</text>
+  <text x="675" y="396" text-anchor="middle" font-size="9" fill="#555">closure captures node.config</text>
+  <text x="675" y="408" text-anchor="middle" font-size="9" fill="#555">handler(state, node_config) ← config bound here</text>
+
+  <line x1="800" y1="390" x2="830" y2="390" stroke="#1565c0" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+  <rect x="830" y="370" width="200" height="40" rx="5" fill="#fff" stroke="#3f51b5"/>
+  <text x="930" y="388" text-anchor="middle" font-size="10" fill="#3f51b5">Wrap: _make_iteration_limiter</text>
+  <text x="930" y="400" text-anchor="middle" font-size="9" fill="#888">(if max_iterations set)</text>
+
+  <line x1="1030" y1="390" x2="1060" y2="390" stroke="#1565c0" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+  <rect x="1060" y="370" width="200" height="40" rx="5" fill="#fff" stroke="#3f51b5"/>
+  <text x="1160" y="388" text-anchor="middle" font-size="10" fill="#3f51b5">graph.add_node(id, wrapped)</text>
+  <text x="1160" y="400" text-anchor="middle" font-size="9" fill="#888">+ add_edge / add_conditional_edges</text>
+
+  <!-- Compile-time arrow for subgraph -->
+  <rect x="40" y="420" width="480" height="35" rx="3" fill="#fff8e1" stroke="#f57f17"/>
+  <text x="50" y="442" font-size="10" fill="#f57f17">For kernel (subgraph): compile_plan(subgraph_plan) recursively → _make_subgraph_handler(compiled, state_mapping)</text>
+
+  <!-- SECTION 3: RUNTIME                         -->
+  <rect x="20" y="480" width="1360" height="660" rx="8" fill="#fafafa" stroke="#333" stroke-width="2"/>
+  <text x="40" y="502" font-size="14" font-weight="bold" fill="#333">Runtime (graph.invoke)</text>
+
+  <!-- CLI entry -->
+  <rect x="40" y="515" width="220" height="50" rx="5" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+  <text x="150" y="535" text-anchor="middle" font-weight="bold" fill="#e65100">CLI: main()</text>
+  <text x="150" y="550" text-anchor="middle" font-size="9" fill="#555">yaml.safe_load → data["job_definition"]</text>
+
+  <line x1="260" y1="540" x2="290" y2="540" stroke="#e65100" stroke-width="2" marker-end="url(#arrow-orange)"/>
+
+  <!-- Runner -->
+  <rect x="290" y="515" width="220" height="50" rx="5" fill="#fff3e0" stroke="#e65100"/>
+  <text x="400" y="535" text-anchor="middle" font-weight="bold" fill="#e65100">run_archipelago(job_def)</text>
+  <text x="400" y="550" text-anchor="middle" font-size="9" fill="#555">initial_state = {"job_definition": job_def}</text>
+
+  <line x1="510" y1="540" x2="540" y2="540" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- graph.invoke -->
+  <rect x="540" y="520" width="160" height="40" rx="5" fill="#e0e0e0" stroke="#616161"/>
+  <text x="620" y="545" text-anchor="middle" font-weight="bold" fill="#333">graph.invoke(state)</text>
+
+  <rect x="40" y="580" width="800" height="180" rx="8" fill="none" stroke="#888" stroke-dasharray="6,3"/>
+  <text x="60" y="598" font-size="12" font-weight="bold" fill="#888">Parent Graph</text>
+
+  <!-- Decomposer runtime -->
+  <rect x="60" y="610" width="180" height="55" rx="5" fill="#e3f2fd" stroke="#1565c0"/>
+  <text x="150" y="628" text-anchor="middle" font-weight="bold" font-size="11" fill="#1565c0">decomposer</text>
+  <text x="150" y="643" text-anchor="middle" font-size="9" fill="#555">reads: state["job_definition"]</text>
+  <text x="150" y="655" text-anchor="middle" font-size="9" fill="#555">node_config: {}</text>
+
+  <!-- Decomposer output state -->
+  <rect x="60" y="672" width="180" height="80" rx="3" fill="#fff" stroke="#c44" stroke-dasharray="3,2"/>
+  <text x="70" y="686" font-size="9" fill="#c44" font-weight="bold">State after decomposer:</text>
+  <text x="70" y="699" font-size="9" fill="#555">job_definition: {...} (original)</text>
+  <text x="70" y="712" font-size="9" fill="#555">global_context: {objective, repo_url,</text>
+  <text x="75" y="722" font-size="9" fill="#555">repo_ref, constraints}</text>
+  <text x="70" y="735" font-size="9" fill="#555">commit_slices: [{...}, {...}]</text>
+  <text x="70" y="748" font-size="9" fill="#555">current_index: 0</text>
+
+  <line x1="240" y1="637" x2="280" y2="637" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Dispatcher runtime -->
+  <rect x="280" y="610" width="180" height="55" rx="5" fill="#e3f2fd" stroke="#1565c0"/>
+  <text x="370" y="628" text-anchor="middle" font-weight="bold" font-size="11" fill="#1565c0">dispatcher</text>
+  <text x="370" y="643" text-anchor="middle" font-size="9" fill="#555">reads: commit_slices, current_index</text>
+  <text x="370" y="655" text-anchor="middle" font-size="9" fill="#555">node_config: {max_iterations: 100}</text>
+
+  <!-- Dispatcher output -->
+  <rect x="280" y="672" width="180" height="80" rx="3" fill="#fff" stroke="#c44" stroke-dasharray="3,2"/>
+  <text x="290" y="686" font-size="9" fill="#c44" font-weight="bold">Adds to state:</text>
+  <text x="290" y="699" font-size="9" fill="#555">current_commit: {</text>
+  <text x="295" y="712" font-size="9" fill="#555">objective, repo_url, repo_ref,</text>
+  <text x="295" y="725" font-size="9" fill="#555">constraints, title,</text>
+  <text x="295" y="738" font-size="9" fill="#555">acceptance_criteria, test_focus}</text>
+  <text x="290" y="748" font-size="9" fill="#555">has_more_commits: true</text>
+
+  <line x1="460" y1="637" x2="500" y2="637" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="470" y="628" font-size="8" fill="#888">cond:</text>
+  <text x="462" y="650" font-size="8" fill="#888">has_more</text>
+
+  <!-- Subgraph boundary -->
+  <rect x="500" y="600" width="320" height="155" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="2"/>
+  <text x="520" y="618" font-size="11" font-weight="bold" fill="#6a1b9a">Kernel Subgraph</text>
+
+  <!-- State mapping IN -->
+  <rect x="510" y="625" width="300" height="30" rx="3" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/>
+  <text x="520" y="644" font-size="9" fill="#f57f17" font-weight="bold">⟹ state_mapping.input: current_commit, workspace_volume → subgraph state</text>
+
+  <!-- Subgraph state -->
+  <rect x="510" y="660" width="300" height="35" rx="3" fill="#ffebee" stroke="#c44" stroke-width="2"/>
+  <text x="520" y="675" font-size="9" fill="#c44" font-weight="bold">Subgraph state = {current_commit: {...}, workspace_volume: "..."}</text>
+  <text x="520" y="688" font-size="9" fill="#c44">⚠ Handler expects flat keys: repo_ref, feature_spec — NOT HERE</text>
+
+  <!-- Subgraph nodes -->
+  <rect x="515" y="700" width="95" height="25" rx="3" fill="#e8eaf6" stroke="#283593"/>
+  <text x="562" y="717" text-anchor="middle" font-size="9" fill="#283593">test_writer</text>
+  <line x1="610" y1="712" x2="625" y2="712" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="625" y="700" width="85" height="25" rx="3" fill="#e8eaf6" stroke="#283593"/>
+  <text x="667" y="717" text-anchor="middle" font-size="9" fill="#283593">code_writer</text>
+  <line x1="710" y1="712" x2="725" y2="712" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="725" y="700" width="75" height="25" rx="3" fill="#f3e5f5" stroke="#6a1b9a"/>
+  <text x="762" y="717" text-anchor="middle" font-size="9" fill="#6a1b9a">evaluator</text>
+
+  <!-- State mapping OUT -->
+  <rect x="510" y="730" width="300" height="20" rx="3" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/>
+  <text x="520" y="744" font-size="9" fill="#f57f17" font-weight="bold">⟸ state_mapping.output: commit_passed, workspace_volume → parent state</text>
+
+  <!-- Loop back -->
+  <path d="M 660,755 L 660,770 L 370,770 L 370,667" fill="none" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="510" y="785" font-size="9" fill="#888">cond: commit_passed → back to dispatcher</text>
+
+  <!-- END -->
+  <rect x="340" y="800" width="70" height="25" rx="5" fill="#ffebee" stroke="#c62828"/>
+  <text x="375" y="817" text-anchor="middle" font-weight="bold" font-size="10" fill="#c62828">END</text>
+  <text x="430" y="817" font-size="9" fill="#888">← has_more_commits = false</text>
+
+  <!-- SECTION 4: HANDLER DETAIL                  -->
+  <rect x="40" y="840" width="780" height="280" rx="8" fill="#fff" stroke="#283593" stroke-width="2"/>
+  <text x="60" y="862" font-size="13" font-weight="bold" fill="#283593">docker_worker_handler(state, node_config) — What it actually receives</text>
+
+  <!-- state column -->
+  <rect x="55" y="875" width="350" height="230" rx="5" fill="#ffebee" stroke="#c44"/>
+  <text x="65" y="895" font-weight="bold" fill="#c44">state (from subgraph state):</text>
+  <text x="65" y="915" font-size="10" fill="#555">{"current_commit": {</text>
+  <text x="80" y="930" font-size="10" fill="#555">"objective": "Implement REST API...",</text>
+  <text x="80" y="945" font-size="10" fill="#555">"repo_url": "https://github.com/...",</text>
+  <text x="80" y="960" font-size="10" fill="#555">"repo_ref": "main",</text>
+  <text x="80" y="975" font-size="10" fill="#555">"constraints": [...],</text>
+  <text x="80" y="990" font-size="10" fill="#555">"title": "Add Book resource...",</text>
+  <text x="80" y="1005" font-size="10" fill="#555">"acceptance_criteria": [...],</text>
+  <text x="80" y="1020" font-size="10" fill="#555">"test_focus": "..."</text>
+  <text x="65" y="1035" font-size="10" fill="#555">},</text>
+  <text x="65" y="1050" font-size="10" fill="#555">"workspace_volume": "archipelago-..."</text>
+  <text x="65" y="1065" font-size="10" fill="#555">}</text>
+  <text x="65" y="1085" font-size="10" fill="#c44" font-weight="bold">⚠ Handler looks for state["repo_ref"] → KeyError</text>
+  <text x="65" y="1098" font-size="10" fill="#c44" font-weight="bold">⚠ Handler looks for state["feature_spec"] → empty {}</text>
+
+  <!-- node_config column -->
+  <rect x="420" y="875" width="385" height="135" rx="5" fill="#e8f4e8" stroke="#4a4"/>
+  <text x="430" y="895" font-weight="bold" fill="#2e7d32">node_config (from closure, compile-time):</text>
+  <text x="430" y="915" font-size="10" fill="#555">{"worker_mode": "unit_test_writer",</text>
+  <text x="435" y="930" font-size="10" fill="#555">"acp_hidden_dirs": ["/workspace/src"],</text>
+  <text x="435" y="945" font-size="10" fill="#555">"role_instructions_path": "/home/claude/...",</text>
+  <text x="435" y="960" font-size="10" fill="#555">"prompt_preamble": [</text>
+  <text x="445" y="975" font-size="10" fill="#555">"Write unit tests for the following...",</text>
+  <text x="445" y="990" font-size="10" fill="#555">"Do not write production code..."</text>
+  <text x="435" y="1003" font-size="10" fill="#555">]}</text>
+  <text x="430" y="1020" font-size="10" fill="#2e7d32">✓ Handler reads these correctly from node_config</text>
+
+  <!-- SECTION 5: PROBLEMS                        -->
+  <rect x="20" y="1150" width="1360" height="430" rx="10" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+  <text x="40" y="1178" font-size="16" font-weight="bold" fill="#e65100">Problems</text>
+
+  <text x="40" y="1208" font-size="13" font-weight="bold" fill="#c62828">1. Data flow mismatch at subgraph boundary</text>
+  <text x="60" y="1228" font-size="11" fill="#555">current_commit = {objective, repo_url, repo_ref, constraints, title, acceptance_criteria, test_focus}</text>
+  <text x="60" y="1245" font-size="11" fill="#555">This enters the subgraph as state["current_commit"] — a nested dict.</text>
+  <text x="60" y="1262" font-size="11" fill="#c44" font-weight="bold">docker_worker_handler expects flat keys: state["repo_ref"], state["feature_spec"]</text>
+  <text x="60" y="1279" font-size="11" fill="#c44">Neither exists at the top level of subgraph state. The prompt gets no task details.</text>
+
+  <text x="40" y="1310" font-size="13" font-weight="bold" fill="#c62828">2. No typing — implicit key conventions everywhere</text>
+  <text x="60" y="1330" font-size="11" fill="#555">All state is dict[str, Any]. Key names are strings matched by convention between:</text>
+  <text x="70" y="1347" font-size="11" fill="#555">• decomposer output keys ↔ dispatcher input keys (global_context, commit_slices)</text>
+  <text x="70" y="1364" font-size="11" fill="#555">• dispatcher output keys ↔ state_mapping keys (current_commit)</text>
+  <text x="70" y="1381" font-size="11" fill="#555">• state_mapping keys ↔ handler expected keys (repo_ref, feature_spec)</text>
+  <text x="60" y="1398" font-size="11" fill="#c44">A typo anywhere is a silent runtime failure. No compile-time or IDE help.</text>
+
+  <text x="40" y="1428" font-size="13" font-weight="bold" fill="#c62828">3. Invented intermediary structures with no schema</text>
+  <text x="60" y="1448" font-size="11" fill="#555">"global_context" — archipelago-invented, sounds like a framework concept, no type</text>
+  <text x="60" y="1465" font-size="11" fill="#555">"current_commit" — dispatcher merges global_context + commit_slice, no type</text>
+  <text x="60" y="1482" font-size="11" fill="#555">"commit_slices" — list iterated via current_index, no type</text>
+
+  <text x="40" y="1512" font-size="13" font-weight="bold" fill="#c62828">4. Handler interface mismatch</text>
+  <text x="60" y="1532" font-size="11" fill="#555">docker_worker_handler was designed for flat state (old pipeline where config was injected into state).</text>
+  <text x="60" y="1549" font-size="11" fill="#555">The new decomposer → dispatcher → subgraph architecture produces nested structures that don't</text>
+  <text x="60" y="1566" font-size="11" fill="#555">match the handler's expectations. The handler needs to understand current_commit or the pipeline</text>
+  <text x="60" y="1583" font-size="11" fill="#555">needs to flatten the data before it reaches the handler.</text>
+</svg>

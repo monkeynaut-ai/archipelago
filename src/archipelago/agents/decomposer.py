@@ -11,11 +11,11 @@ class DecomposerHandler:
     def __init__(self, spec: RoleSpec) -> None:
         self.spec = spec
 
-    def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
-        return decomposer_handler(state)
+    def __call__(self, state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+        return decomposer_handler(state, node_config or {})
 
 
-def decomposer_handler(state: dict[str, Any]) -> dict[str, Any]:
+def decomposer_handler(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Parse job_definition into global_context and commit_slices."""
     raw = state.get("job_definition")
     if not raw:

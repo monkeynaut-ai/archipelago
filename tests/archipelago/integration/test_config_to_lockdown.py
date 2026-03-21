@@ -24,11 +24,11 @@ from conftest import run_in_container
 class TestConfigToEnvPipeline:
     """Compile a plan with lockdown config, verify env dict is correct."""
 
-    def _compile_and_capture(self, config: dict[str, Any], registry) -> dict[str, Any]:
-        captured: dict[str, Any] = {}
+    def _compile_and_capture_config(self, config: dict[str, Any], registry) -> dict[str, Any]:
+        captured_config: dict[str, Any] = {}
 
-        def spy(state):
-            captured.update(state)
+        def spy(state, node_config):
+            captured_config.update(node_config)
             return state
 
         plan = GraphWiringPlan(
@@ -40,18 +40,20 @@ class TestConfigToEnvPipeline:
         )
         graph = compile_plan(plan, registry, handler_registry={"test_role": spy})
         graph.invoke({"input": "test"})
-        return captured
+        return captured_config
 
     def test_given_plan_with_hidden_dirs_when_compiled_then_env_contains_acp_hidden_dirs(
         self, registry
     ):
-        state = self._compile_and_capture({"acp_hidden_dirs": ["/workspace/secrets"]}, registry)
+        node_config = self._compile_and_capture_config(
+            {"acp_hidden_dirs": ["/workspace/secrets"]}, registry
+        )
         worker_input = WorkerInput(
             repo_ref="main",
             feature_spec={},
             constraints=WorkerConstraints(),
             test_commands=[],
-            acp_hidden_dirs=state["acp_hidden_dirs"],
+            acp_hidden_dirs=node_config["acp_hidden_dirs"],
         )
         env = build_container_env(worker_input, ws_url="ws://host:1234/test")
         assert env["ACP_HIDDEN_DIRS"] == "/workspace/secrets"
@@ -59,13 +61,15 @@ class TestConfigToEnvPipeline:
     def test_given_plan_with_readonly_dirs_when_compiled_then_env_contains_acp_readonly_dirs(
         self, registry
     ):
-        state = self._compile_and_capture({"acp_readonly_dirs": ["/workspace/tests"]}, registry)
+        node_config = self._compile_and_capture_config(
+            {"acp_readonly_dirs": ["/workspace/tests"]}, registry
+        )
         worker_input = WorkerInput(
             repo_ref="main",
             feature_spec={},
             constraints=WorkerConstraints(),
             test_commands=[],
-            acp_readonly_dirs=state["acp_readonly_dirs"],
+            acp_readonly_dirs=node_config["acp_readonly_dirs"],
         )
         env = build_container_env(worker_input, ws_url="ws://host:1234/test")
         assert env["ACP_READONLY_DIRS"] == "/workspace/tests"
@@ -82,10 +86,10 @@ class TestConfigToLockdownEnforcement:
         self, docker_client, worker_image, container_cleanup, registry
     ):
         # Step 1: Compile plan with hidden_dirs config
-        captured: dict[str, Any] = {}
+        captured_config: dict[str, Any] = {}
 
-        def spy(state):
-            captured.update(state)
+        def spy(state, node_config):
+            captured_config.update(node_config)
             return state
 
         plan = GraphWiringPlan(
@@ -104,13 +108,13 @@ class TestConfigToLockdownEnforcement:
         graph = compile_plan(plan, registry, handler_registry={"test_role": spy})
         graph.invoke({})
 
-        # Step 2: Build env from compiled state
+        # Step 2: Build env from compiled config
         worker_input = WorkerInput(
             repo_ref="main",
             feature_spec={},
             constraints=WorkerConstraints(),
             test_commands=[],
-            acp_hidden_dirs=captured["acp_hidden_dirs"],
+            acp_hidden_dirs=captured_config["acp_hidden_dirs"],
         )
         env = build_container_env(worker_input, ws_url="ws://host:1234/test")
 
@@ -131,10 +135,10 @@ class TestConfigToLockdownEnforcement:
         self, docker_client, worker_image, container_cleanup, registry
     ):
         # Step 1: Compile plan with readonly_dirs config
-        captured: dict[str, Any] = {}
+        captured_config: dict[str, Any] = {}
 
-        def spy(state):
-            captured.update(state)
+        def spy(state, node_config):
+            captured_config.update(node_config)
             return state
 
         plan = GraphWiringPlan(
@@ -153,13 +157,13 @@ class TestConfigToLockdownEnforcement:
         graph = compile_plan(plan, registry, handler_registry={"test_role": spy})
         graph.invoke({})
 
-        # Step 2: Build env from compiled state
+        # Step 2: Build env from compiled config
         worker_input = WorkerInput(
             repo_ref="main",
             feature_spec={},
             constraints=WorkerConstraints(),
             test_commands=[],
-            acp_readonly_dirs=captured["acp_readonly_dirs"],
+            acp_readonly_dirs=captured_config["acp_readonly_dirs"],
         )
         env = build_container_env(worker_input, ws_url="ws://host:1234/test")
 

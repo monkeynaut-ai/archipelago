@@ -258,13 +258,16 @@ def _process_messages(
     return result
 
 
-def docker_worker_handler(state: dict[str, Any]) -> dict[str, Any]:
+def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Orchestrate a full Docker worker lifecycle.
 
     Extracts worker_input from state, creates/starts a container,
     starts a WS server for the adapter to connect to, processes
     structured protocol messages, and returns worker_result.
     """
+    if node_config is None:
+        node_config = {}
+
     worker_input_data = state.get("worker_input")
     if worker_input_data:
         worker_input = WorkerInput(**worker_input_data)
@@ -277,19 +280,21 @@ def docker_worker_handler(state: dict[str, Any]) -> dict[str, Any]:
             gates=state.get("gates", []),
         )
 
-    # Merge node config from system JSON (injected into state by the compiler)
-    if role := state.get("worker_mode"):
+    # Apply node config (static per-node settings from the wiring plan)
+    if role := node_config.get("worker_mode"):
         worker_input.worker_mode = role
-    if acp_hidden_dirs := state.get("acp_hidden_dirs"):
+    if acp_hidden_dirs := node_config.get("acp_hidden_dirs"):
         worker_input.acp_hidden_dirs = acp_hidden_dirs
-    if acp_readonly_dirs := state.get("acp_readonly_dirs"):
+    if acp_readonly_dirs := node_config.get("acp_readonly_dirs"):
         worker_input.acp_readonly_dirs = acp_readonly_dirs
-    if role_instructions_path := state.get("role_instructions_path"):
+    if role_instructions_path := node_config.get("role_instructions_path"):
         worker_input.role_instructions_path = role_instructions_path
+    if prompt_preamble := node_config.get("prompt_preamble"):
+        worker_input.prompt_preamble = prompt_preamble
+
+    # workspace_volume is runtime data (flows through state between nodes)
     if workspace_volume := state.get("workspace_volume"):
         worker_input.workspace_volume = workspace_volume
-    if prompt_preamble := state.get("prompt_preamble"):
-        worker_input.prompt_preamble = prompt_preamble
 
     auto_approve_low_risk = worker_input.constraints.network_policy != "none"
     logger.info("worker_input: %s", worker_input)
@@ -436,5 +441,5 @@ class DockerWorkerHandler:
     def __init__(self, spec: Any = None):
         self.spec = spec
 
-    def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
-        return docker_worker_handler(state)
+    def __call__(self, state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+        return docker_worker_handler(state, node_config)
