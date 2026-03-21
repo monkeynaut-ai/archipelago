@@ -7,12 +7,12 @@ implementation:
 inputs_schema:
   type: object
   properties:
-    feature_spec:
+    commit_spec:
       type: object
     test_plan:
       type: object
   required:
-    - feature_spec
+    - commit_spec
     - test_plan
 outputs_schema:
   type: object

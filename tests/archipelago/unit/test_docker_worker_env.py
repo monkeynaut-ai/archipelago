@@ -7,9 +7,8 @@ from archipelago.docker_worker.models import WorkerConstraints, WorkerInput
 def _make_worker_input(**overrides) -> WorkerInput:
     defaults = {
         "repo_ref": "main",
-        "feature_spec": {"title": "test"},
+        "commit_spec": {"title": "test"},
         "constraints": WorkerConstraints(),
-        "test_commands": ["pdm run pytest"],
     }
     defaults.update(overrides)
     return WorkerInput(**defaults)

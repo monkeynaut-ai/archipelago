@@ -9,21 +9,16 @@ inputs_schema:
   properties:
     repo_ref:
       type: string
-    feature_spec:
+    commit_spec:
       type: object
     constraints:
       type: object
-    test_commands:
-      type: array
-      items:
-        type: string
     workspace_volume:
       type: string
   required:
     - repo_ref
-    - feature_spec
+    - commit_spec
     - constraints
-    - test_commands
     - workspace_volume
 outputs_schema:
   type: object

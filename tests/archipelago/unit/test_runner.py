@@ -34,8 +34,7 @@ class TestRunDevTest:
         dev_test_input = {
             "repo_url": "https://github.com/org/repo",
             "repo_ref": "main",
-            "feature_spec": {"title": "Add login"},
-            "test_commands": ["pdm run pytest"],
+            "commit_spec": {"title": "Add login"},
         }
 
         run_dev_test(dev_test_input)
@@ -51,8 +50,7 @@ class TestRunDevTest:
         mock_handler.return_value = {"worker_result": {"status": "completed"}}
         dev_test_input = {
             "repo_ref": "main",
-            "feature_spec": {"title": "Add login"},
-            "test_commands": ["pdm run pytest"],
+            "commit_spec": {"title": "Add login"},
             "constraints": {"turn_timeout_seconds": 7200},
         }
 
@@ -68,8 +66,7 @@ class TestRunDevTest:
         mock_handler.return_value = {"worker_result": {"status": "completed"}}
         dev_test_input = {
             "repo_ref": "main",
-            "feature_spec": {"title": "Add login"},
-            "test_commands": ["pdm run pytest"],
+            "commit_spec": {"title": "Add login"},
         }
 
         run_dev_test(dev_test_input)

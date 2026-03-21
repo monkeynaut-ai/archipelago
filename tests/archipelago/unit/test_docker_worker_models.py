@@ -31,10 +31,8 @@ def _valid_worker_input() -> dict:
     return {
         "repo_ref": "abc123",
         "repo_url": "https://github.com/org/repo",
-        "feature_spec": {"title": "Test Feature", "objective": "Test"},
+        "commit_spec": {"title": "Test Feature"},
         "constraints": _valid_worker_constraints(),
-        "test_commands": ["pdm run pytest"],
-        "gates": ["spec_approval"],
     }
 
 
@@ -90,8 +88,7 @@ class TestWorkerInput:
     def test_given_valid_fields_when_instantiated_then_validates(self):
         inp = WorkerInput(**_valid_worker_input())
         assert inp.repo_ref == "abc123"
-        assert len(inp.test_commands) == 1
-        assert len(inp.gates) == 1
+        assert inp.commit_spec.title == "Test Feature"
 
     def test_given_valid_instance_when_json_round_tripped_then_no_field_loss(self):
         inp = WorkerInput(**_valid_worker_input())

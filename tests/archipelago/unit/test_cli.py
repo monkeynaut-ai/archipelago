@@ -57,8 +57,7 @@ class TestCLI:
                 {
                     "dev_test_input": {
                         "repo_ref": "main",
-                        "feature_spec": {"title": "Add login"},
-                        "test_commands": ["pdm run pytest"],
+                        "commit_spec": {"title": "Add login"},
                     }
                 }
             )
@@ -83,8 +82,7 @@ class TestCLI:
                 {
                     "dev_test_input": {
                         "repo_ref": "main",
-                        "feature_spec": {"title": "Add login"},
-                        "test_commands": ["pdm run pytest"],
+                        "commit_spec": {"title": "Add login"},
                     }
                 }
             )

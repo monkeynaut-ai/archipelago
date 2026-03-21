@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from archipelago.models import (
     CodePatch,
-    CommitSlice,
+    CommitSpecification,
     JobDefinition,
     TestResults,
 )
@@ -30,22 +30,22 @@ def _valid_test_results() -> dict:
     }
 
 
-class TestCommitSlice:
+class TestCommitSpecification:
     def test_given_title_only_when_instantiated_then_defaults_applied(self):
-        cs = CommitSlice(title="Add models")
+        cs = CommitSpecification(title="Add models")
         assert cs.title == "Add models"
         assert cs.acceptance_criteria == []
         assert cs.test_focus == ""
         assert cs.implementation_focus == ""
 
     def test_given_all_fields_when_json_round_tripped_then_no_field_loss(self):
-        cs = CommitSlice(
+        cs = CommitSpecification(
             title="Add models",
             acceptance_criteria=["Model exists"],
             test_focus="unit tests",
             implementation_focus="Pydantic models",
         )
-        reconstructed = CommitSlice.model_validate_json(cs.model_dump_json())
+        reconstructed = CommitSpecification.model_validate_json(cs.model_dump_json())
         assert reconstructed == cs
 
 

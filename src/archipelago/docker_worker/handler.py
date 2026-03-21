@@ -102,7 +102,7 @@ class _HandlerWSServer:
 
 def _build_prompt(worker_input: WorkerInput) -> str:
     """Format the worker input into a prompt string for Claude Code."""
-    spec = worker_input.feature_spec
+    spec = worker_input.commit_spec
 
     parts = (
         list(worker_input.prompt_preamble)
@@ -110,18 +110,16 @@ def _build_prompt(worker_input: WorkerInput) -> str:
         else ["Implement the following feature:"]
     )
 
-    if title := spec.get("title"):
-        parts.append(f"Title: {title}")
-    if description := spec.get("description"):
-        parts.append(f"Description: {description}")
-    if requirements := spec.get("requirements"):
-        parts.append("Requirements:")
-        for req in requirements:
-            parts.append(f"  - {req}")
-    if worker_input.test_commands:
-        parts.append(f"Test commands: {', '.join(worker_input.test_commands)}")
-    if worker_input.gates:
-        parts.append(f"Gates: {', '.join(worker_input.gates)}")
+    if spec.title:
+        parts.append(f"Title: {spec.title}")
+    if spec.acceptance_criteria:
+        parts.append("Acceptance criteria:")
+        for criterion in spec.acceptance_criteria:
+            parts.append(f"  - {criterion}")
+    if spec.test_focus:
+        parts.append(f"Test focus: {spec.test_focus}")
+    if spec.implementation_focus:
+        parts.append(f"Implementation focus: {spec.implementation_focus}")
     return "\n".join(parts)
 
 
@@ -274,10 +272,8 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
     else:
         worker_input = WorkerInput(
             repo_ref=state.get("repo_ref", "main"),
-            feature_spec=state.get("feature_spec", {}),
+            commit_spec=state.get("current_commit", {}),
             constraints=WorkerConstraints(**state.get("worker_constraints", {})),
-            test_commands=state.get("test_commands", ["pdm run pytest"]),
-            gates=state.get("gates", []),
         )
 
     # Apply node config (static per-node settings from the wiring plan)

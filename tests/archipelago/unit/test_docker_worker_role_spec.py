@@ -24,9 +24,8 @@ class TestCodingSpec:
         spec = load_role_spec(PRODUCT_ROLES_DIR / "coding_implement_feature_from_spec.yaml")
         worker_input = WorkerInput(
             repo_ref="abc123",
-            feature_spec={"title": "test"},
+            commit_spec={"title": "test"},
             constraints=WorkerConstraints(),
-            test_commands=["pytest"],
         )
         jsonschema.validate(worker_input.model_dump(), spec.inputs_schema)
 

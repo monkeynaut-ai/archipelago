@@ -136,7 +136,7 @@ def recover_session(
     container_manager: ContainerManager,
     session_manager: SessionManager,
     workspace_volume: str,
-    feature_spec: dict,
+    commit_spec: dict,
     last_checkpoint: ResumePoint | None = None,
     image: str | None = None,
     command: str = "/home/claude/entrypoint.sh",
@@ -152,12 +152,12 @@ def recover_session(
     )
     container_manager.start(container)
 
-    # Write feature spec inside the container so CC has access to it
-    if feature_spec:
+    # Write commit spec inside the container so CC has access to it
+    if commit_spec:
         container_manager.write_file_to_container(
             container,
-            f"{container.workspace_path}/feature_spec.json",
-            json.dumps(feature_spec, indent=2),
+            f"{container.workspace_path}/commit_spec.json",
+            json.dumps(commit_spec, indent=2),
         )
 
     # Build resume context for CC

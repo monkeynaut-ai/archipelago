@@ -50,9 +50,8 @@ class TestConfigToEnvPipeline:
         )
         worker_input = WorkerInput(
             repo_ref="main",
-            feature_spec={},
+            commit_spec={"title": "test"},
             constraints=WorkerConstraints(),
-            test_commands=[],
             acp_hidden_dirs=node_config["acp_hidden_dirs"],
         )
         env = build_container_env(worker_input, ws_url="ws://host:1234/test")
@@ -66,9 +65,8 @@ class TestConfigToEnvPipeline:
         )
         worker_input = WorkerInput(
             repo_ref="main",
-            feature_spec={},
+            commit_spec={"title": "test"},
             constraints=WorkerConstraints(),
-            test_commands=[],
             acp_readonly_dirs=node_config["acp_readonly_dirs"],
         )
         env = build_container_env(worker_input, ws_url="ws://host:1234/test")
@@ -111,9 +109,8 @@ class TestConfigToLockdownEnforcement:
         # Step 2: Build env from compiled config
         worker_input = WorkerInput(
             repo_ref="main",
-            feature_spec={},
+            commit_spec={"title": "test"},
             constraints=WorkerConstraints(),
-            test_commands=[],
             acp_hidden_dirs=captured_config["acp_hidden_dirs"],
         )
         env = build_container_env(worker_input, ws_url="ws://host:1234/test")
@@ -160,9 +157,8 @@ class TestConfigToLockdownEnforcement:
         # Step 2: Build env from compiled config
         worker_input = WorkerInput(
             repo_ref="main",
-            feature_spec={},
+            commit_spec={"title": "test"},
             constraints=WorkerConstraints(),
-            test_commands=[],
             acp_readonly_dirs=captured_config["acp_readonly_dirs"],
         )
         env = build_container_env(worker_input, ws_url="ws://host:1234/test")

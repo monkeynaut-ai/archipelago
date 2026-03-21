@@ -41,10 +41,8 @@ def plan():
 def _valid_worker_input() -> dict:
     return {
         "repo_ref": "abc123",
-        "feature_spec": {"title": "Test"},
+        "commit_spec": {"title": "Test"},
         "constraints": WorkerConstraints().model_dump(),
-        "test_commands": ["pytest"],
-        "gates": [],
     }
 
 
@@ -302,7 +300,7 @@ class TestDockerWorkerHandler:
 
     @patch("archipelago.docker_worker.handler._HandlerWSServer")
     @patch("archipelago.docker_worker.handler.docker")
-    def test_given_no_worker_input_when_state_has_feature_spec_then_worker_input_constructed(
+    def test_given_no_worker_input_when_state_has_current_commit_then_worker_input_constructed(
         self, mock_docker, mock_ws_cls
     ):
         mock_client, _ = _mock_docker_env(mock_docker)
@@ -310,10 +308,8 @@ class TestDockerWorkerHandler:
 
         state = {
             "repo_ref": "abc123",
-            "feature_spec": {"title": "Test Feature"},
+            "current_commit": {"title": "Test Feature"},
             "worker_constraints": {},
-            "test_commands": ["pytest"],
-            "gates": [],
         }
         result = docker_worker_handler(state)
         mock_client.containers.create.assert_called_once()
@@ -327,7 +323,7 @@ class TestDockerWorkerHandler:
         _mock_docker_env(mock_docker)
         mock_ws_cls.return_value = _preload_ws_server([_status_msg("exited", 0)])
 
-        state = {"feature_spec": {"title": "Minimal"}}
+        state = {"current_commit": {"title": "Minimal"}}
         result = docker_worker_handler(state)
         assert "worker_result" in result
 
@@ -641,7 +637,7 @@ class TestHandlerProtocol:
 
     @patch("archipelago.docker_worker.handler._HandlerWSServer")
     @patch("archipelago.docker_worker.handler.docker")
-    def test_given_adapter_connects_when_handler_runs_then_feature_spec_sent_as_input_message(
+    def test_given_adapter_connects_when_handler_runs_then_commit_spec_sent_as_input_message(
         self, mock_docker, mock_ws_cls
     ):
         _mock_docker_env(mock_docker)
@@ -843,18 +839,20 @@ class TestRolePromptBuilder:
             **{
                 **_valid_worker_input(),
                 "prompt_preamble": ["Custom preamble."],
-                "feature_spec": {
+                "commit_spec": {
                     "title": "My Feature",
-                    "description": "Does things",
-                    "requirements": ["req1", "req2"],
+                    "acceptance_criteria": ["req1", "req2"],
+                    "test_focus": "unit tests",
+                    "implementation_focus": "Pydantic models",
                 },
             }
         )
         prompt = _build_prompt(wi)
         assert "Custom preamble." in prompt
         assert "Title: My Feature" in prompt
-        assert "Description: Does things" in prompt
         assert "  - req1" in prompt
+        assert "Test focus: unit tests" in prompt
+        assert "Implementation focus: Pydantic models" in prompt
 
 
 class TestLockdownEnvVars:

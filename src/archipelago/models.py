@@ -3,7 +3,7 @@
 from pydantic import BaseModel, field_validator
 
 
-class CommitSlice(BaseModel):
+class CommitSpecification(BaseModel):
     title: str
     acceptance_criteria: list[str] = []
     test_focus: str = ""
@@ -15,11 +15,11 @@ class JobDefinition(BaseModel):
     repo_url: str
     repo_ref: str = "main"
     constraints: list[str] = []
-    commits: list[CommitSlice]
+    commits: list[CommitSpecification]
 
     @field_validator("commits")
     @classmethod
-    def _commits_not_empty(cls, v: list[CommitSlice]) -> list[CommitSlice]:
+    def _commits_not_empty(cls, v: list[CommitSpecification]) -> list[CommitSpecification]:
         if not v:
             raise ValueError("commits must not be empty")
         return v

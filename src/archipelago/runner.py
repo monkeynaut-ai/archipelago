@@ -50,9 +50,7 @@ def run_dev_test(dev_test_input: dict[str, Any]) -> dict[str, Any]:
     worker_input = WorkerInput(
         repo_url=dev_test_input.get("repo_url"),
         repo_ref=dev_test_input.get("repo_ref", "main"),
-        feature_spec=dev_test_input.get("feature_spec", {}),
-        test_commands=dev_test_input.get("test_commands", ["pdm run pytest"]),
-        gates=dev_test_input.get("gates", []),
+        commit_spec=dev_test_input.get("commit_spec", {}),
         constraints=WorkerConstraints(**dev_test_input.get("constraints", {})),
     )
     return docker_worker_handler({"worker_input": worker_input.model_dump()})

@@ -154,7 +154,7 @@ class TestRecoverSession:
         recover_session(container_mgr, session_mgr, "vol-1", {"title": "test"})
         session_mgr.launch_session.assert_called_once()
 
-    def test_given_feature_spec_when_recovered_then_spec_written_inside_container(self):
+    def test_given_commit_spec_when_recovered_then_spec_written_inside_container(self):
         container_mgr = MagicMock(spec=ContainerManager)
         session_mgr = MagicMock(spec=SessionManager)
 
@@ -167,7 +167,7 @@ class TestRecoverSession:
         recover_session(container_mgr, session_mgr, "vol-1", {"title": "test-spec"})
         container_mgr.write_file_to_container.assert_called_once()
         call_args = container_mgr.write_file_to_container.call_args
-        assert call_args.args[1] == "/workspace/feature_spec.json"
+        assert call_args.args[1] == "/workspace/commit_spec.json"
         assert "test-spec" in call_args.args[2]
 
     def test_given_resume_point_at_pr2_c1_when_recovered_then_cc_starts_from_pr2_c1(

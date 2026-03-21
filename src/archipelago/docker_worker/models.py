@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from archipelago.models import CommitSpecification
+
 
 class WorkerConstraints(BaseModel):
     """Resource and policy constraints for a Docker worker run."""
@@ -23,18 +25,21 @@ class WorkerConstraints(BaseModel):
 class WorkerInput(BaseModel):
     """Typed input for docker worker roles."""
 
+    # Task data — what to work on (flows through state from the archipelago flow)
+    commit_spec: CommitSpecification
     repo_ref: str
     repo_url: str | None = None
-    feature_spec: dict[str, Any]
-    constraints: WorkerConstraints
-    test_commands: list[str]
-    gates: list[str] = Field(default_factory=list)
+
+    # Node config — static per-node settings (from archipelago_system.json via closure)
     worker_mode: str = "full"
     acp_hidden_dirs: list[str] = Field(default_factory=list)
     acp_readonly_dirs: list[str] = Field(default_factory=list)
     role_instructions_path: str | None = None
-    workspace_volume: str | None = None
     prompt_preamble: list[str] = Field(default_factory=list)
+
+    # Runtime state — changes during execution, shared between nodes
+    constraints: WorkerConstraints
+    workspace_volume: str | None = None
 
 
 class PatchInfo(BaseModel):
