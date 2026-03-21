@@ -28,11 +28,13 @@ def _valid_job_definition() -> dict:
 
 
 class TestDecomposerHandler:
-    def test_given_valid_job_definition_when_called_then_returns_global_context(self):
+    def test_given_valid_job_definition_when_called_then_returns_flat_job_fields(self):
         state = {"job_definition": _valid_job_definition()}
         result = decomposer_handler(state)
-        assert result["global_context"]["objective"] == "Add user authentication"
-        assert result["global_context"]["constraints"] == ["Must use OAuth2"]
+        assert result["objective"] == "Add user authentication"
+        assert result["repo_url"] == "https://github.com/org/repo"
+        assert result["repo_ref"] == "main"
+        assert result["constraints"] == ["Must use OAuth2"]
 
     def test_given_valid_job_definition_when_called_then_returns_commit_slices(self):
         state = {"job_definition": _valid_job_definition()}

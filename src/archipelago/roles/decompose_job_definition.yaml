@@ -1,5 +1,5 @@
 name: decompose_job_definition
-description: Parses a job definition into global context and an ordered list of commit slices
+description: Parses a job definition into flat state keys and an ordered list of commit slices
 version: "1.0.0"
 implementation:
   module: archipelago.agents.decomposer
@@ -14,17 +14,16 @@ inputs_schema:
 outputs_schema:
   type: object
   properties:
-    global_context:
-      type: object
-      properties:
-        objective:
-          type: string
-        constraints:
-          type: array
-          items:
-            type: string
-      required:
-        - objective
+    objective:
+      type: string
+    repo_url:
+      type: string
+    repo_ref:
+      type: string
+    constraints:
+      type: array
+      items:
+        type: string
     commit_slices:
       type: array
       items:
@@ -32,7 +31,9 @@ outputs_schema:
     current_index:
       type: integer
   required:
-    - global_context
+    - objective
+    - repo_url
+    - repo_ref
     - commit_slices
     - current_index
 tags:

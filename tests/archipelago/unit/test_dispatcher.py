@@ -5,7 +5,10 @@ from archipelago.agents.dispatcher import dispatcher_handler
 
 def _make_state(slices: list[dict], index: int = 0) -> dict:
     return {
-        "global_context": {"objective": "Add auth", "constraints": ["No new deps"]},
+        "objective": "Add auth",
+        "repo_url": "https://github.com/org/repo",
+        "repo_ref": "main",
+        "constraints": ["No new deps"],
         "commit_slices": slices,
         "current_index": index,
     }
@@ -17,6 +20,7 @@ class TestDispatcherHandler:
         result = dispatcher_handler(_make_state(slices, 0))
         assert result["current_commit"]["title"] == "c1"
         assert result["current_commit"]["objective"] == "Add auth"
+        assert result["current_commit"]["repo_url"] == "https://github.com/org/repo"
         assert result["has_more_commits"] is True
         assert result["current_index"] == 1
 
@@ -36,7 +40,7 @@ class TestDispatcherHandler:
         result = dispatcher_handler(_make_state([], 0))
         assert result["has_more_commits"] is False
 
-    def test_given_slice_with_constraints_when_called_then_global_context_merged(self):
+    def test_given_slice_with_test_focus_when_called_then_job_fields_merged(self):
         slices = [{"title": "c1", "test_focus": "unit tests"}]
         result = dispatcher_handler(_make_state(slices, 0))
         assert result["current_commit"]["constraints"] == ["No new deps"]

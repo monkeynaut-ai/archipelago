@@ -14,17 +14,22 @@ class DispatcherHandler:
 
 
 def dispatcher_handler(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Advance to the next commit slice, merging global context."""
+    """Advance to the next commit slice, merging job-level fields with commit data."""
     commit_slices = state.get("commit_slices", [])
     current_index = state.get("current_index", 0)
 
     if current_index >= len(commit_slices):
         return {**state, "has_more_commits": False}
 
-    global_context = state.get("global_context", {})
     current_slice = commit_slices[current_index]
 
-    current_commit = {**global_context, **current_slice}
+    current_commit = {
+        "objective": state.get("objective", ""),
+        "repo_url": state.get("repo_url", ""),
+        "repo_ref": state.get("repo_ref", "main"),
+        "constraints": state.get("constraints", []),
+        **current_slice,
+    }
 
     return {
         **state,

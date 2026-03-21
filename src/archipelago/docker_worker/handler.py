@@ -110,6 +110,12 @@ def _build_prompt(worker_input: WorkerInput) -> str:
         else ["Implement the following feature:"]
     )
 
+    if worker_input.objective:
+        parts.append(f"Objective: {worker_input.objective}")
+    if worker_input.constraints_text:
+        parts.append("Constraints:")
+        for constraint in worker_input.constraints_text:
+            parts.append(f"  - {constraint}")
     if spec.title:
         parts.append(f"Title: {spec.title}")
     if spec.acceptance_criteria:
@@ -271,8 +277,15 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
         worker_input = WorkerInput(**worker_input_data)
     else:
         current_commit = state.get("current_commit", {})
+        commit_spec_fields = {
+            k: current_commit[k]
+            for k in ("title", "acceptance_criteria", "test_focus", "implementation_focus")
+            if k in current_commit
+        }
         worker_input = WorkerInput(
-            commit_spec=current_commit,
+            commit_spec=commit_spec_fields,
+            objective=current_commit.get("objective", ""),
+            constraints_text=current_commit.get("constraints", []),
             repo_url=current_commit.get("repo_url"),
             repo_ref=current_commit.get("repo_ref", "main"),
             constraints=WorkerConstraints(**state.get("worker_constraints", {})),

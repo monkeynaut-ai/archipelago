@@ -16,7 +16,7 @@ class DecomposerHandler:
 
 
 def decomposer_handler(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Parse job_definition into global_context and commit_slices."""
+    """Parse job_definition into flat state keys and commit slices."""
     raw = state.get("job_definition")
     if not raw:
         raise ValueError("job_definition is required")
@@ -25,12 +25,10 @@ def decomposer_handler(state: dict[str, Any], node_config: dict[str, Any] | None
 
     return {
         **state,
-        "global_context": {
-            "objective": job.objective,
-            "repo_url": job.repo_url,
-            "repo_ref": job.repo_ref,
-            "constraints": job.constraints,
-        },
+        "objective": job.objective,
+        "repo_url": job.repo_url,
+        "repo_ref": job.repo_ref,
+        "constraints": job.constraints,
         "commit_slices": [c.model_dump() for c in job.commits],
         "current_index": 0,
     }

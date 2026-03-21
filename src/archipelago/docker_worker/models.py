@@ -27,6 +27,8 @@ class WorkerInput(BaseModel):
 
     # Task data — what to work on (flows through state from the archipelago flow)
     commit_spec: CommitSpecification
+    objective: str = ""
+    constraints_text: list[str] = Field(default_factory=list)
     repo_ref: str
     repo_url: str | None = None
 

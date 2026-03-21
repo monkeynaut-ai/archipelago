@@ -25,13 +25,6 @@ class JobDefinition(BaseModel):
         return v
 
 
-class CodePatch(BaseModel):
-    feature_name: str
-    files_changed: list[str]
-    diff_summary: str
-    branch_name: str
-
-
 class TestResults(BaseModel):
     __test__ = False
 

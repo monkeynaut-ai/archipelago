@@ -82,10 +82,10 @@ class TestEndToEnd:
         result = graph.invoke({"job_definition": _job_definition(1)})
         assert result["commit_passed"] is True
 
-    def test_given_pipeline_runs_then_global_context_preserved(
+    def test_given_pipeline_runs_then_job_fields_preserved(
         self, registry, plan
     ):
         graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
         result = graph.invoke({"job_definition": _job_definition(1)})
-        assert result["global_context"]["objective"] == "Add user authentication"
-        assert result["global_context"]["constraints"] == ["Must use OAuth2"]
+        assert result["objective"] == "Add user authentication"
+        assert result["constraints"] == ["Must use OAuth2"]

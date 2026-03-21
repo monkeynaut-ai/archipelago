@@ -4,7 +4,6 @@ import jsonschema
 
 from agent_foundry.registry.spec import RoleSpec, load_role_spec
 from archipelago.models import (
-    CodePatch,
     TestResults,
 )
 
@@ -21,15 +20,6 @@ ARCHIPELAGO_SPEC_NAMES = [
     "evaluate_commit",
     "write_unit_tests_from_spec",
 ]
-
-
-def _valid_code_patch_dump() -> dict:
-    return CodePatch(
-        feature_name="Test Feature",
-        files_changed=["src/foo.py"],
-        diff_summary="Added foo",
-        branch_name="feat/foo",
-    ).model_dump()
 
 
 def _valid_test_results_dump() -> dict:
@@ -53,7 +43,12 @@ class TestDevSpec:
     def test_given_dev_spec_when_outputs_schema_validates_model_dump_then_passes(self):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "dev_implement_feature_tdd.yaml")
         data = {
-            "code_patch": _valid_code_patch_dump(),
+            "code_patch": {
+                "feature_name": "Test",
+                "files_changed": ["f.py"],
+                "diff_summary": "diff",
+                "branch_name": "feat/t",
+            },
             "test_results": _valid_test_results_dump(),
         }
         jsonschema.validate(data, spec.outputs_schema)

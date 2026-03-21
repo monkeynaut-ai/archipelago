@@ -4,20 +4,10 @@ import pytest
 from pydantic import ValidationError
 
 from archipelago.models import (
-    CodePatch,
     CommitSpecification,
     JobDefinition,
     TestResults,
 )
-
-
-def _valid_code_patch() -> dict:
-    return {
-        "feature_name": "Pipeline Orchestrator",
-        "files_changed": ["src/archipelago/handlers.py", "src/archipelago/runner.py"],
-        "diff_summary": "Added strategy and architecture handlers",
-        "branch_name": "feat/archipelago-handlers",
-    }
 
 
 def _valid_test_results() -> dict:
@@ -80,20 +70,6 @@ class TestJobDefinition:
         )
         reconstructed = JobDefinition.model_validate_json(job.model_dump_json())
         assert reconstructed == job
-
-
-class TestCodePatch:
-    def test_given_valid_fields_when_instantiated_then_validates(self):
-        patch = CodePatch(**_valid_code_patch())
-        assert patch.feature_name == "Pipeline Orchestrator"
-        assert len(patch.files_changed) == 2
-        assert patch.branch_name == "feat/archipelago-handlers"
-
-    def test_given_valid_instance_when_json_round_tripped_then_no_field_loss(self):
-        patch = CodePatch(**_valid_code_patch())
-        json_str = patch.model_dump_json()
-        reconstructed = CodePatch.model_validate_json(json_str)
-        assert reconstructed == patch
 
 
 class TestTestResults:

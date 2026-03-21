@@ -1,6 +1,6 @@
 job_definition:
   objective: "Implement a REST API server with two resources: Book and Library. Use FastAPI with Pydantic models. Book has title (str) and author (str). Library has name (str) and books (list of Book). Each resource supports full CRUD (GET list, GET by id, POST, PUT, DELETE)."
-  repo_url: "https://github.com/730alchemy/library-api"
+  repo_url: "https://github.com/730alchemy/scratch"
   repo_ref: "main"
   constraints:
     - "Use FastAPI as the web framework"

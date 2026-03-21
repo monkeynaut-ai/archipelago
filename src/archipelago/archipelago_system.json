@@ -13,8 +13,8 @@
             "acp_hidden_dirs": ["/workspace/src"],
             "role_instructions_path": "/home/claude/.claude/CLAUDE-unit-test-writer.md",
             "prompt_preamble": [
-              "Write unit tests for the following feature specification.",
-              "Do not write production code. Focus on test coverage for the acceptance criteria."
+              "Write unit tests that cover the following acceptance criteria and test focus.",
+              "Do not write production code. Focus on test coverage for the acceptance criteria and test focus."
             ]
           }},
           {"id": "code_writer", "role": "code_implement_from_tests", "config": {

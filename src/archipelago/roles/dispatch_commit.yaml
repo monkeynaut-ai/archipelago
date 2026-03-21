@@ -1,5 +1,5 @@
 name: dispatch_commit
-description: Advances to the next commit slice, merging global context with per-commit data
+description: Advances to the next commit slice, merging job-level fields with per-commit data
 version: "1.0.0"
 implementation:
   module: archipelago.agents.dispatcher
@@ -13,8 +13,16 @@ inputs_schema:
         type: object
     current_index:
       type: integer
-    global_context:
-      type: object
+    objective:
+      type: string
+    repo_url:
+      type: string
+    repo_ref:
+      type: string
+    constraints:
+      type: array
+      items:
+        type: string
   required:
     - commit_slices
     - current_index
