@@ -7,13 +7,12 @@ implementation:
 inputs_schema:
   type: object
   properties:
-    commit_spec:
+    current_commit:
       type: object
-    test_plan:
-      type: object
+    workspace_volume:
+      type: string
   required:
-    - commit_spec
-    - test_plan
+    - current_commit
 outputs_schema:
   type: object
   properties:

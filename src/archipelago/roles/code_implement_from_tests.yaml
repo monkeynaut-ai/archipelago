@@ -7,18 +7,12 @@ implementation:
 inputs_schema:
   type: object
   properties:
-    repo_ref:
-      type: string
-    commit_spec:
-      type: object
-    constraints:
+    current_commit:
       type: object
     workspace_volume:
       type: string
   required:
-    - repo_ref
-    - commit_spec
-    - constraints
+    - current_commit
     - workspace_volume
 outputs_schema:
   type: object

@@ -270,9 +270,11 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
     if worker_input_data:
         worker_input = WorkerInput(**worker_input_data)
     else:
+        current_commit = state.get("current_commit", {})
         worker_input = WorkerInput(
-            repo_ref=state.get("repo_ref", "main"),
-            commit_spec=state.get("current_commit", {}),
+            commit_spec=current_commit,
+            repo_url=current_commit.get("repo_url"),
+            repo_ref=current_commit.get("repo_ref", "main"),
             constraints=WorkerConstraints(**state.get("worker_constraints", {})),
         )
 

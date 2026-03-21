@@ -18,16 +18,14 @@ class TestCodingSpec:
         assert spec.version == "1.0.0"
         assert "docker-worker" in spec.tags
 
-    def test_given_coding_spec_when_inputs_schema_validates_worker_input_then_passes(
+    def test_given_coding_spec_when_inputs_schema_validates_subgraph_state_then_passes(
         self,
     ):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "coding_implement_feature_from_spec.yaml")
-        worker_input = WorkerInput(
-            repo_ref="abc123",
-            commit_spec={"title": "test"},
-            constraints=WorkerConstraints(),
-        )
-        jsonschema.validate(worker_input.model_dump(), spec.inputs_schema)
+        subgraph_state = {
+            "current_commit": {"title": "test", "repo_url": "https://github.com/org/repo", "repo_ref": "main"},
+        }
+        jsonschema.validate(subgraph_state, spec.inputs_schema)
 
     def test_given_coding_spec_when_outputs_schema_validates_worker_result_then_passes(
         self,
