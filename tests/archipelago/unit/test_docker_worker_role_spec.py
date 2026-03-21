@@ -31,14 +31,11 @@ class TestCodingSpec:
         self,
     ):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "coding_implement_feature_from_spec.yaml")
-        worker_result = WorkerResult(
-            result_summary="done",
-            workspace_ref="ws-1",
-            patches=[],
-            evidence=[],
-            status="completed",
-        )
-        jsonschema.validate(worker_result.model_dump(), spec.outputs_schema)
+        data = {
+            "worker_result": {"result_summary": "done", "status": "completed"},
+            "workspace_volume": "archipelago-123",
+        }
+        jsonschema.validate(data, spec.outputs_schema)
 
 
 class TestRegistryIntegration:

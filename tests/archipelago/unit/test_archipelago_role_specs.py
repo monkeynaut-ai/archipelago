@@ -43,13 +43,8 @@ class TestDevSpec:
     def test_given_dev_spec_when_outputs_schema_validates_model_dump_then_passes(self):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "dev_implement_feature_tdd.yaml")
         data = {
-            "code_patch": {
-                "feature_name": "Test",
-                "files_changed": ["f.py"],
-                "diff_summary": "diff",
-                "branch_name": "feat/t",
-            },
-            "test_results": _valid_test_results_dump(),
+            "worker_result": {"result_summary": "done", "status": "completed"},
+            "workspace_volume": "archipelago-123",
         }
         jsonschema.validate(data, spec.outputs_schema)
 
@@ -69,12 +64,8 @@ class TestUnitTestWriterSpec:
     def test_given_spec_when_outputs_schema_validates_then_passes(self):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "write_unit_tests_from_spec.yaml")
         data = {
-            "result_summary": "Tests written",
-            "workspace_ref": "/workspace",
+            "worker_result": {"result_summary": "Tests written", "status": "completed"},
             "workspace_volume": "archipelago-123",
-            "patches": [],
-            "evidence": [],
-            "status": "completed",
         }
         jsonschema.validate(data, spec.outputs_schema)
 
@@ -94,11 +85,8 @@ class TestCodeWriterSpec:
     def test_given_spec_when_outputs_schema_validates_then_passes(self):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "code_implement_from_tests.yaml")
         data = {
-            "result_summary": "Code implemented",
-            "workspace_ref": "/workspace",
-            "patches": [],
-            "evidence": [],
-            "status": "completed",
+            "worker_result": {"result_summary": "Code implemented", "status": "completed"},
+            "workspace_volume": "archipelago-123",
         }
         jsonschema.validate(data, spec.outputs_schema)
 

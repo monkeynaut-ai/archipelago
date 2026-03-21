@@ -20,9 +20,9 @@
           {"id": "code_writer", "role": "code_implement_from_tests", "config": {
             "worker_mode": "code_writer",
             "acp_readonly_dirs": ["/workspace/tests"],
-            "role_instructions_path": "/???/claude/???.md",
+            "role_instructions_path": "/home/claude/.claude/CLAUDE-source-code-writer.md",
             "prompt_preamble": [
-              "Implement production code to make the existing tests pass.",
+              "Implement production code to make the new and modified tests pass.",
               "Do not modify any test files."
             ]
           }},

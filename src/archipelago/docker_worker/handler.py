@@ -18,6 +18,7 @@ from websockets.sync.server import ServerConnection, serve
 
 from archipelago.docker_worker.container import create_archipelago_container_manager
 from archipelago.docker_worker.env import build_container_env
+from archipelago.models import CommitSpecification
 from archipelago.docker_worker.models import (
     WorkerConstraints,
     WorkerInput,
@@ -283,7 +284,7 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
             if k in current_commit
         }
         worker_input = WorkerInput(
-            commit_spec=commit_spec_fields,
+            commit_spec=CommitSpecification(**commit_spec_fields),
             objective=current_commit.get("objective", ""),
             constraints_text=current_commit.get("constraints", []),
             repo_url=current_commit.get("repo_url"),

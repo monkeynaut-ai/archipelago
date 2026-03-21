@@ -16,46 +16,13 @@ inputs_schema:
 outputs_schema:
   type: object
   properties:
-    code_patch:
+    worker_result:
       type: object
-      properties:
-        feature_name:
-          type: string
-        files_changed:
-          type: array
-          items:
-            type: string
-        diff_summary:
-          type: string
-        branch_name:
-          type: string
-      required:
-        - feature_name
-        - files_changed
-        - diff_summary
-        - branch_name
-    test_results:
-      type: object
-      properties:
-        feature_name:
-          type: string
-        tests_passed:
-          type: integer
-        tests_failed:
-          type: integer
-        test_output:
-          type: string
-        all_green:
-          type: boolean
-      required:
-        - feature_name
-        - tests_passed
-        - tests_failed
-        - test_output
-        - all_green
+    workspace_volume:
+      type: string
   required:
-    - code_patch
-    - test_results
+    - worker_result
+    - workspace_volume
 tags:
   - archipelago
   - dev

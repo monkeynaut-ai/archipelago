@@ -16,29 +16,13 @@ inputs_schema:
 outputs_schema:
   type: object
   properties:
-    result_summary:
-      type: string
-    workspace_ref:
-      type: string
+    worker_result:
+      type: object
     workspace_volume:
       type: string
-    patches:
-      type: array
-      items:
-        type: object
-    evidence:
-      type: array
-      items:
-        type: object
-    status:
-      type: string
   required:
-    - result_summary
-    - workspace_ref
+    - worker_result
     - workspace_volume
-    - patches
-    - evidence
-    - status
 tags:
   - archipelago
   - docker-worker
