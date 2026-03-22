@@ -42,7 +42,7 @@ Reversibility — Design decisions are easy to change. Avoid painting yourself i
 
 #### Instructions
 
-Key design choices:
+Follow these instructions when generating the JSON object for your review
 
 - Use the JSON schema defined in "JSON Schema" to present your full review as a JSON object
 - For each property of the JSON schema that you will populate, use the "description" to guide your generation of the content for this element
