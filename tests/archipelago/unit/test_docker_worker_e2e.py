@@ -44,6 +44,20 @@ def _stub_docker_worker(state: dict[str, Any], node_config: dict[str, Any] | Non
             ],
             "status": "completed",
         },
+        "workspace_volume": state.get("workspace_volume", "archipelago-stub"),
+        "commit_hash": "stubhash123",
+    }
+
+
+def _stub_software_review(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+    return {
+        **state,
+        "worker_result": {
+            "scope": {"paths": []},
+            "summary": {"overall_rating": "good", "strengths": [], "primary_concerns": []},
+            "findings": [],
+        },
+        "workspace_volume": state.get("workspace_volume", "archipelago-stub"),
     }
 
 
@@ -53,6 +67,7 @@ STUB_HANDLERS = {
     "evaluate_commit": evaluator_handler,
     "write_unit_tests_from_spec": _stub_docker_worker,
     "code_implement_from_tests": _stub_docker_worker,
+    "software_review": _stub_software_review,
 }
 
 

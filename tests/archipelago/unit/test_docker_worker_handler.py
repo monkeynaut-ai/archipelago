@@ -14,6 +14,7 @@ from agent_foundry.compiler.compiler import compile_plan
 from agent_foundry.planner.validators import validate_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
 from archipelago.docker_worker.handler import (
+    DockerWorkerHandler,
     MessageLoopResult,
     _build_prompt,
     _HandlerWSServer,
@@ -803,6 +804,7 @@ class TestPipelineIntegration:
             "evaluate_commit": _stub,
             "write_unit_tests_from_spec": _stub,
             "code_implement_from_tests": _stub,
+            "software_review": _stub,
         }
         graph = compile_plan(plan, registry, handler_registry=handlers)
         assert graph is not None
@@ -1156,3 +1158,154 @@ class TestProcessMessages:
         assert result.early_return is not None
         assert result.early_return["worker_result"]["status"] == "failed"
         assert "send failed" in result.early_return["worker_result"]["result_summary"].lower()
+
+
+def _make_spec(inputs_schema_properties: dict | None = None) -> MagicMock:
+    """Create a mock RoleSpec with the given inputs_schema properties."""
+    spec = MagicMock()
+    spec.inputs_schema = {
+        "type": "object",
+        "properties": inputs_schema_properties or {},
+        "required": list((inputs_schema_properties or {}).keys()),
+    }
+    return spec
+
+
+class TestCommitHashCapture:
+    @patch("archipelago.docker_worker.handler._HandlerWSServer")
+    @patch("archipelago.docker_worker.handler.docker")
+    def test_given_successful_cc_run_when_completed_then_commit_hash_in_result_state(
+        self, mock_docker, mock_ws_cls
+    ):
+        _, mock_container = _mock_docker_env(mock_docker)
+        mock_container.exec_run.return_value = (0, b"abc123def456\n")
+        mock_ws_cls.return_value = _preload_ws_server(
+            [_output_msg("done"), _status_msg("exited", 0)]
+        )
+
+        state = {"worker_input": _valid_worker_input()}
+        result = docker_worker_handler(state)
+        assert result["commit_hash"] == "abc123def456"
+
+    @patch("archipelago.docker_worker.handler._HandlerWSServer")
+    @patch("archipelago.docker_worker.handler.docker")
+    def test_given_successful_cc_run_when_git_rev_parse_fails_then_commit_hash_is_unknown(
+        self, mock_docker, mock_ws_cls
+    ):
+        _, mock_container = _mock_docker_env(mock_docker)
+        mock_container.exec_run.return_value = (1, b"fatal: not a git repository\n")
+        mock_ws_cls.return_value = _preload_ws_server(
+            [_output_msg("done"), _status_msg("exited", 0)]
+        )
+
+        state = {"worker_input": _valid_worker_input()}
+        result = docker_worker_handler(state)
+        assert result["commit_hash"] == "unknown"
+
+
+class TestCommitHashInPrompt:
+    @patch("archipelago.docker_worker.handler._HandlerWSServer")
+    @patch("archipelago.docker_worker.handler.docker")
+    def test_given_spec_declares_commit_hash_when_commit_hash_in_state_then_prompt_includes_commit_hash(
+        self, mock_docker, mock_ws_cls
+    ):
+        _mock_docker_env(mock_docker)
+        ws_server = _preload_ws_server([_status_msg("exited", 0)])
+        mock_ws_cls.return_value = ws_server
+
+        spec = _make_spec({"commit_hash": {"type": "string"}})
+        state = {
+            "worker_input": _valid_worker_input(),
+            "commit_hash": "abc123def456",
+        }
+        docker_worker_handler(state, spec=spec)
+
+        input_msgs = []
+        for c in ws_server.send.call_args_list:
+            with contextlib.suppress(Exception):
+                msg = json.loads(c[0][0])
+                if msg.get("type") == "input":
+                    input_msgs.append(msg)
+
+        assert len(input_msgs) == 1
+        assert "abc123def456" in input_msgs[0]["text"]
+
+    @patch("archipelago.docker_worker.handler._HandlerWSServer")
+    @patch("archipelago.docker_worker.handler.docker")
+    def test_given_spec_without_commit_hash_when_commit_hash_in_state_then_prompt_excludes_commit_hash(
+        self, mock_docker, mock_ws_cls
+    ):
+        _mock_docker_env(mock_docker)
+        ws_server = _preload_ws_server([_status_msg("exited", 0)])
+        mock_ws_cls.return_value = ws_server
+
+        spec = _make_spec({"current_commit": {"type": "object"}})
+        state = {
+            "worker_input": _valid_worker_input(),
+            "commit_hash": "abc123def456",
+        }
+        docker_worker_handler(state, spec=spec)
+
+        input_msgs = []
+        for c in ws_server.send.call_args_list:
+            with contextlib.suppress(Exception):
+                msg = json.loads(c[0][0])
+                if msg.get("type") == "input":
+                    input_msgs.append(msg)
+
+        assert len(input_msgs) == 1
+        assert "abc123def456" not in input_msgs[0]["text"]
+
+    @patch("archipelago.docker_worker.handler._HandlerWSServer")
+    @patch("archipelago.docker_worker.handler.docker")
+    def test_given_no_spec_when_commit_hash_in_state_then_prompt_excludes_commit_hash(
+        self, mock_docker, mock_ws_cls
+    ):
+        _mock_docker_env(mock_docker)
+        ws_server = _preload_ws_server([_status_msg("exited", 0)])
+        mock_ws_cls.return_value = ws_server
+
+        state = {
+            "worker_input": _valid_worker_input(),
+            "commit_hash": "abc123def456",
+        }
+        docker_worker_handler(state)
+
+        input_msgs = []
+        for c in ws_server.send.call_args_list:
+            with contextlib.suppress(Exception):
+                msg = json.loads(c[0][0])
+                if msg.get("type") == "input":
+                    input_msgs.append(msg)
+
+        assert len(input_msgs) == 1
+        assert "abc123def456" not in input_msgs[0]["text"]
+
+    @patch("archipelago.docker_worker.handler._HandlerWSServer")
+    @patch("archipelago.docker_worker.handler.docker")
+    def test_given_spec_declares_commit_hash_when_commit_hash_not_in_state_then_raises(
+        self, mock_docker, mock_ws_cls
+    ):
+        _mock_docker_env(mock_docker)
+        mock_ws_cls.return_value = _preload_ws_server([_status_msg("exited", 0)])
+
+        spec = _make_spec({"commit_hash": {"type": "string"}})
+        state = {"worker_input": _valid_worker_input()}
+
+        with pytest.raises(ValueError, match="commit_hash"):
+            docker_worker_handler(state, spec=spec)
+
+
+class TestSpecPassthrough:
+    def test_given_docker_worker_handler_class_when_called_then_spec_passed_to_function(self):
+        mock_spec = _make_spec()
+        handler = DockerWorkerHandler(spec=mock_spec)
+
+        with patch("archipelago.docker_worker.handler.docker_worker_handler") as mock_fn:
+            mock_fn.return_value = {"worker_result": {}}
+            handler({"worker_input": _valid_worker_input()}, node_config={})
+            mock_fn.assert_called_once_with(
+                {"worker_input": _valid_worker_input()},
+                {},
+                spec=mock_spec,
+            )

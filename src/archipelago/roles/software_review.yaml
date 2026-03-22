@@ -1,0 +1,36 @@
+name: software_review
+description: Reviews code changes in a commit using Claude Code in an ephemeral Docker container
+version: "1.0.0"
+implementation:
+  module: archipelago.docker_worker.handler
+  class_name: DockerWorkerHandler
+inputs_schema:
+  type: object
+  properties:
+    commit_hash:
+      type: string
+    current_commit:
+      type: object
+    workspace_volume:
+      type: string
+  required:
+    - commit_hash
+    - current_commit
+    - workspace_volume
+outputs_schema:
+  type: object
+  properties:
+    worker_result:
+      type: object
+    workspace_volume:
+      type: string
+  required:
+    - worker_result
+    - workspace_volume
+tags:
+  - archipelago
+  - docker-worker
+  - review
+quality_controls:
+  timeout_seconds: 7200
+  max_retries: 1

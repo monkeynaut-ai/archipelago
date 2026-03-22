@@ -18,6 +18,7 @@ ARCHIPELAGO_SPEC_NAMES = [
     "dev_implement_feature_tdd",
     "dispatch_commit",
     "evaluate_commit",
+    "software_review",
     "write_unit_tests_from_spec",
 ]
 
@@ -98,11 +99,11 @@ class TestRegistryIntegration:
     def test_given_all_yaml_specs_when_registry_loaded_then_contains_15_capabilities(
         self, registry
     ):
-        assert len(registry) == 15
+        assert len(registry) == 16
 
     def test_given_registry_when_searched_by_archipelago_tag_then_returns_exactly_7(self, registry):
         results = registry.search(tags=["archipelago"])
-        assert len(results) == 7
+        assert len(results) == 8
 
     def test_given_each_archipelago_spec_when_name_queried_then_found_in_registry(self, registry):
         for name in ARCHIPELAGO_SPEC_NAMES:

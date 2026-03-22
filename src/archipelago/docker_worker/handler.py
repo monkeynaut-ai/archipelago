@@ -263,7 +263,17 @@ def _process_messages(
     return result
 
 
-def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+def _spec_declares_field(spec: Any, field: str) -> bool:
+    """Check whether a role spec declares a field in its inputs_schema properties."""
+    if spec is None:
+        return False
+    schema = getattr(spec, "inputs_schema", None)
+    if not isinstance(schema, dict):
+        return False
+    return field in schema.get("properties", {})
+
+
+def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | None = None, *, spec: Any = None) -> dict[str, Any]:
     """Orchestrate a full Docker worker lifecycle.
 
     Extracts worker_input from state, creates/starts a container,
@@ -272,6 +282,10 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
     """
     if node_config is None:
         node_config = {}
+
+    # Validate that required spec fields are present in state
+    if _spec_declares_field(spec, "commit_hash") and "commit_hash" not in state:
+        raise ValueError("Role spec declares commit_hash as input but commit_hash is not in state")
 
     worker_input_data = state.get("worker_input")
     if worker_input_data:
@@ -353,7 +367,10 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
             raise TimeoutError(f"Adapter did not connect within {conn_timeout} seconds")
 
         # Send the feature spec prompt immediately — headless adapter waits for first input
-        if not _send_input(ws_server, session_id, _build_prompt(worker_input)):
+        prompt = _build_prompt(worker_input)
+        if _spec_declares_field(spec, "commit_hash"):
+            prompt += f"\nCommit hash: {state['commit_hash']}"
+        if not _send_input(ws_server, session_id, prompt):
             result = WorkerResult(
                 result_summary="Send failed: could not deliver initial prompt",
                 workspace_ref=container_handle.workspace_path if container_handle else "",
@@ -410,6 +427,14 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
         )
         result_state = {**state, "worker_result": result.model_dump()}
         result_state["workspace_volume"] = volume_name
+
+        # Capture commit hash from container git state
+        if container_handle:
+            exit_code, output = container_handle._container.exec_run(
+                f"git -C {container_handle.workspace_path} rev-parse HEAD"
+            )
+            result_state["commit_hash"] = output.decode().strip() if exit_code == 0 else "unknown"
+
         if loop_result.update_available:
             result_state["update_available"] = loop_result.update_available
         return result_state
@@ -454,4 +479,4 @@ class DockerWorkerHandler:
         self.spec = spec
 
     def __call__(self, state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
-        return docker_worker_handler(state, node_config)
+        return docker_worker_handler(state, node_config, spec=self.spec)

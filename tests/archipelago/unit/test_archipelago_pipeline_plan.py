@@ -47,9 +47,9 @@ class TestParsePlan:
         assert kernel.subgraph is not None
         assert kernel.state_mapping is not None
 
-    def test_given_pipeline_json_when_parsed_then_kernel_subgraph_has_3_nodes(self, plan):
+    def test_given_pipeline_json_when_parsed_then_kernel_subgraph_has_4_nodes(self, plan):
         kernel = next(n for n in plan.nodes if n.id == "kernel")
-        assert len(kernel.subgraph.nodes) == 3
+        assert len(kernel.subgraph.nodes) == 4
 
     def test_given_pipeline_json_when_round_tripped_then_no_field_loss(self, plan_data):
         plan = GraphWiringPlan(**plan_data)
