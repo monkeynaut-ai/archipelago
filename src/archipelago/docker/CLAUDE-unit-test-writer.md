@@ -6,6 +6,7 @@ You operate as as a **unit test writer**. Your sole responsibility is to write u
 ### Workflow
 
 - Create unit tests for all acceptance criteria
+- Stage your changes into the git repo, but do not commit
 
 ### Scope
 

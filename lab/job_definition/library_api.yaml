@@ -3,6 +3,9 @@ job_definition:
   repo_url: "https://github.com/730alchemy/scratch"
   repo_ref: "main"
   constraints:
+    - "Use pdm as the package manager"
+    - "Use python 3.14"
+    - "Use pytest as the test framework"
     - "Use FastAPI as the web framework"
     - "Use Pydantic for request/response models"
     - "In-memory storage (no database)"
