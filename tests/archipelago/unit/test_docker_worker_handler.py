@@ -20,6 +20,7 @@ from archipelago.docker_worker.handler import (
     _HandlerWSServer,
     _process_messages,
     docker_worker_handler,
+    terminal_hitl_callback,
 )
 from archipelago.docker_worker.models import WorkerConstraints, WorkerResult
 from archipelago.docker_worker.protocol import (
@@ -254,7 +255,7 @@ class TestDockerWorkerHandler:
         )
 
         state = {"worker_input": _valid_worker_input()}
-        result = docker_worker_handler(state)
+        result = docker_worker_handler(state, hitl_callback=None)
         assert result.get("breakpoint_payload") is not None
         assert result["breakpoint_payload"]["type"] == "clarification"
         assert result["worker_result"] is None
@@ -480,7 +481,7 @@ class TestHandlerProtocol:
         )
 
         state = {"worker_input": _valid_worker_input()}
-        result = docker_worker_handler(state)
+        result = docker_worker_handler(state, hitl_callback=None)
         assert result["breakpoint_payload"]["type"] == "clarification"
         assert result["breakpoint_payload"]["question"] == "Which DB?"
 
@@ -1160,6 +1161,174 @@ class TestProcessMessages:
         assert "send failed" in result.early_return["worker_result"]["result_summary"].lower()
 
 
+class TestHitlCallback:
+    """Tests for human-in-the-loop callback in _process_messages."""
+
+    def _call(
+        self,
+        messages,
+        *,
+        hitl_callback=None,
+        auto_approve_low_risk=False,
+        deadline_offset=10.0,
+    ):
+        import time
+
+        ws_server = _preload_ws_server(messages)
+        state = {"worker_input": _valid_worker_input()}
+        return _process_messages(
+            ws_server=ws_server,
+            session_id="test",
+            deadline=time.time() + deadline_offset,
+            auto_approve_low_risk=auto_approve_low_risk,
+            state=state,
+            workspace_path="/workspace",
+            hitl_callback=hitl_callback,
+        ), ws_server
+
+    def test_given_clarification_with_hitl_callback_when_called_then_response_sent_and_session_continues(
+        self,
+    ):
+        callback = MagicMock(return_value="pg")
+        result, ws_server = self._call(
+            [
+                _interrupt_msg(
+                    "clarification_requested",
+                    {"question": "Which DB?", "options": ["pg"], "default": "pg", "blocking": True},
+                ),
+                _status_msg("exited", 0),
+            ],
+            hitl_callback=callback,
+        )
+
+        # Callback was invoked with the right args
+        callback.assert_called_once_with(
+            "clarification",
+            {"question": "Which DB?", "options": ["pg"], "default": "pg", "blocking": True},
+        )
+
+        # Response was sent via InputMessage
+        send_calls = ws_server.send.call_args_list
+        input_msgs = []
+        for c in send_calls:
+            try:
+                msg = json.loads(c[0][0])
+                if msg.get("type") == "input" and msg.get("text") == "pg":
+                    input_msgs.append(msg)
+            except (json.JSONDecodeError, IndexError):
+                pass
+        assert len(input_msgs) == 1
+
+        # Loop continued to completion (no early return)
+        assert result.early_return is None
+        assert result.session_exit_code == 0
+
+    def test_given_permission_with_hitl_callback_when_called_then_response_sent_and_session_continues(
+        self,
+    ):
+        callback = MagicMock(return_value="yes")
+        result, ws_server = self._call(
+            [
+                _interrupt_msg(
+                    "permission_requested",
+                    {"action": "delete file", "risk_level": "medium", "why_needed": "cleanup"},
+                ),
+                _status_msg("exited", 0),
+            ],
+            hitl_callback=callback,
+        )
+
+        callback.assert_called_once_with(
+            "permission",
+            {"action": "delete file", "risk_level": "medium", "why_needed": "cleanup"},
+        )
+
+        send_calls = ws_server.send.call_args_list
+        input_msgs = []
+        for c in send_calls:
+            try:
+                msg = json.loads(c[0][0])
+                if msg.get("type") == "input" and msg.get("text") == "yes":
+                    input_msgs.append(msg)
+            except (json.JSONDecodeError, IndexError):
+                pass
+        assert len(input_msgs) == 1
+
+        assert result.early_return is None
+        assert result.session_exit_code == 0
+
+    def test_given_permission_denied_via_hitl_callback_when_called_then_denial_sent(self):
+        callback = MagicMock(return_value="no")
+        result, ws_server = self._call(
+            [
+                _interrupt_msg(
+                    "permission_requested",
+                    {"action": "drop table", "risk_level": "high", "why_needed": "migration"},
+                ),
+                _status_msg("exited", 0),
+            ],
+            hitl_callback=callback,
+        )
+
+        send_calls = ws_server.send.call_args_list
+        input_msgs = []
+        for c in send_calls:
+            try:
+                msg = json.loads(c[0][0])
+                if msg.get("type") == "input" and msg.get("text") == "no":
+                    input_msgs.append(msg)
+            except (json.JSONDecodeError, IndexError):
+                pass
+        assert len(input_msgs) == 1
+
+        # Loop continued (adapter handles the denial)
+        assert result.early_return is None
+
+    def test_given_clarification_without_hitl_callback_when_called_then_early_return(self):
+        result, _ = self._call(
+            [
+                _interrupt_msg(
+                    "clarification_requested",
+                    {"question": "Which DB?", "options": ["pg"], "default": "pg", "blocking": True},
+                ),
+            ],
+            hitl_callback=None,
+        )
+        assert result.early_return is not None
+        assert result.early_return["breakpoint_payload"]["type"] == "clarification"
+        assert result.early_return["worker_result"] is None
+
+
+class TestTerminalHitlCallback:
+    """Tests for the terminal_hitl_callback default implementation."""
+
+    @patch("builtins.input", return_value="pg")
+    def test_given_terminal_hitl_callback_with_clarification_when_called_then_formats_prompt_and_returns_input(
+        self, mock_input, capsys
+    ):
+        response = terminal_hitl_callback(
+            "clarification",
+            {"question": "Which DB?", "options": ["pg", "mysql"], "default": "pg"},
+        )
+        assert response == "pg"
+        captured = capsys.readouterr()
+        assert "Which DB?" in captured.out
+        assert "pg" in captured.out
+
+    @patch("builtins.input", return_value="yes")
+    def test_given_terminal_hitl_callback_with_permission_when_called_then_formats_prompt_and_returns_input(
+        self, mock_input, capsys
+    ):
+        response = terminal_hitl_callback(
+            "permission",
+            {"action": "delete file foo.txt", "risk_level": "medium", "why_needed": "cleanup"},
+        )
+        assert response == "yes"
+        captured = capsys.readouterr()
+        assert "delete file foo.txt" in captured.out
+        assert "medium" in captured.out
+
+
 def _make_spec(inputs_schema_properties: dict | None = None) -> MagicMock:
     """Create a mock RoleSpec with the given inputs_schema properties."""
     spec = MagicMock()
@@ -1308,4 +1477,5 @@ class TestSpecPassthrough:
                 {"worker_input": _valid_worker_input()},
                 {},
                 spec=mock_spec,
+                hitl_callback=terminal_hitl_callback,
             )

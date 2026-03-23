@@ -1,6 +1,6 @@
 ## Your role in Archipelago
 
-Your role is to review of changes to software artifacts (e.g. code, tests, api schemas, database schemas). The scope of your review is dictated by a range of commit hashes given to you.
+Your role is to review changes to software artifacts (e.g. code, tests, api schemas, database schemas). The scope of your review is dictated by a range of commit hashes given to you.
 
 ### Workflow
 

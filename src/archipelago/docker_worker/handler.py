@@ -11,7 +11,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 import docker
 from websockets.sync.server import ServerConnection, serve
@@ -37,6 +37,31 @@ from archipelago.docker_worker.protocol import (
 from archipelago.docker_worker.recovery import persist_workspace_state
 
 logger = logging.getLogger(__name__)
+
+
+class HitlCallback(Protocol):
+    """Callback for human-in-the-loop interaction during container execution."""
+
+    def __call__(self, prompt_type: str, payload: dict[str, Any]) -> str: ...
+
+
+def terminal_hitl_callback(prompt_type: str, payload: dict[str, Any]) -> str:
+    """Default HITL callback that prompts the user on stdin."""
+    if prompt_type == "clarification":
+        print("\n--- Claude Code needs clarification ---")
+        print(f"Question: {payload.get('question', '')}")
+        if options := payload.get("options"):
+            print(f"Options: {', '.join(options)}")
+        if default := payload.get("default"):
+            print(f"Default: {default}")
+        return input("Your response: ")
+    else:
+        print("\n--- Claude Code requests permission ---")
+        print(f"Action: {payload.get('action', '')}")
+        print(f"Risk level: {payload.get('risk_level', '')}")
+        if why := payload.get("why_needed"):
+            print(f"Reason: {why}")
+        return input("Allow? (yes/no): ")
 
 
 def _get_free_port() -> int:
@@ -169,11 +194,13 @@ def _process_messages(
     auto_approve_low_risk: bool,
     state: dict[str, Any],
     workspace_path: str,
+    hitl_callback: HitlCallback | None = None,
 ) -> MessageLoopResult:
     """Process protocol messages from the adapter until completion, breakpoint, or timeout.
 
-    Returns a MessageLoopResult. If early_return is not None, the caller should
-    return it directly as the handler result (contains breakpoint_payload).
+    If hitl_callback is provided, clarification/permission events prompt the user
+    and send the response back to the adapter, continuing the loop.
+    If hitl_callback is None, the handler returns early with breakpoint_payload.
     """
     result = MessageLoopResult()
 
@@ -212,6 +239,10 @@ def _process_messages(
                 payload = msg.payload
                 blocking = payload.get("blocking", True)
                 if blocking:
+                    if hitl_callback is not None:
+                        response = hitl_callback("clarification", payload)
+                        _send_input(ws_server, session_id, response)
+                        continue
                     result.early_return = {
                         **state,
                         "breakpoint_payload": {
@@ -239,6 +270,10 @@ def _process_messages(
                         result.early_return = {**state, "worker_result": failed.model_dump()}
                         return result
                 else:
+                    if hitl_callback is not None:
+                        response = hitl_callback("permission", payload)
+                        _send_input(ws_server, session_id, response)
+                        continue
                     result.early_return = {
                         **state,
                         "breakpoint_payload": {
@@ -273,7 +308,13 @@ def _spec_declares_field(spec: Any, field: str) -> bool:
     return field in schema.get("properties", {})
 
 
-def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | None = None, *, spec: Any = None) -> dict[str, Any]:
+def docker_worker_handler(
+    state: dict[str, Any],
+    node_config: dict[str, Any] | None = None,
+    *,
+    spec: Any = None,
+    hitl_callback: HitlCallback | None = None,
+) -> dict[str, Any]:
     """Orchestrate a full Docker worker lifecycle.
 
     Extracts worker_input from state, creates/starts a container,
@@ -389,6 +430,7 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
             auto_approve_low_risk=auto_approve_low_risk,
             state=state,
             workspace_path=container_handle.workspace_path if container_handle else "",
+            hitl_callback=hitl_callback,
         )
 
         if loop_result.early_return is not None:
@@ -475,8 +517,11 @@ def docker_worker_handler(state: dict[str, Any], node_config: dict[str, Any] | N
 class DockerWorkerHandler:
     """Wrapper class matching the ImplementationPointer pattern (cls(spec).__call__)."""
 
-    def __init__(self, spec: Any = None):
+    def __init__(self, spec: Any = None, hitl_callback: HitlCallback | None = terminal_hitl_callback):
         self.spec = spec
+        self.hitl_callback = hitl_callback
 
-    def __call__(self, state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
-        return docker_worker_handler(state, node_config, spec=self.spec)
+    def __call__(
+        self, state: dict[str, Any], node_config: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        return docker_worker_handler(state, node_config, spec=self.spec, hitl_callback=self.hitl_callback)
