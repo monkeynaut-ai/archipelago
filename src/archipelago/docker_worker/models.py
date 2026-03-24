@@ -1,6 +1,6 @@
 """Data models for the Docker worker subsystem."""
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 

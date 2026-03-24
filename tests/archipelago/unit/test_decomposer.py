@@ -53,6 +53,12 @@ class TestDecomposerHandler:
             decomposer_handler({})
 
     def test_given_job_definition_with_empty_commits_when_called_then_raises(self):
-        state = {"job_definition": {"objective": "test", "repo_url": "https://github.com/org/repo", "commits": []}}
+        state = {
+            "job_definition": {
+                "objective": "test",
+                "repo_url": "https://github.com/org/repo",
+                "commits": [],
+            }
+        }
         with pytest.raises(Exception, match="commits must not be empty"):
             decomposer_handler(state)

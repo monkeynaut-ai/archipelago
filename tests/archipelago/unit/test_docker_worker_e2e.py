@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from agent_foundry.compiler.compiler import compile_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
+
 from archipelago.agents.decomposer import decomposer_handler
 from archipelago.agents.dispatcher import dispatcher_handler
 from archipelago.agents.evaluator import evaluator_handler
@@ -17,7 +17,9 @@ PLAN_PATH = (
 )
 
 
-def _stub_docker_worker(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+def _stub_docker_worker(
+    state: dict[str, Any], node_config: dict[str, Any] | None = None
+) -> dict[str, Any]:
     return {
         **state,
         "worker_result": {
@@ -49,7 +51,9 @@ def _stub_docker_worker(state: dict[str, Any], node_config: dict[str, Any] | Non
     }
 
 
-def _stub_software_review(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+def _stub_software_review(
+    state: dict[str, Any], node_config: dict[str, Any] | None = None
+) -> dict[str, Any]:
     return {
         **state,
         "worker_result": {
@@ -80,7 +84,11 @@ def plan():
 @pytest.fixture
 def final_state(registry, plan):
     graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-    job_def = {"objective": "Build a test product", "repo_url": "https://github.com/org/repo", "commits": [{"title": "c1"}]}
+    job_def = {
+        "objective": "Build a test product",
+        "repo_url": "https://github.com/org/repo",
+        "commits": [{"title": "c1"}],
+    }
     return graph.invoke({"job_definition": job_def})
 
 

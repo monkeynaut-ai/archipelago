@@ -5,6 +5,8 @@ These tests require:
 - acp-cc-worker:latest image built (pdm docker-base)
 """
 
+import contextlib
+
 import docker
 import pytest
 
@@ -42,14 +44,10 @@ def container_cleanup(docker_client):
     containers = []
     yield containers
     for c in containers:
-        try:
+        with contextlib.suppress(Exception):
             c.stop(timeout=2)
-        except Exception:
-            pass
-        try:
+        with contextlib.suppress(Exception):
             c.remove(force=True)
-        except Exception:
-            pass
 
 
 def run_in_container(
@@ -98,7 +96,5 @@ def run_in_container(
         raise
     finally:
         if cleanup_list is None:
-            try:
+            with contextlib.suppress(Exception):
                 container.remove(force=True)
-            except Exception:
-                pass

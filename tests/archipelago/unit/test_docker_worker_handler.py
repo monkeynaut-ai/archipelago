@@ -9,13 +9,12 @@ from unittest.mock import MagicMock, patch
 
 import agent_foundry
 import pytest
-
 from agent_foundry.compiler.compiler import compile_plan
 from agent_foundry.planner.validators import validate_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
+
 from archipelago.docker_worker.handler import (
     DockerWorkerHandler,
-    MessageLoopResult,
     _build_prompt,
     _HandlerWSServer,
     _process_messages,
@@ -796,7 +795,9 @@ class TestPipelineIntegration:
     def test_given_handler_registry_with_docker_worker_when_compile_plan_called_then_compiles(
         self, plan, registry
     ):
-        def _stub(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+        def _stub(
+            state: dict[str, Any], node_config: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             return state
 
         handlers = {

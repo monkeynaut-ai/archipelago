@@ -18,7 +18,6 @@ from websockets.sync.server import ServerConnection, serve
 
 from archipelago.docker_worker.container import create_archipelago_container_manager
 from archipelago.docker_worker.env import build_container_env
-from archipelago.models import CommitSpecification
 from archipelago.docker_worker.models import (
     WorkerConstraints,
     WorkerInput,
@@ -35,6 +34,7 @@ from archipelago.docker_worker.protocol import (
     parse_protocol_message,
 )
 from archipelago.docker_worker.recovery import persist_workspace_state
+from archipelago.models import CommitSpecification
 
 logger = logging.getLogger(__name__)
 
@@ -517,11 +517,15 @@ def docker_worker_handler(
 class DockerWorkerHandler:
     """Wrapper class matching the ImplementationPointer pattern (cls(spec).__call__)."""
 
-    def __init__(self, spec: Any = None, hitl_callback: HitlCallback | None = terminal_hitl_callback):
+    def __init__(
+        self, spec: Any = None, hitl_callback: HitlCallback | None = terminal_hitl_callback
+    ):
         self.spec = spec
         self.hitl_callback = hitl_callback
 
     def __call__(
         self, state: dict[str, Any], node_config: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        return docker_worker_handler(state, node_config, spec=self.spec, hitl_callback=self.hitl_callback)
+        return docker_worker_handler(
+            state, node_config, spec=self.spec, hitl_callback=self.hitl_callback
+        )

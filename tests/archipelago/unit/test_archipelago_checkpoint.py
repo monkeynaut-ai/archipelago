@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from agent_foundry.compiler.compiler import compile_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
+
 from archipelago.agents.decomposer import decomposer_handler
 from archipelago.agents.dispatcher import dispatcher_handler
 from archipelago.agents.evaluator import evaluator_handler
@@ -17,7 +17,9 @@ PLAN_PATH = (
 )
 
 
-def _stub_docker_worker(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+def _stub_docker_worker(
+    state: dict[str, Any], node_config: dict[str, Any] | None = None
+) -> dict[str, Any]:
     return {
         **state,
         "worker_result": {
@@ -32,7 +34,9 @@ def _stub_docker_worker(state: dict[str, Any], node_config: dict[str, Any] | Non
     }
 
 
-def _stub_software_review(state: dict[str, Any], node_config: dict[str, Any] | None = None) -> dict[str, Any]:
+def _stub_software_review(
+    state: dict[str, Any], node_config: dict[str, Any] | None = None
+) -> dict[str, Any]:
     return {
         **state,
         "worker_result": {
@@ -77,12 +81,14 @@ class TestCheckpointCompilation:
 
 
 class TestPipelineExecution:
-    def test_given_pipeline_when_invoked_then_produces_result(
-        self, registry, base_plan_data
-    ):
+    def test_given_pipeline_when_invoked_then_produces_result(self, registry, base_plan_data):
         plan = GraphWiringPlan(**base_plan_data)
         graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-        job_def = {"objective": "test", "repo_url": "https://github.com/org/repo", "commits": [{"title": "c1"}]}
+        job_def = {
+            "objective": "test",
+            "repo_url": "https://github.com/org/repo",
+            "commits": [{"title": "c1"}],
+        }
         result = graph.invoke({"job_definition": job_def})
         assert result["has_more_commits"] is False
         assert result["commit_passed"] is True

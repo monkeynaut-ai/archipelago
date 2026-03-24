@@ -190,7 +190,7 @@ class TestTransformProgressEvents:
                 }
             ),
         ]
-        patches, evidence = transform_progress_events(events)
+        _patches, evidence = transform_progress_events(events)
         assert len(evidence) == 1
         assert evidence[0].tests_passed == 2
         assert evidence[0].tests_failed == 1

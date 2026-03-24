@@ -10,7 +10,6 @@ Requires: Docker daemon + acp-cc-worker:latest image (pdm docker-base).
 import json
 
 import pytest
-
 from conftest import (
     _CAP_ADD,
     _CAP_DROP,

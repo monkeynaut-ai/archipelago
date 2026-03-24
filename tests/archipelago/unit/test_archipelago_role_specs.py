@@ -1,13 +1,13 @@
 """Archipelago role specs — loading, schema validation, and registry integration."""
 
-import jsonschema
+from pathlib import Path
 
+import jsonschema
 from agent_foundry.registry.spec import RoleSpec, load_role_spec
+
 from archipelago.models import (
     TestResults,
 )
-
-from pathlib import Path
 
 PRODUCT_ROLES_DIR = Path(__file__).parent.parent.parent.parent / "src" / "archipelago" / "roles"
 

@@ -10,13 +10,12 @@ Requires: Docker daemon + acp-cc-worker:latest image (pdm docker-base).
 from typing import Any
 
 import pytest
-
 from agent_foundry.compiler.compiler import compile_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
-from archipelago.docker_worker.env import build_container_env
-from archipelago.docker_worker.models import WorkerConstraints, WorkerInput
 from conftest import run_in_container
 
+from archipelago.docker_worker.env import build_container_env
+from archipelago.docker_worker.models import WorkerConstraints, WorkerInput
 
 # ── Config → env builder pipeline (no Docker needed) ──
 

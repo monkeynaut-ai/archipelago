@@ -16,7 +16,11 @@ class TestRunArchipelago:
 
         mock_run_plan.return_value = {"commit_passed": True}
 
-        job_def = {"objective": "Build a test app", "repo_url": "https://github.com/org/repo", "commits": [{"title": "c1"}]}
+        job_def = {
+            "objective": "Build a test app",
+            "repo_url": "https://github.com/org/repo",
+            "commits": [{"title": "c1"}],
+        }
         result = run_archipelago(job_def)
 
         mock_run_plan.assert_called_once()

@@ -1,11 +1,9 @@
 """Docker worker role spec — loading, schema validation, and registry tests."""
 
-import jsonschema
-
-from agent_foundry.registry.spec import RoleSpec, load_role_spec
-from archipelago.docker_worker.models import WorkerConstraints, WorkerInput, WorkerResult
-
 from pathlib import Path
+
+import jsonschema
+from agent_foundry.registry.spec import RoleSpec, load_role_spec
 
 PRODUCT_ROLES_DIR = Path(__file__).parent.parent.parent.parent / "src" / "archipelago" / "roles"
 
@@ -23,7 +21,11 @@ class TestCodingSpec:
     ):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "coding_implement_feature_from_spec.yaml")
         subgraph_state = {
-            "current_commit": {"title": "test", "repo_url": "https://github.com/org/repo", "repo_ref": "main"},
+            "current_commit": {
+                "title": "test",
+                "repo_url": "https://github.com/org/repo",
+                "repo_ref": "main",
+            },
         }
         jsonschema.validate(subgraph_state, spec.inputs_schema)
 

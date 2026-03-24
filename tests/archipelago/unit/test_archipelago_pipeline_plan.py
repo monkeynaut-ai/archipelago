@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from agent_foundry.planner.validators import validate_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
 
