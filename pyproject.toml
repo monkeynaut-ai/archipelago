@@ -35,6 +35,7 @@ markers = [
 distribution = false
 
 [tool.pdm.scripts]
+post_install.cmd = "pre-commit install"
 archipelago.cmd = "python -m archipelago.cli"
 archipelago.env = {PYTHONPATH = "src"}
 generate-review-schema.cmd = "python -m archipelago.docker.generate_review_schema"
