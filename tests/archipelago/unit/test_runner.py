@@ -30,51 +30,23 @@ class TestRunArchipelago:
 
 
 class TestRunDevTest:
-    @patch("archipelago.runner.docker_worker_handler")
-    def test_given_dev_test_input_when_called_then_docker_worker_handler_invoked_with_worker_input(
-        self, mock_handler
+    @patch("archipelago.agents.unit_test_writer.DockerLifecycle")
+    def test_given_dev_test_input_when_called_then_agent_invoked_with_current_task(
+        self, mock_lifecycle_cls
     ):
-        mock_handler.return_value = {"worker_result": {"status": "completed"}}
+        mock_lifecycle = MagicMock()
+        mock_lifecycle.execute.return_value = MagicMock(
+            output_lines=["done"], exit_code=0, commit_hash="abc123"
+        )
+        mock_lifecycle_cls.return_value = mock_lifecycle
+
         dev_test_input = {
             "repo_url": "https://github.com/org/repo",
             "repo_ref": "main",
             "commit_spec": {"title": "Add login"},
         }
 
-        run_dev_test(dev_test_input)
+        result = run_dev_test(dev_test_input)
 
-        mock_handler.assert_called_once()
-        state = mock_handler.call_args[0][0]
-        assert "worker_input" in state
-
-    @patch("archipelago.runner.docker_worker_handler")
-    def test_given_constraints_with_turn_timeout_when_called_then_constraints_preserved(
-        self, mock_handler
-    ):
-        mock_handler.return_value = {"worker_result": {"status": "completed"}}
-        dev_test_input = {
-            "repo_ref": "main",
-            "commit_spec": {"title": "Add login"},
-            "constraints": {"turn_timeout_seconds": 7200},
-        }
-
-        run_dev_test(dev_test_input)
-
-        state = mock_handler.call_args[0][0]
-        assert state["worker_input"]["constraints"]["turn_timeout_seconds"] == 7200
-
-    @patch("archipelago.runner.docker_worker_handler")
-    def test_given_no_constraints_key_when_called_then_worker_constraints_defaults_applied(
-        self, mock_handler
-    ):
-        mock_handler.return_value = {"worker_result": {"status": "completed"}}
-        dev_test_input = {
-            "repo_ref": "main",
-            "commit_spec": {"title": "Add login"},
-        }
-
-        run_dev_test(dev_test_input)
-
-        state = mock_handler.call_args[0][0]
-        assert state["worker_input"]["constraints"]["timeout_seconds"] == 3600
-        assert state["worker_input"]["constraints"]["skip_permissions"] is False
+        mock_lifecycle.execute.assert_called_once()
+        assert "worker_result" in result

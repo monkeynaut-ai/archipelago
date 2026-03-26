@@ -15,19 +15,19 @@ def _make_state(slices: list[dict], index: int = 0) -> dict:
 
 
 class TestDispatcherHandler:
-    def test_given_3_slices_at_index_0_when_called_then_current_commit_is_first_slice(self):
+    def test_given_3_slices_at_index_0_when_called_then_current_task_is_first_slice(self):
         slices = [{"title": "c1"}, {"title": "c2"}, {"title": "c3"}]
         result = dispatcher_handler(_make_state(slices, 0))
-        assert result["current_commit"]["title"] == "c1"
-        assert result["current_commit"]["objective"] == "Add auth"
-        assert result["current_commit"]["repo_url"] == "https://github.com/org/repo"
+        assert result["current_task"]["title"] == "c1"
+        assert result["current_task"]["objective"] == "Add auth"
+        assert result["current_task"]["repo_url"] == "https://github.com/org/repo"
         assert result["has_more_commits"] is True
         assert result["current_index"] == 1
 
-    def test_given_3_slices_at_index_2_when_called_then_current_commit_is_third_slice(self):
+    def test_given_3_slices_at_index_2_when_called_then_current_task_is_third_slice(self):
         slices = [{"title": "c1"}, {"title": "c2"}, {"title": "c3"}]
         result = dispatcher_handler(_make_state(slices, 2))
-        assert result["current_commit"]["title"] == "c3"
+        assert result["current_task"]["title"] == "c3"
         assert result["has_more_commits"] is True
         assert result["current_index"] == 3
 
@@ -43,5 +43,5 @@ class TestDispatcherHandler:
     def test_given_slice_with_test_focus_when_called_then_job_fields_merged(self):
         slices = [{"title": "c1", "test_focus": "unit tests"}]
         result = dispatcher_handler(_make_state(slices, 0))
-        assert result["current_commit"]["constraints"] == ["No new deps"]
-        assert result["current_commit"]["test_focus"] == "unit tests"
+        assert result["current_task"]["constraints"] == ["No new deps"]
+        assert result["current_task"]["test_focus"] == "unit tests"

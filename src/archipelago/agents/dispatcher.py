@@ -27,7 +27,7 @@ def dispatcher_handler(
 
     current_slice = commit_slices[current_index]
 
-    current_commit = {
+    current_task = {
         "objective": state.get("objective", ""),
         "repo_url": state.get("repo_url", ""),
         "repo_ref": state.get("repo_ref", "main"),
@@ -37,7 +37,7 @@ def dispatcher_handler(
 
     return {
         **state,
-        "current_commit": current_commit,
+        "current_task": current_task,
         "current_index": current_index + 1,
         "has_more_commits": True,
     }

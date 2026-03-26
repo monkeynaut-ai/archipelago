@@ -11,6 +11,7 @@ class TestHandlerRegistry:
             "evaluate_commit",
             "write_unit_tests_from_spec",
             "code_implement_from_tests",
+            "software_review",
         }
         assert set(ARCHIPELAGO_HANDLERS.keys()) == expected
 

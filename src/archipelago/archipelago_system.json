@@ -52,7 +52,7 @@
       },
       "state_mapping": {
         "input": {
-          "current_commit": "current_commit",
+          "current_task": "current_task",
           "workspace_volume": "workspace_volume",
           "commit_hash": "commit_hash"
         },

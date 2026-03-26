@@ -2,20 +2,20 @@ name: software_review
 description: Reviews code changes in a commit using Claude Code in an ephemeral Docker container
 version: "1.0.0"
 implementation:
-  module: archipelago.docker_worker.handler
-  class_name: DockerWorkerHandler
+  module: archipelago.agents.software_reviewer
+  class_name: SoftwareReviewer
 inputs_schema:
   type: object
   properties:
     commit_hash:
       type: string
-    current_commit:
+    current_task:
       type: object
     workspace_volume:
       type: string
   required:
     - commit_hash
-    - current_commit
+    - current_task
     - workspace_volume
 outputs_schema:
   type: object

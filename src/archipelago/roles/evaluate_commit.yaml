@@ -7,10 +7,10 @@ implementation:
 inputs_schema:
   type: object
   properties:
-    current_commit:
+    current_task:
       type: object
   required:
-    - current_commit
+    - current_task
 outputs_schema:
   type: object
   properties:

@@ -2,17 +2,17 @@ name: write_unit_tests_from_spec
 description: Writes unit tests from a feature spec using Claude Code in an ephemeral Docker container
 version: "1.0.0"
 implementation:
-  module: archipelago.docker_worker.handler
-  class_name: DockerWorkerHandler
+  module: archipelago.agents.unit_test_writer
+  class_name: UnitTestWriter
 inputs_schema:
   type: object
   properties:
-    current_commit:
+    current_task:
       type: object
     workspace_volume:
       type: string
   required:
-    - current_commit
+    - current_task
 outputs_schema:
   type: object
   properties:

@@ -2,17 +2,17 @@ name: code_implement_from_tests
 description: Implements production code to pass existing tests using Claude Code in an ephemeral Docker container
 version: "1.0.0"
 implementation:
-  module: archipelago.docker_worker.handler
-  class_name: DockerWorkerHandler
+  module: archipelago.agents.code_writer
+  class_name: CodeWriter
 inputs_schema:
   type: object
   properties:
-    current_commit:
+    current_task:
       type: object
     workspace_volume:
       type: string
   required:
-    - current_commit
+    - current_task
     - workspace_volume
 outputs_schema:
   type: object

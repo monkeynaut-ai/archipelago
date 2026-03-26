@@ -29,7 +29,7 @@ inputs_schema:
 outputs_schema:
   type: object
   properties:
-    current_commit:
+    current_task:
       type: object
     current_index:
       type: integer

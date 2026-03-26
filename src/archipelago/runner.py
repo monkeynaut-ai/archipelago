@@ -8,8 +8,8 @@ from agent_foundry.compiler.compiler import run_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
 from agent_foundry.registry.registry import RoleRegistry
 
-from archipelago.docker_worker.handler import docker_worker_handler
-from archipelago.docker_worker.models import WorkerConstraints, WorkerInput
+from archipelago.agents.unit_test_writer import UnitTestWriter
+from archipelago.models import CurrentTask
 
 PLAN_PATH = Path(__file__).parent / "archipelago_system.json"
 
@@ -46,11 +46,18 @@ def run_archipelago(
 
 
 def run_dev_test(dev_test_input: dict[str, Any]) -> dict[str, Any]:
-    """Bypass the full pipeline and run only the dev_test worker directly."""
-    worker_input = WorkerInput(
+    """Bypass the full pipeline and run only a single worker directly."""
+    task = CurrentTask(
+        objective=dev_test_input.get("objective", ""),
+        title=dev_test_input.get("commit_spec", {}).get("title", ""),
+        acceptance_criteria=dev_test_input.get("commit_spec", {}).get("acceptance_criteria", []),
+        test_focus=dev_test_input.get("commit_spec", {}).get("test_focus", ""),
+        implementation_focus=dev_test_input.get("commit_spec", {}).get("implementation_focus", ""),
         repo_url=dev_test_input.get("repo_url"),
         repo_ref=dev_test_input.get("repo_ref", "main"),
-        commit_spec=dev_test_input.get("commit_spec", {}),
-        constraints=WorkerConstraints(**dev_test_input.get("constraints", {})),
     )
-    return docker_worker_handler({"worker_input": worker_input.model_dump()})
+    agent = UnitTestWriter()
+    return agent(
+        {"current_task": task.model_dump()},
+        node_config=dev_test_input.get("node_config", {}),
+    )
