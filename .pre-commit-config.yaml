@@ -5,3 +5,10 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: py-compile
+        name: py_compile
+        entry: python -m py_compile
+        language: system
+        types: [python]

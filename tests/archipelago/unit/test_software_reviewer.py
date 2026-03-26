@@ -1,22 +1,40 @@
-"""SoftwareReviewer agent — prompt building and output mapping tests."""
+"""SoftwareReviewer agent — prompt building, output mapping, and review parsing tests."""
 
+import json
 from unittest.mock import MagicMock
 
-from archipelago.agents.software_reviewer import SoftwareReviewer
+from archipelago.agents.software_reviewer import DEFAULT_REVIEW_OUTPUT_PATH, SoftwareReviewer
 from archipelago.docker_worker.lifecycle import LifecycleResult
 from archipelago.models import CurrentTask
+
+
+def _valid_review_json() -> dict:
+    return {
+        "scope": {
+            "paths": ["src/auth/login.py"],
+            "commit_range": "abc..def",
+        },
+        "summary": {
+            "overall_rating": "good",
+            "strengths": ["Clean code"],
+            "primary_concerns": [],
+        },
+        "findings": [],
+    }
 
 
 def _mock_lifecycle(
     output_lines: list[str] | None = None,
     exit_code: int = 0,
     commit_hash: str = "abc123",
+    collected_files: dict[str, str] | None = None,
 ) -> MagicMock:
     lifecycle = MagicMock()
     lifecycle.execute.return_value = LifecycleResult(
         output_lines=output_lines or ["review complete"],
         exit_code=exit_code,
         commit_hash=commit_hash,
+        collected_files=collected_files or {},
     )
     return lifecycle
 
@@ -56,14 +74,48 @@ class TestSoftwareReviewer:
         prompt = lifecycle.execute.call_args[1]["prompt"]
         assert prompt.startswith("Review the changes in the commit hash given below.")
 
-    def test_given_lifecycle_completes_when_called_then_worker_result_in_state(self):
+    def test_given_lifecycle_completes_with_review_file_when_called_then_review_parsed(self):
+        review = _valid_review_json()
+        lifecycle = _mock_lifecycle(
+            collected_files={DEFAULT_REVIEW_OUTPUT_PATH: json.dumps(review)},
+        )
+        agent = SoftwareReviewer(lifecycle=lifecycle)
+
+        result = agent(_valid_state(), node_config={})
+
+        assert result["worker_result"]["status"] == "completed"
+        assert result["worker_result"]["review"] is not None
+        assert result["worker_result"]["review"]["summary"]["overall_rating"] == "good"
+
+    def test_given_lifecycle_completes_without_review_file_when_called_then_review_is_none(self):
         lifecycle = _mock_lifecycle()
         agent = SoftwareReviewer(lifecycle=lifecycle)
 
         result = agent(_valid_state(), node_config={})
 
-        assert result["worker_result"] is not None
-        assert result["worker_result"]["status"] == "completed"
+        assert result["worker_result"]["review"] is None
+
+    def test_given_invalid_review_json_when_called_then_status_is_failed(self):
+        lifecycle = _mock_lifecycle(
+            collected_files={DEFAULT_REVIEW_OUTPUT_PATH: "not valid json"},
+        )
+        agent = SoftwareReviewer(lifecycle=lifecycle)
+
+        result = agent(_valid_state(), node_config={})
+
+        assert result["worker_result"]["status"] == "failed"
+        assert result["worker_result"]["review"] is None
+
+    def test_given_review_with_wrong_schema_when_called_then_status_is_failed(self):
+        bad_review = {"scope": "not an object", "summary": "bad", "findings": "bad"}
+        lifecycle = _mock_lifecycle(
+            collected_files={DEFAULT_REVIEW_OUTPUT_PATH: json.dumps(bad_review)},
+        )
+        agent = SoftwareReviewer(lifecycle=lifecycle)
+
+        result = agent(_valid_state(), node_config={})
+
+        assert result["worker_result"]["status"] == "failed"
 
     def test_given_lifecycle_fails_when_called_then_status_is_failed(self):
         lifecycle = _mock_lifecycle(exit_code=1)
@@ -72,6 +124,18 @@ class TestSoftwareReviewer:
         result = agent(_valid_state(), node_config={})
 
         assert result["worker_result"]["status"] == "failed"
+
+    def test_given_node_config_with_review_path_when_called_then_lifecycle_collects_that_path(
+        self,
+    ):
+        lifecycle = _mock_lifecycle()
+        agent = SoftwareReviewer(lifecycle=lifecycle)
+        node_config = {"review_output_path": "/workspace/custom_review.json"}
+
+        agent(_valid_state(), node_config=node_config)
+
+        collect_files = lifecycle.execute.call_args[1]["collect_files"]
+        assert collect_files == ["/workspace/custom_review.json"]
 
     def test_given_worker_constraints_in_state_when_called_then_lifecycle_receives_constraints(
         self,

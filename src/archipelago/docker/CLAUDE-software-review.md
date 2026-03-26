@@ -9,6 +9,7 @@ Your role is to review changes to software artifacts (e.g. code, tests, api sche
 - Use LSP to identify the context and effects of those changes
 - Review these changes using the qualities defined in the section "Qualities of good software design".
 - Generate a report on your review using the instructions and JSON schema defined in the section "Generating Review Output"
+- write your review to /workspace/review.json
 
 ### Qualities of good software design
 

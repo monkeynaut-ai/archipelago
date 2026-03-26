@@ -1,7 +1,6 @@
 """Docker container lifecycle — manages container execution independently of task logic."""
 
 import contextlib
-import logging
 import queue
 import shutil
 import socket
@@ -13,6 +12,7 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 
 import docker
+import structlog
 from pydantic import BaseModel, Field
 from websockets.sync.server import ServerConnection, serve
 
@@ -30,7 +30,7 @@ from archipelago.docker_worker.protocol import (
 )
 from archipelago.docker_worker.recovery import persist_workspace_state
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class LifecycleResult(BaseModel):
@@ -41,6 +41,7 @@ class LifecycleResult(BaseModel):
     commit_hash: str = "unknown"
     patches: list[Any] = Field(default_factory=list)
     evidence: list[Any] = Field(default_factory=list)
+    collected_files: dict[str, str] = Field(default_factory=dict)
 
 
 class HitlCallback(Protocol):
@@ -63,6 +64,7 @@ class DockerLifecycleProtocol(Protocol):
         timeout_seconds: int = 3600,
         connection_timeout_seconds: int = 120,
         auto_approve_low_risk: bool = False,
+        collect_files: list[str] | None = None,
     ) -> LifecycleResult: ...
 
 
@@ -163,19 +165,25 @@ def _process_messages(
             continue
 
         if raw is None:
+            logger.info("adapter_connection_dropped")
             return LifecycleResult(output_lines=output_lines, exit_code=1)
 
         try:
             msg = parse_protocol_message(raw)
         except ProtocolError:
-            logger.warning("Ignoring malformed protocol message")
+            logger.warning("malformed_protocol_message", raw=raw[:200])
             continue
 
         if isinstance(msg, OutputMessage):
             output_lines.append(msg.text)
-            logger.info("[cc] %s", msg.text)
+            logger.info("cc_output", text=msg.text)
 
         elif isinstance(msg, AgentEventMessage):
+            logger.info(
+                "agent_event",
+                event_type=msg.event_type,
+                payload=msg.payload,
+            )
             if msg.event_type == "clarification_requested":
                 payload = msg.payload
                 blocking = payload.get("blocking", True)
@@ -184,6 +192,7 @@ def _process_messages(
                         response = hitl_callback("clarification", payload)
                         _send_input(ws_server, session_id, response)
                         continue
+                    logger.info("clarification_unhandled", payload=payload)
                     return LifecycleResult(output_lines=output_lines, exit_code=1)
             elif msg.event_type == "permission_requested":
                 payload = msg.payload
@@ -196,9 +205,15 @@ def _process_messages(
                         response = hitl_callback("permission", payload)
                         _send_input(ws_server, session_id, response)
                         continue
+                    logger.info("permission_unhandled", payload=payload)
                     return LifecycleResult(output_lines=output_lines, exit_code=1)
 
         elif isinstance(msg, StatusMessage):
+            logger.info(
+                "status_message",
+                status=msg.status,
+                exit_code=msg.exit_code,
+            )
             if msg.status == "exited":
                 exit_code = msg.exit_code
                 break
@@ -226,6 +241,7 @@ class DockerLifecycle:
         timeout_seconds: int = 3600,
         connection_timeout_seconds: int = 120,
         auto_approve_low_risk: bool = False,
+        collect_files: list[str] | None = None,
     ) -> LifecycleResult:
         constraints = constraints or WorkerConstraints()
 
@@ -307,12 +323,26 @@ class DockerLifecycle:
                 except Exception:
                     logger.debug("Could not collect progress.jsonl", exc_info=True)
 
+            # Collect requested files from container
+            collected_files: dict[str, str] = {}
+            if container_handle and collect_files:
+                for container_path in collect_files:
+                    try:
+                        content = container_mgr.read_file_from_container(
+                            container_handle, container_path
+                        )
+                        if content is not None:
+                            collected_files[container_path] = content
+                    except Exception:
+                        logger.debug("Could not collect %s", container_path, exc_info=True)
+
             return LifecycleResult(
                 output_lines=result.output_lines,
                 exit_code=result.exit_code,
                 commit_hash=commit_hash,
                 patches=[p.model_dump() for p in patches],
                 evidence=[e.model_dump() for e in evidence],
+                collected_files=collected_files,
             )
 
         except Exception as e:

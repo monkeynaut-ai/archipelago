@@ -29,10 +29,11 @@
           {"id": "software_reviewer", "role": "software_review", "config": {
             "worker_mode": "software_reviewer",
             "role_instructions_path": "/home/claude/.claude/CLAUDE-software-review.md",
+            "review_output_path": "/workspace/review.json",
             "prompt_preamble": [
               "Review the changes in the commit hash given below.",
               "Use LSP to understand context and effects of the changes.",
-              "Generate your review report as specified in your instructions."
+              "Write your review as a JSON object to /workspace/review.json using the schema specified in your instructions."
             ]
           }},
           {"id": "evaluator", "role": "evaluate_commit", "config": {}}

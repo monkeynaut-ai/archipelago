@@ -60,6 +60,7 @@ If you are performing a review, the task is complete when:
 
   1. You have finished the review given the scope and aims of your review
   2. You have generated a report using the specified schema
+  3. You have written the report to /workspace/review.json
 
 ## LSP-first code navigation
 

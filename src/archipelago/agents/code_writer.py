@@ -1,6 +1,9 @@
 """CodeWriter agent — implements production code to satisfy tests."""
 
+import time
 from typing import Any
+
+import structlog
 
 from archipelago.docker_worker.env import build_agent_env
 from archipelago.docker_worker.lifecycle import (
@@ -65,12 +68,13 @@ class CodeWriter:
     def __call__(
         self, state: dict[str, Any], node_config: dict[str, Any] | None = None
     ) -> dict[str, Any]:
+        structlog.contextvars.bind_contextvars(agent="code_writer")
         node_config = node_config or {}
         task = CurrentTask(**state["current_task"])
         prompt = _build_prompt(task, node_config)
 
         existing_volume = state.get("workspace_volume")
-        workspace_volume = existing_volume or "archipelago-scratch"
+        workspace_volume = existing_volume or f"archipelago-{int(time.time())}"
         constraints = WorkerConstraints(**state.get("worker_constraints", {}))
         extra_env = build_agent_env(task, node_config, existing_volume)
 

@@ -5,6 +5,7 @@ job_definition:
   constraints:
     - "Use pdm as the package manager"
     - "Use python 3.14"
+    - "create a pdm script that runs the api server"
     - "Use pytest as the test framework"
     - "Use FastAPI as the web framework"
     - "Use Pydantic for request/response models"

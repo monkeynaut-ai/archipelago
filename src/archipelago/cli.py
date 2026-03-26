@@ -2,21 +2,65 @@
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
+import structlog
 import yaml
 from dotenv import load_dotenv
 
 from archipelago.runner import run_archipelago, run_dev_test
 
 
+def configure_logging(level: str = "INFO") -> None:
+    """Configure structlog with JSON output for production, readable output for development."""
+    log_level = getattr(logging, level.upper(), logging.INFO)
+
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+
+    use_json = os.environ.get("LOG_FORMAT", "").lower() == "json"
+    formatter = structlog.stdlib.ProcessorFormatter(
+        processor=structlog.processors.JSONRenderer()
+        if use_json
+        else structlog.dev.ConsoleRenderer(),
+    )
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(handler)
+    root.setLevel(log_level)
+
+    logging.getLogger("websockets").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+
 def main(argv: list[str] | None = None) -> int:
     load_dotenv()
-    logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s %(message)s")
     parser = argparse.ArgumentParser(description="Run the Archipelago pipeline")
     parser.add_argument("-f", "--file", required=True, help="Path to YAML input file")
     args = parser.parse_args(argv)
+
+    configure_logging(os.environ.get("LOG_LEVEL", "INFO"))
 
     input_path = Path(args.file)
     if not input_path.exists():
