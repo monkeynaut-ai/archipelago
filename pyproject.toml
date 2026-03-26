@@ -37,7 +37,10 @@ distribution = false
 [tool.pdm.scripts]
 archipelago.cmd = "python -m archipelago.cli"
 archipelago.env = {PYTHONPATH = "src"}
-docker-archipelago.cmd = "docker build -t archipelago-cc-worker:latest -f src/archipelago/docker/Dockerfile ."
+generate-review-schema.cmd = "python -m archipelago.docker.generate_review_schema"
+generate-review-schema.env = {PYTHONPATH = "src"}
+docker-archipelago.composite = ["generate-review-schema", "_docker-build-archipelago"]
+"_docker-build-archipelago".cmd = "docker build -t archipelago-cc-worker:latest -f src/archipelago/docker/Dockerfile ."
 test-unit.cmd = "pytest tests/ -m 'not integration and not benchmark'"
 test-unit.env = {PYTHONPATH = "src"}
 test-integration.cmd = "pytest tests/ -m 'integration'"

@@ -3,9 +3,12 @@
 import json
 from unittest.mock import MagicMock
 
-from archipelago.agents.software_reviewer import DEFAULT_REVIEW_OUTPUT_PATH, SoftwareReviewer
+from archipelago.agents.software_reviewer import SoftwareReviewer, _review_output_path
 from archipelago.docker_worker.lifecycle import LifecycleResult
 from archipelago.models import CurrentTask
+
+COMMIT_HASH = "def456"
+EXPECTED_REVIEW_PATH = f"/workspace/review-{COMMIT_HASH}.json"
 
 
 def _valid_review_json() -> dict:
@@ -48,7 +51,7 @@ def _valid_state() -> dict:
     return {
         "current_task": task.model_dump(),
         "workspace_volume": "archipelago-123",
-        "commit_hash": "def456",
+        "commit_hash": COMMIT_HASH,
     }
 
 
@@ -60,7 +63,16 @@ class TestSoftwareReviewer:
         agent(_valid_state(), node_config={})
 
         prompt = lifecycle.execute.call_args[1]["prompt"]
-        assert "def456" in prompt
+        assert COMMIT_HASH in prompt
+
+    def test_given_commit_hash_when_prompt_built_then_includes_review_output_path(self):
+        lifecycle = _mock_lifecycle()
+        agent = SoftwareReviewer(lifecycle=lifecycle)
+
+        agent(_valid_state(), node_config={})
+
+        prompt = lifecycle.execute.call_args[1]["prompt"]
+        assert EXPECTED_REVIEW_PATH in prompt
 
     def test_given_node_config_when_prompt_built_then_preamble_prepended(self):
         lifecycle = _mock_lifecycle()
@@ -77,7 +89,7 @@ class TestSoftwareReviewer:
     def test_given_lifecycle_completes_with_review_file_when_called_then_review_parsed(self):
         review = _valid_review_json()
         lifecycle = _mock_lifecycle(
-            collected_files={DEFAULT_REVIEW_OUTPUT_PATH: json.dumps(review)},
+            collected_files={EXPECTED_REVIEW_PATH: json.dumps(review)},
         )
         agent = SoftwareReviewer(lifecycle=lifecycle)
 
@@ -97,7 +109,7 @@ class TestSoftwareReviewer:
 
     def test_given_invalid_review_json_when_called_then_status_is_failed(self):
         lifecycle = _mock_lifecycle(
-            collected_files={DEFAULT_REVIEW_OUTPUT_PATH: "not valid json"},
+            collected_files={EXPECTED_REVIEW_PATH: "not valid json"},
         )
         agent = SoftwareReviewer(lifecycle=lifecycle)
 
@@ -109,7 +121,7 @@ class TestSoftwareReviewer:
     def test_given_review_with_wrong_schema_when_called_then_status_is_failed(self):
         bad_review = {"scope": "not an object", "summary": "bad", "findings": "bad"}
         lifecycle = _mock_lifecycle(
-            collected_files={DEFAULT_REVIEW_OUTPUT_PATH: json.dumps(bad_review)},
+            collected_files={EXPECTED_REVIEW_PATH: json.dumps(bad_review)},
         )
         agent = SoftwareReviewer(lifecycle=lifecycle)
 
@@ -125,17 +137,21 @@ class TestSoftwareReviewer:
 
         assert result["worker_result"]["status"] == "failed"
 
-    def test_given_node_config_with_review_path_when_called_then_lifecycle_collects_that_path(
-        self,
-    ):
+    def test_given_commit_hash_when_called_then_lifecycle_collects_dynamic_review_path(self):
         lifecycle = _mock_lifecycle()
         agent = SoftwareReviewer(lifecycle=lifecycle)
-        node_config = {"review_output_path": "/workspace/custom_review.json"}
 
-        agent(_valid_state(), node_config=node_config)
+        agent(_valid_state(), node_config={})
 
         collect_files = lifecycle.execute.call_args[1]["collect_files"]
-        assert collect_files == ["/workspace/custom_review.json"]
+        assert collect_files == [EXPECTED_REVIEW_PATH]
+
+    def test_given_different_commit_hashes_when_called_then_review_paths_differ(self):
+        path_a = _review_output_path("aaa111")
+        path_b = _review_output_path("bbb222")
+        assert path_a != path_b
+        assert "aaa111" in path_a
+        assert "bbb222" in path_b
 
     def test_given_worker_constraints_in_state_when_called_then_lifecycle_receives_constraints(
         self,

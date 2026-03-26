@@ -18,10 +18,15 @@ from archipelago.models import CodeReview, CurrentTask
 
 logger = structlog.get_logger(__name__)
 
-DEFAULT_REVIEW_OUTPUT_PATH = "/workspace/review.json"
+
+def _review_output_path(commit_hash: str) -> str:
+    """Generate a unique review output path based on the commit hash."""
+    return f"/workspace/review-{commit_hash}.json"
 
 
-def _build_prompt(task: CurrentTask, commit_hash: str, node_config: dict[str, Any]) -> str:
+def _build_prompt(
+    task: CurrentTask, commit_hash: str, review_path: str, node_config: dict[str, Any]
+) -> str:
     """Build a prompt for the software reviewer role."""
     preamble = node_config.get("prompt_preamble", [])
     parts = list(preamble) if preamble else ["Review the following changes:"]
@@ -31,6 +36,7 @@ def _build_prompt(task: CurrentTask, commit_hash: str, node_config: dict[str, An
     if task.title:
         parts.append(f"Title: {task.title}")
     parts.append(f"Commit hash: {commit_hash}")
+    parts.append(f"Review output path: {review_path}")
 
     return "\n".join(parts)
 
@@ -85,13 +91,13 @@ class SoftwareReviewer:
         node_config = node_config or {}
         task = CurrentTask(**state["current_task"])
         commit_hash = state["commit_hash"]
-        prompt = _build_prompt(task, commit_hash, node_config)
+        review_path = _review_output_path(commit_hash)
+        prompt = _build_prompt(task, commit_hash, review_path, node_config)
 
         existing_volume = state.get("workspace_volume")
         workspace_volume = existing_volume or f"archipelago-{int(time.time())}"
         constraints = WorkerConstraints(**state.get("worker_constraints", {}))
         extra_env = build_agent_env(task, node_config, existing_volume)
-        review_output_path = node_config.get("review_output_path", DEFAULT_REVIEW_OUTPUT_PATH)
 
         result = self.lifecycle.execute(
             prompt=prompt,
@@ -101,7 +107,7 @@ class SoftwareReviewer:
             timeout_seconds=constraints.timeout_seconds,
             connection_timeout_seconds=constraints.connection_timeout_seconds,
             auto_approve_low_risk=constraints.network_policy != "none",
-            collect_files=[review_output_path],
+            collect_files=[review_path],
         )
 
-        return _map_output(result, state, workspace_volume, review_output_path)
+        return _map_output(result, state, workspace_volume, review_path)

@@ -9,7 +9,7 @@ Your role is to review changes to software artifacts (e.g. code, tests, api sche
 - Use LSP to identify the context and effects of those changes
 - Review these changes using the qualities defined in the section "Qualities of good software design".
 - Generate a report on your review using the instructions and JSON schema defined in the section "Generating Review Output"
-- write your review to /workspace/review.json
+- Write your review JSON to the file path specified in your task prompt
 
 ### Qualities of good software design
 
@@ -55,139 +55,46 @@ Follow these instructions when generating the JSON object for your review
 
 #### JSON schema
 
+<!-- GENERATED_SCHEMA_START -->
+
+```json
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "CodeReview",
-  "description": "Structured code review that an AI agent can use to guide refactoring decisions and execution",
-  "type": "object",
-  "required": [
-    "scope",
-    "summary",
-    "findings"
-  ],
-  "properties": {
-    "scope": {
-      "description": "What was reviewed",
-      "type": "object",
-      "required": [
-        "paths"
-      ],
-      "properties": {
-        "paths": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Files or directories included in the review"
-        },
-        "commit_range": {
-          "type": "string",
-          "description": "Git commit range reviewed"
-        },
-        "context": {
-          "type": "string",
-          "description": "Why this review was conducted"
-        }
-      }
-    },
-    "summary": {
-      "description": "High-level assessment an agent reads first to prioritize",
-      "type": "object",
-      "required": [
-        "overall_rating",
-        "strengths",
-        "primary_concerns"
-      ],
-      "properties": {
-        "overall_rating": {
-          "enum": [
-            "good",
-            "acceptable",
-            "needs_work",
-            "critical"
-          ],
-          "description": "Coarse signal for triage — should the agent act now or move on"
-        },
-        "strengths": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "What to preserve — an agent must not regress these"
-        },
-        "primary_concerns": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Top-level problems in plain language"
-        }
-      }
-    },
-    "findings": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/finding"
-      },
-      "description": "Individual actionable observations, ordered by priority"
-    },
-    "constraints": {
-      "description": "Boundaries the agent must respect when acting on findings",
-      "type": "object",
+  "$defs": {
+    "CodeReviewConstraints": {
       "properties": {
         "preserve": {
-          "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Invariants that must not be broken (e.g., 'public API signatures', 'test count')"
+          "title": "Preserve",
+          "type": "array"
         },
         "avoid": {
-          "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Anti-patterns or approaches to reject (e.g., 'no ORM introduction', 'no new dependencies')"
+          "title": "Avoid",
+          "type": "array"
         },
         "dependencies": {
-          "type": "array",
           "items": {
-            "type": "object",
-            "required": [
-              "finding_id",
-              "blocked_by"
-            ],
-            "properties": {
-              "finding_id": {
-                "type": "string"
-              },
-              "blocked_by": {
-                "type": "string",
-                "description": "ID of the finding that must be resolved first"
-              }
-            }
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
           },
-          "description": "Execution order constraints between findings"
+          "title": "Dependencies",
+          "type": "array"
         }
-      }
-    }
-  },
-  "$defs": {
-    "finding": {
-      "type": "object",
-      "required": [
-        "id",
-        "quality",
-        "severity",
-        "title",
-        "problem",
-        "locations",
-        "suggestion"
-      ],
+      },
+      "title": "CodeReviewConstraints",
+      "type": "object"
+    },
+    "CodeReviewFinding": {
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Stable identifier for cross-referencing (e.g., 'F1', 'coupling-01')"
+          "title": "Id",
+          "type": "string"
         },
         "quality": {
           "enum": [
@@ -204,7 +111,8 @@ Follow these instructions when generating the JSON object for your review
             "consistency",
             "reversibility"
           ],
-          "description": "Which design quality this finding relates to"
+          "title": "Quality",
+          "type": "string"
         },
         "severity": {
           "enum": [
@@ -213,100 +121,290 @@ Follow these instructions when generating the JSON object for your review
             "minor",
             "informational"
           ],
-          "description": "critical = causes bugs or data loss; major = structural problem that compounds; minor = improvement opportunity; informational = observation only"
+          "title": "Severity",
+          "type": "string"
         },
         "title": {
-          "type": "string",
-          "description": "One-line summary an agent can use as a commit message seed"
+          "title": "Title",
+          "type": "string"
         },
         "problem": {
-          "type": "string",
-          "description": "What is wrong and why it matters — the agent uses this to validate its fix actually addresses the root cause"
+          "title": "Problem",
+          "type": "string"
         },
         "locations": {
-          "type": "array",
           "items": {
-            "$ref": "#/$defs/location"
+            "$ref": "#/$defs/CodeReviewLocation"
           },
-          "description": "Where in the code this problem manifests"
+          "title": "Locations",
+          "type": "array"
         },
         "suggestion": {
-          "type": "object",
-          "required": [
-            "approach"
+          "$ref": "#/$defs/CodeReviewSuggestion"
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeReviewVerification"
+            },
+            {
+              "type": "null"
+            }
           ],
-          "properties": {
-            "approach": {
-              "type": "string",
-              "description": "Recommended fix strategy in enough detail for an agent to act without ambiguity"
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "quality",
+        "severity",
+        "title",
+        "problem",
+        "locations",
+        "suggestion"
+      ],
+      "title": "CodeReviewFinding",
+      "type": "object"
+    },
+    "CodeReviewLocation": {
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "lines": {
+          "anyOf": [
+            {
+              "type": "string"
             },
-            "alternatives": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Other valid approaches if the primary is blocked"
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lines"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
             },
-            "effort": {
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "title": "CodeReviewLocation",
+      "type": "object"
+    },
+    "CodeReviewScope": {
+      "properties": {
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "commit_range": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commit Range"
+        },
+        "context": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Context"
+        }
+      },
+      "required": [
+        "paths"
+      ],
+      "title": "CodeReviewScope",
+      "type": "object"
+    },
+    "CodeReviewSuggestion": {
+      "properties": {
+        "approach": {
+          "title": "Approach",
+          "type": "string"
+        },
+        "alternatives": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Alternatives",
+          "type": "array"
+        },
+        "effort": {
+          "anyOf": [
+            {
               "enum": [
                 "trivial",
                 "small",
                 "medium",
                 "large"
               ],
-              "description": "Relative size of the change — helps an agent batch or sequence work"
+              "type": "string"
             },
-            "risk": {
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effort"
+        },
+        "risk": {
+          "anyOf": [
+            {
               "enum": [
                 "safe",
                 "moderate",
                 "breaking"
               ],
-              "description": "safe = no behavior change; moderate = internal behavior change; breaking = public API change"
-            }
-          }
-        },
-        "verification": {
-          "type": "object",
-          "properties": {
-            "test_exists": {
-              "type": "boolean",
-              "description": "Whether existing tests cover this area"
+              "type": "string"
             },
-            "test_strategy": {
-              "type": "string",
-              "description": "How the agent should verify the fix (e.g., 'run existing tests', 'add test for stale data scenario')"
-            },
-            "acceptance_criteria": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Concrete conditions that must be true after the fix"
+            {
+              "type": "null"
             }
-          },
-          "description": "How the agent confirms the fix is correct"
+          ],
+          "default": null,
+          "title": "Risk"
         }
-      }
-    },
-    "location": {
-      "type": "object",
+      },
       "required": [
-        "file"
+        "approach"
       ],
+      "title": "CodeReviewSuggestion",
+      "type": "object"
+    },
+    "CodeReviewSummary": {
       "properties": {
-        "file": {
+        "overall_rating": {
+          "enum": [
+            "good",
+            "acceptable",
+            "needs_work",
+            "critical"
+          ],
+          "title": "Overall Rating",
           "type": "string"
         },
-        "lines": {
-          "type": "string",
-          "description": "Line range (e.g., '50-57', '106')"
+        "strengths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Strengths",
+          "type": "array"
         },
-        "symbol": {
-          "type": "string",
-          "description": "Function, class, or variable name for LSP-based navigation"
+        "primary_concerns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Primary Concerns",
+          "type": "array"
         }
-      }
+      },
+      "required": [
+        "overall_rating",
+        "strengths",
+        "primary_concerns"
+      ],
+      "title": "CodeReviewSummary",
+      "type": "object"
+    },
+    "CodeReviewVerification": {
+      "properties": {
+        "test_exists": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Test Exists"
+        },
+        "test_strategy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Test Strategy"
+        },
+        "acceptance_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Acceptance Criteria",
+          "type": "array"
+        }
+      },
+      "title": "CodeReviewVerification",
+      "type": "object"
     }
-  }
+  },
+  "properties": {
+    "scope": {
+      "$ref": "#/$defs/CodeReviewScope"
+    },
+    "summary": {
+      "$ref": "#/$defs/CodeReviewSummary"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/CodeReviewFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "constraints": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodeReviewConstraints"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "scope",
+    "summary",
+    "findings"
+  ],
+  "title": "CodeReview",
+  "type": "object"
 }
+```
+
+<!-- GENERATED_SCHEMA_END -->
