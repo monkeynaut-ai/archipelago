@@ -13,9 +13,7 @@ PRODUCT_ROLES_DIR = Path(__file__).parent.parent.parent.parent / "src" / "archip
 
 ARCHIPELAGO_SPEC_NAMES = [
     "code_implement_from_tests",
-    "coding_implement_feature_from_spec",
     "decompose_job_definition",
-    "dev_implement_feature_tdd",
     "dispatch_commit",
     "evaluate_commit",
     "software_review",
@@ -33,19 +31,19 @@ def _valid_test_results_dump() -> dict:
     ).model_dump()
 
 
-class TestDevSpec:
+class TestDispatchCommitSpec:
     def test_given_yaml_file_when_loaded_then_returns_valid_role_spec(self):
-        spec = load_role_spec(PRODUCT_ROLES_DIR / "dev_implement_feature_tdd.yaml")
+        spec = load_role_spec(PRODUCT_ROLES_DIR / "dispatch_commit.yaml")
         assert isinstance(spec, RoleSpec)
-        assert spec.name == "dev_implement_feature_tdd"
+        assert spec.name == "dispatch_commit"
         assert spec.version == "1.0.0"
         assert "archipelago" in spec.tags
 
-    def test_given_dev_spec_when_outputs_schema_validates_model_dump_then_passes(self):
-        spec = load_role_spec(PRODUCT_ROLES_DIR / "dev_implement_feature_tdd.yaml")
+    def test_given_dispatch_spec_when_outputs_schema_validates_model_dump_then_passes(self):
+        spec = load_role_spec(PRODUCT_ROLES_DIR / "dispatch_commit.yaml")
         data = {
-            "worker_result": {"result_summary": "done", "status": "completed"},
-            "workspace_volume": "archipelago-123",
+            "current_index": 0,
+            "has_more_commits": True,
         }
         jsonschema.validate(data, spec.outputs_schema)
 
@@ -99,11 +97,11 @@ class TestRegistryIntegration:
     def test_given_all_yaml_specs_when_registry_loaded_then_contains_15_capabilities(
         self, registry
     ):
-        assert len(registry) == 16
+        assert len(registry) == 14
 
     def test_given_registry_when_searched_by_archipelago_tag_then_returns_exactly_7(self, registry):
         results = registry.search(tags=["archipelago"])
-        assert len(results) == 8
+        assert len(results) == 6
 
     def test_given_each_archipelago_spec_when_name_queried_then_found_in_registry(self, registry):
         for name in ARCHIPELAGO_SPEC_NAMES:

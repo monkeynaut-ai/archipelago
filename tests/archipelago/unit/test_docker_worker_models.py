@@ -117,20 +117,17 @@ class TestWorkerInput:
 
     def test_given_role_config_when_instantiated_then_fields_accessible(self):
         data = _valid_worker_input()
-        data["worker_mode"] = "unit_test_writer"
         data["acp_hidden_dirs"] = ["/workspace/src"]
         data["acp_readonly_dirs"] = []
         data["role_instructions_path"] = "/home/claude/.claude/CLAUDE-unit-test-writer.md"
         data["workspace_volume"] = "archipelago-123"
         inp = WorkerInput(**data)
-        assert inp.worker_mode == "unit_test_writer"
         assert inp.acp_hidden_dirs == ["/workspace/src"]
         assert inp.role_instructions_path == "/home/claude/.claude/CLAUDE-unit-test-writer.md"
         assert inp.workspace_volume == "archipelago-123"
 
     def test_given_no_role_config_when_instantiated_then_defaults_empty(self):
         inp = WorkerInput(**_valid_worker_input())
-        assert inp.worker_mode == "full"
         assert inp.acp_hidden_dirs == []
         assert inp.acp_readonly_dirs == []
         assert inp.role_instructions_path is None

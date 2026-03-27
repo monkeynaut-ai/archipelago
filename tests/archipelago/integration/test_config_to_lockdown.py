@@ -36,6 +36,7 @@ class TestConfigToEnvPipeline:
             edges=[],
             entry_point="worker",
             role_versions={"test_role": "1.0.0"},
+            state_schema={"type": "object", "properties": {}, "additionalProperties": True},
         )
         graph = compile_plan(plan, registry, handler_registry={"test_role": spy})
         graph.invoke({"input": "test"})
@@ -101,6 +102,7 @@ class TestConfigToLockdownEnforcement:
             edges=[],
             entry_point="worker",
             role_versions={"test_role": "1.0.0"},
+            state_schema={"type": "object", "properties": {}, "additionalProperties": True},
         )
         graph = compile_plan(plan, registry, handler_registry={"test_role": spy})
         graph.invoke({})
@@ -149,6 +151,7 @@ class TestConfigToLockdownEnforcement:
             edges=[],
             entry_point="worker",
             role_versions={"test_role": "1.0.0"},
+            state_schema={"type": "object", "properties": {}, "additionalProperties": True},
         )
         graph = compile_plan(plan, registry, handler_registry={"test_role": spy})
         graph.invoke({})

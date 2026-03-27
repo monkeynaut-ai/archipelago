@@ -33,7 +33,6 @@ class WorkerInput(BaseModel):
     repo_url: str | None = None
 
     # Node config — static per-node settings (from archipelago_system.json via closure)
-    worker_mode: str = "full"
     acp_hidden_dirs: list[str] = Field(default_factory=list)
     acp_readonly_dirs: list[str] = Field(default_factory=list)
     role_instructions_path: str | None = None

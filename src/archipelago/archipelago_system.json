@@ -1,41 +1,185 @@
 {
   "goal": "archipelago-pipeline",
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "job_definition": {"type": "object"},
+      "objective": {"type": "string"},
+      "repo_url": {"type": "string"},
+      "repo_ref": {"type": "string"},
+      "constraints": {"type": "array", "items": {"type": "string"}},
+      "commit_slices": {"type": "array"},
+      "current_index": {"type": "integer"},
+      "current_task": {"type": "object"},
+      "has_more_commits": {"type": "boolean"},
+      "workspace_volume": {"type": ["string", "null"]},
+      "commit_hash": {"type": ["string", "null"]},
+      "commit_passed": {"type": ["boolean", "null"]}
+    },
+    "required": ["job_definition"],
+    "additionalProperties": false
+  },
   "nodes": [
-    {"id": "decomposer", "role": "decompose_job_definition", "config": {}},
-    {"id": "dispatcher", "role": "dispatch_commit", "config": {"max_iterations": 100}},
+    {
+      "id": "decomposer",
+      "role": "decompose_job_definition",
+      "config": {},
+      "inputs_schema": {
+        "type": "object",
+        "properties": {
+          "job_definition": {"type": "object"}
+        }
+      },
+      "outputs_schema": {
+        "type": "object",
+        "properties": {
+          "objective": {"type": "string"},
+          "repo_url": {"type": "string"},
+          "repo_ref": {"type": "string"},
+          "constraints": {"type": "array"},
+          "commit_slices": {"type": "array"},
+          "current_index": {"type": "integer"}
+        }
+      }
+    },
+    {
+      "id": "dispatcher",
+      "role": "dispatch_commit",
+      "config": {"max_iterations": 100},
+      "inputs_schema": {
+        "type": "object",
+        "properties": {
+          "commit_slices": {"type": "array"},
+          "current_index": {"type": "integer"},
+          "objective": {"type": "string"},
+          "repo_url": {"type": "string"},
+          "repo_ref": {"type": "string"},
+          "constraints": {"type": "array"}
+        }
+      },
+      "outputs_schema": {
+        "type": "object",
+        "properties": {
+          "current_task": {"type": "object"},
+          "current_index": {"type": "integer"},
+          "has_more_commits": {"type": "boolean"}
+        }
+      }
+    },
     {
       "id": "kernel",
       "subgraph": {
         "goal": "implementation-kernel",
+        "state_schema": {
+          "type": "object",
+          "properties": {
+            "current_task": {"type": "object"},
+            "workspace_volume": {"type": ["string", "null"]},
+            "commit_hash": {"type": ["string", "null"]},
+            "worker_result": {"type": ["object", "null"]},
+            "commit_passed": {"type": ["boolean", "null"]}
+          },
+          "required": ["current_task"],
+          "additionalProperties": false
+        },
         "nodes": [
-          {"id": "unit_test_writer", "role": "write_unit_tests_from_spec", "config": {
-            "worker_mode": "unit_test_writer",
-            "acp_readonly_dirs": ["/workspace/src"],
-            "role_instructions_path": "/home/claude/.claude/CLAUDE-unit-test-writer.md",
-            "prompt_preamble": [
-              "Write unit tests that cover the following acceptance criteria and test focus.",
-              "Do not write production code. Focus on test coverage for the acceptance criteria and test focus."
-            ]
-          }},
-          {"id": "code_writer", "role": "code_implement_from_tests", "config": {
-            "worker_mode": "code_writer",
-            "acp_readonly_dirs": ["/workspace/tests"],
-            "role_instructions_path": "/home/claude/.claude/CLAUDE-source-code-writer.md",
-            "prompt_preamble": [
-              "Implement production code to make the new and modified tests pass.",
-              "Do not modify any test files."
-            ]
-          }},
-          {"id": "software_reviewer", "role": "software_review", "config": {
-            "worker_mode": "software_reviewer",
-            "role_instructions_path": "/home/claude/.claude/CLAUDE-software-review.md",
-            "prompt_preamble": [
-              "Review the changes in the commit hash given below.",
-              "Use LSP to understand context and effects of the changes.",
-              "Write your review as a JSON object to the review output path specified below, using the schema in your instructions."
-            ]
-          }},
-          {"id": "evaluator", "role": "evaluate_commit", "config": {}}
+          {
+            "id": "unit_test_writer",
+            "role": "write_unit_tests_from_spec",
+            "config": {
+              "acp_readonly_dirs": ["/workspace/src"],
+              "role_instructions_path": "/home/claude/.claude/CLAUDE-unit-test-writer.md",
+              "prompt_preamble": [
+                "Write unit tests that cover the following acceptance criteria and test focus.",
+                "Do not write production code. Focus on test coverage for the acceptance criteria and test focus."
+              ]
+            },
+            "inputs_schema": {
+              "type": "object",
+              "properties": {
+                "current_task": {"type": "object"}
+              }
+            },
+            "outputs_schema": {
+              "type": "object",
+              "properties": {
+                "worker_result": {"type": "object"},
+                "workspace_volume": {"type": "string"}
+              }
+            }
+          },
+          {
+            "id": "code_writer",
+            "role": "code_implement_from_tests",
+            "config": {
+              "acp_readonly_dirs": ["/workspace/tests"],
+              "role_instructions_path": "/home/claude/.claude/CLAUDE-source-code-writer.md",
+              "prompt_preamble": [
+                "Implement production code to make the new and modified tests pass.",
+                "Do not modify any test files."
+              ]
+            },
+            "inputs_schema": {
+              "type": "object",
+              "properties": {
+                "current_task": {"type": "object"},
+                "workspace_volume": {"type": "string"}
+              }
+            },
+            "outputs_schema": {
+              "type": "object",
+              "properties": {
+                "worker_result": {"type": "object"},
+                "workspace_volume": {"type": "string"},
+                "commit_hash": {"type": "string"}
+              }
+            }
+          },
+          {
+            "id": "software_reviewer",
+            "role": "software_review",
+            "config": {
+              "role_instructions_path": "/home/claude/.claude/CLAUDE-software-review.md",
+              "prompt_preamble": [
+                "Review the changes in the commit hash given below.",
+                "Use LSP to understand context and effects of the changes.",
+                "Write your review as a JSON object to the review output path specified below, using the schema in your instructions."
+              ]
+            },
+            "inputs_schema": {
+              "type": "object",
+              "properties": {
+                "commit_hash": {"type": "string"},
+                "current_task": {"type": "object"},
+                "workspace_volume": {"type": "string"}
+              }
+            },
+            "outputs_schema": {
+              "type": "object",
+              "properties": {
+                "worker_result": {"type": "object"},
+                "workspace_volume": {"type": "string"}
+              }
+            }
+          },
+          {
+            "id": "evaluator",
+            "role": "evaluate_commit",
+            "config": {},
+            "inputs_schema": {
+              "type": "object",
+              "properties": {
+                "current_task": {"type": "object"},
+                "worker_result": {"type": "object"}
+              }
+            },
+            "outputs_schema": {
+              "type": "object",
+              "properties": {
+                "commit_passed": {"type": "boolean"}
+              }
+            }
+          }
         ],
         "edges": [
           {"source": "unit_test_writer", "target": "code_writer"},
