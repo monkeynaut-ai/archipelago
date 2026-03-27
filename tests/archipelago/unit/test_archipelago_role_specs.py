@@ -2,12 +2,7 @@
 
 from pathlib import Path
 
-import jsonschema
 from agent_foundry.registry.spec import RoleSpec, load_role_spec
-
-from archipelago.models import (
-    TestResults,
-)
 
 PRODUCT_ROLES_DIR = Path(__file__).parent.parent.parent.parent / "src" / "archipelago" / "roles"
 
@@ -21,16 +16,6 @@ ARCHIPELAGO_SPEC_NAMES = [
 ]
 
 
-def _valid_test_results_dump() -> dict:
-    return TestResults(
-        feature_name="Test Feature",
-        tests_passed=5,
-        tests_failed=0,
-        test_output="5 passed",
-        all_green=True,
-    ).model_dump()
-
-
 class TestDispatchCommitSpec:
     def test_given_yaml_file_when_loaded_then_returns_valid_role_spec(self):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "dispatch_commit.yaml")
@@ -39,13 +24,10 @@ class TestDispatchCommitSpec:
         assert spec.version == "1.0.0"
         assert "archipelago" in spec.tags
 
-    def test_given_dispatch_spec_when_outputs_schema_validates_model_dump_then_passes(self):
+    def test_given_dispatch_spec_when_loaded_then_schemas_are_none(self):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "dispatch_commit.yaml")
-        data = {
-            "current_index": 0,
-            "has_more_commits": True,
-        }
-        jsonschema.validate(data, spec.outputs_schema)
+        assert spec.inputs_schema is None
+        assert spec.outputs_schema is None
 
 
 # ── Unit test writer and code writer specs ──
@@ -60,14 +42,6 @@ class TestUnitTestWriterSpec:
         assert "archipelago" in spec.tags
         assert "unit-test" in spec.tags
 
-    def test_given_spec_when_outputs_schema_validates_then_passes(self):
-        spec = load_role_spec(PRODUCT_ROLES_DIR / "write_unit_tests_from_spec.yaml")
-        data = {
-            "worker_result": {"result_summary": "Tests written", "status": "completed"},
-            "workspace_volume": "archipelago-123",
-        }
-        jsonschema.validate(data, spec.outputs_schema)
-
 
 class TestCodeWriterSpec:
     def test_given_yaml_file_when_loaded_then_returns_valid_role_spec(self):
@@ -76,18 +50,6 @@ class TestCodeWriterSpec:
         assert spec.name == "code_implement_from_tests"
         assert spec.version == "1.0.0"
         assert "archipelago" in spec.tags
-
-    def test_given_spec_when_inputs_require_workspace_volume(self):
-        spec = load_role_spec(PRODUCT_ROLES_DIR / "code_implement_from_tests.yaml")
-        assert "workspace_volume" in spec.inputs_schema["required"]
-
-    def test_given_spec_when_outputs_schema_validates_then_passes(self):
-        spec = load_role_spec(PRODUCT_ROLES_DIR / "code_implement_from_tests.yaml")
-        data = {
-            "worker_result": {"result_summary": "Code implemented", "status": "completed"},
-            "workspace_volume": "archipelago-123",
-        }
-        jsonschema.validate(data, spec.outputs_schema)
 
 
 # ── Commit 3: Registry integration and tag search ──

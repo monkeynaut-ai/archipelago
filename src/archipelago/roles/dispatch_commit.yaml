@@ -4,40 +4,6 @@ version: "1.0.0"
 implementation:
   module: archipelago.agents.dispatcher
   class_name: DispatcherHandler
-inputs_schema:
-  type: object
-  properties:
-    commit_slices:
-      type: array
-      items:
-        type: object
-    current_index:
-      type: integer
-    objective:
-      type: string
-    repo_url:
-      type: string
-    repo_ref:
-      type: string
-    constraints:
-      type: array
-      items:
-        type: string
-  required:
-    - commit_slices
-    - current_index
-outputs_schema:
-  type: object
-  properties:
-    current_task:
-      type: object
-    current_index:
-      type: integer
-    has_more_commits:
-      type: boolean
-  required:
-    - current_index
-    - has_more_commits
 tags:
   - archipelago
   - dispatcher

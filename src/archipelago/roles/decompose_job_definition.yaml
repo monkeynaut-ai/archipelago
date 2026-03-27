@@ -4,38 +4,6 @@ version: "1.0.0"
 implementation:
   module: archipelago.agents.decomposer
   class_name: DecomposerHandler
-inputs_schema:
-  type: object
-  properties:
-    job_definition:
-      type: object
-  required:
-    - job_definition
-outputs_schema:
-  type: object
-  properties:
-    objective:
-      type: string
-    repo_url:
-      type: string
-    repo_ref:
-      type: string
-    constraints:
-      type: array
-      items:
-        type: string
-    commit_slices:
-      type: array
-      items:
-        type: object
-    current_index:
-      type: integer
-  required:
-    - objective
-    - repo_url
-    - repo_ref
-    - commit_slices
-    - current_index
 tags:
   - archipelago
   - decomposer

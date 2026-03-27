@@ -1,8 +1,7 @@
-"""Docker worker role spec — loading, schema validation, and registry tests."""
+"""Docker worker role spec — loading and registry tests."""
 
 from pathlib import Path
 
-import jsonschema
 from agent_foundry.registry.spec import RoleSpec, load_role_spec
 
 PRODUCT_ROLES_DIR = Path(__file__).parent.parent.parent.parent / "src" / "archipelago" / "roles"
@@ -16,29 +15,10 @@ class TestCodingSpec:
         assert spec.version == "1.0.0"
         assert "docker-worker" in spec.tags
 
-    def test_given_coding_spec_when_inputs_schema_validates_subgraph_state_then_passes(
-        self,
-    ):
+    def test_given_coding_spec_when_loaded_then_schemas_are_none(self):
         spec = load_role_spec(PRODUCT_ROLES_DIR / "code_implement_from_tests.yaml")
-        subgraph_state = {
-            "current_task": {
-                "title": "test",
-                "repo_url": "https://github.com/org/repo",
-                "repo_ref": "main",
-            },
-            "workspace_volume": "archipelago-123",
-        }
-        jsonschema.validate(subgraph_state, spec.inputs_schema)
-
-    def test_given_coding_spec_when_outputs_schema_validates_worker_result_then_passes(
-        self,
-    ):
-        spec = load_role_spec(PRODUCT_ROLES_DIR / "code_implement_from_tests.yaml")
-        data = {
-            "worker_result": {"result_summary": "done", "status": "completed"},
-            "workspace_volume": "archipelago-123",
-        }
-        jsonschema.validate(data, spec.outputs_schema)
+        assert spec.inputs_schema is None
+        assert spec.outputs_schema is None
 
 
 class TestRegistryIntegration:

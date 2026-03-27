@@ -4,26 +4,6 @@ version: "1.0.0"
 implementation:
   module: archipelago.agents.code_writer
   class_name: CodeWriter
-inputs_schema:
-  type: object
-  properties:
-    current_task:
-      type: object
-    workspace_volume:
-      type: string
-  required:
-    - current_task
-    - workspace_volume
-outputs_schema:
-  type: object
-  properties:
-    worker_result:
-      type: object
-    workspace_volume:
-      type: string
-  required:
-    - worker_result
-    - workspace_volume
 tags:
   - archipelago
   - docker-worker
