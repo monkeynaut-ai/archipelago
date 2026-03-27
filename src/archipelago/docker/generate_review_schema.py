@@ -22,8 +22,9 @@ def generate() -> None:
     )
     replacement = f"{SCHEMA_MARKER_START}\n\n```json\n{schema}\n```\n\n{SCHEMA_MARKER_END}"
 
-    if pattern.search(content):
-        new_content = pattern.sub(replacement, content)
+    match = pattern.search(content)
+    if match:
+        new_content = content[: match.start()] + replacement + content[match.end() :]
     else:
         raise ValueError(
             f"Could not find schema markers in {REVIEW_MD_PATH}. "

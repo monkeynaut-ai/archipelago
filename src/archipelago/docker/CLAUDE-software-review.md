@@ -61,8 +61,10 @@ Follow these instructions when generating the JSON object for your review
 {
   "$defs": {
     "CodeReviewConstraints": {
+      "description": "Boundaries the agent must respect when acting on findings.",
       "properties": {
         "preserve": {
+          "description": "Invariants that must not be broken (e.g., 'public API signatures', 'test count')",
           "items": {
             "type": "string"
           },
@@ -70,6 +72,7 @@ Follow these instructions when generating the JSON object for your review
           "type": "array"
         },
         "avoid": {
+          "description": "Anti-patterns or approaches to reject (e.g., 'no ORM introduction', 'no new dependencies')",
           "items": {
             "type": "string"
           },
@@ -77,6 +80,7 @@ Follow these instructions when generating the JSON object for your review
           "type": "array"
         },
         "dependencies": {
+          "description": "Execution order constraints between findings",
           "items": {
             "additionalProperties": {
               "type": "string"
@@ -93,10 +97,12 @@ Follow these instructions when generating the JSON object for your review
     "CodeReviewFinding": {
       "properties": {
         "id": {
+          "description": "Stable identifier for cross-referencing (e.g., 'F1', 'coupling-01')",
           "title": "Id",
           "type": "string"
         },
         "quality": {
+          "description": "Which design quality this finding relates to",
           "enum": [
             "simplicity",
             "cohesion",
@@ -115,6 +121,7 @@ Follow these instructions when generating the JSON object for your review
           "type": "string"
         },
         "severity": {
+          "description": "critical = causes bugs or data loss; major = structural problem that compounds; minor = improvement opportunity; informational = observation only",
           "enum": [
             "critical",
             "major",
@@ -125,14 +132,17 @@ Follow these instructions when generating the JSON object for your review
           "type": "string"
         },
         "title": {
+          "description": "One-line summary an agent can use as a commit message seed",
           "title": "Title",
           "type": "string"
         },
         "problem": {
+          "description": "What is wrong and why it matters \u2014 the agent uses this to validate its fix actually addresses the root cause",
           "title": "Problem",
           "type": "string"
         },
         "locations": {
+          "description": "Where in the code this problem manifests",
           "items": {
             "$ref": "#/$defs/CodeReviewLocation"
           },
@@ -151,7 +161,8 @@ Follow these instructions when generating the JSON object for your review
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "How the agent confirms the fix is correct"
         }
       },
       "required": [
@@ -182,6 +193,7 @@ Follow these instructions when generating the JSON object for your review
             }
           ],
           "default": null,
+          "description": "Line range (e.g., '50-57', '106')",
           "title": "Lines"
         },
         "symbol": {
@@ -194,6 +206,7 @@ Follow these instructions when generating the JSON object for your review
             }
           ],
           "default": null,
+          "description": "Function, class, or variable name for LSP-based navigation",
           "title": "Symbol"
         }
       },
@@ -204,8 +217,10 @@ Follow these instructions when generating the JSON object for your review
       "type": "object"
     },
     "CodeReviewScope": {
+      "description": "What was reviewed.",
       "properties": {
         "paths": {
+          "description": "Files or directories included in the review",
           "items": {
             "type": "string"
           },
@@ -222,6 +237,7 @@ Follow these instructions when generating the JSON object for your review
             }
           ],
           "default": null,
+          "description": "Git commit range reviewed",
           "title": "Commit Range"
         },
         "context": {
@@ -234,6 +250,7 @@ Follow these instructions when generating the JSON object for your review
             }
           ],
           "default": null,
+          "description": "Why this review was conducted",
           "title": "Context"
         }
       },
@@ -246,10 +263,12 @@ Follow these instructions when generating the JSON object for your review
     "CodeReviewSuggestion": {
       "properties": {
         "approach": {
+          "description": "Recommended fix strategy in enough detail for an agent to act without ambiguity",
           "title": "Approach",
           "type": "string"
         },
         "alternatives": {
+          "description": "Other valid approaches if the primary is blocked",
           "items": {
             "type": "string"
           },
@@ -272,6 +291,7 @@ Follow these instructions when generating the JSON object for your review
             }
           ],
           "default": null,
+          "description": "Relative size of the change \u2014 helps an agent batch or sequence work",
           "title": "Effort"
         },
         "risk": {
@@ -289,6 +309,7 @@ Follow these instructions when generating the JSON object for your review
             }
           ],
           "default": null,
+          "description": "safe = no behavior change; moderate = internal behavior change; breaking = public API change",
           "title": "Risk"
         }
       },
@@ -299,8 +320,10 @@ Follow these instructions when generating the JSON object for your review
       "type": "object"
     },
     "CodeReviewSummary": {
+      "description": "High-level assessment an agent reads first to prioritize.",
       "properties": {
         "overall_rating": {
+          "description": "Coarse signal for triage \u2014 should the agent act now or move on",
           "enum": [
             "good",
             "acceptable",
@@ -311,6 +334,7 @@ Follow these instructions when generating the JSON object for your review
           "type": "string"
         },
         "strengths": {
+          "description": "What to preserve \u2014 an agent must not regress these",
           "items": {
             "type": "string"
           },
@@ -318,6 +342,7 @@ Follow these instructions when generating the JSON object for your review
           "type": "array"
         },
         "primary_concerns": {
+          "description": "Top-level problems in plain language",
           "items": {
             "type": "string"
           },
@@ -334,6 +359,7 @@ Follow these instructions when generating the JSON object for your review
       "type": "object"
     },
     "CodeReviewVerification": {
+      "description": "How the agent confirms the fix is correct.",
       "properties": {
         "test_exists": {
           "anyOf": [
@@ -345,6 +371,7 @@ Follow these instructions when generating the JSON object for your review
             }
           ],
           "default": null,
+          "description": "Whether existing tests cover this area",
           "title": "Test Exists"
         },
         "test_strategy": {
@@ -357,9 +384,11 @@ Follow these instructions when generating the JSON object for your review
             }
           ],
           "default": null,
+          "description": "How the agent should verify the fix (e.g., 'run existing tests', 'add test for stale data scenario')",
           "title": "Test Strategy"
         },
         "acceptance_criteria": {
+          "description": "Concrete conditions that must be true after the fix",
           "items": {
             "type": "string"
           },
@@ -371,6 +400,7 @@ Follow these instructions when generating the JSON object for your review
       "type": "object"
     }
   },
+  "description": "Structured code review an AI agent uses to guide refactoring.",
   "properties": {
     "scope": {
       "$ref": "#/$defs/CodeReviewScope"
@@ -379,6 +409,7 @@ Follow these instructions when generating the JSON object for your review
       "$ref": "#/$defs/CodeReviewSummary"
     },
     "findings": {
+      "description": "Individual actionable observations, ordered by priority",
       "items": {
         "$ref": "#/$defs/CodeReviewFinding"
       },
