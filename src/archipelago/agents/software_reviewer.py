@@ -7,6 +7,7 @@ from typing import Any
 import structlog
 from pydantic import ValidationError
 
+from archipelago.agents.io_models import SoftwareReviewerOutput
 from archipelago.docker_worker.env import build_agent_env
 from archipelago.docker_worker.lifecycle import (
     DockerLifecycle,
@@ -14,7 +15,8 @@ from archipelago.docker_worker.lifecycle import (
     LifecycleResult,
 )
 from archipelago.docker_worker.models import WorkerConstraints
-from archipelago.models import CodeReview, CurrentTask
+from archipelago.models import AgentWorkerResult, CodeReview, CurrentTask
+from archipelago.types import CommitHash, WorkSpace
 
 logger = structlog.get_logger(__name__)
 
@@ -25,11 +27,10 @@ def _review_output_path(commit_hash: str) -> str:
 
 
 def _build_prompt(
-    task: CurrentTask, commit_hash: str, review_path: str, node_config: dict[str, Any]
+    task: CurrentTask, commit_hash: str, review_path: str, prompt_preamble: list[str]
 ) -> str:
     """Build a prompt for the software reviewer role."""
-    preamble = node_config.get("prompt_preamble", [])
-    parts = list(preamble) if preamble else ["Review the following changes:"]
+    parts = list(prompt_preamble) if prompt_preamble else ["Review the following changes:"]
 
     if task.objective:
         parts.append(f"Objective: {task.objective}")
@@ -43,11 +44,10 @@ def _build_prompt(
 
 def _map_output(
     lifecycle_result: LifecycleResult,
-    state: dict[str, Any],
     workspace_volume: str,
     review_output_path: str,
-) -> dict[str, Any]:
-    """Map lifecycle result to state updates, parsing the review JSON file."""
+) -> SoftwareReviewerOutput:
+    """Map lifecycle result to typed output, parsing the review JSON file."""
     status = "completed" if lifecycle_result.exit_code == 0 else "failed"
 
     review_data = None
@@ -62,42 +62,59 @@ def _map_output(
             logger.error("review_parse_failed", path=review_output_path, error=str(e))
             status = "failed"
 
-    worker_result = {
-        "result_summary": f"Software reviewer {status}",
-        "status": status,
-        "output_lines": lifecycle_result.output_lines,
-        "review": review_data,
-    }
-    return {
-        **state,
-        "worker_result": worker_result,
-        "workspace_volume": workspace_volume,
-    }
+    return SoftwareReviewerOutput(
+        worker_result=AgentWorkerResult(
+            result_summary=f"Software reviewer {status}",
+            status=status,
+            output_lines=lifecycle_result.output_lines,
+            review=review_data,
+        ),
+        workspace_volume=workspace_volume,
+    )
 
 
 class SoftwareReviewer:
     """Agent that reviews code using a Docker container with Claude Code."""
 
     def __init__(
-        self, spec: Any = None, *, lifecycle: DockerLifecycleProtocol | None = None
+        self,
+        spec: Any = None,
+        *,
+        lifecycle: DockerLifecycleProtocol | None = None,
+        prompt_preamble: list[str] | None = None,
+        role_instructions_path: str | None = None,
+        acp_readonly_dirs: list[str] | None = None,
+        acp_hidden_dirs: list[str] | None = None,
+        **kwargs: Any,
     ) -> None:
         self.spec = spec
         self.lifecycle = lifecycle or DockerLifecycle()
+        self.prompt_preamble = prompt_preamble or []
+        self.role_instructions_path = role_instructions_path
+        self.acp_readonly_dirs = acp_readonly_dirs or []
+        self.acp_hidden_dirs = acp_hidden_dirs or []
 
     def __call__(
-        self, state: dict[str, Any], node_config: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+        self,
+        current_task: CurrentTask,
+        commit_hash: CommitHash,
+        workspace_volume: WorkSpace | None = None,
+        worker_constraints: dict[str, Any] | None = None,
+    ) -> SoftwareReviewerOutput:
         structlog.contextvars.bind_contextvars(agent="software_reviewer")
-        node_config = node_config or {}
-        task = CurrentTask(**state["current_task"])
-        commit_hash = state["commit_hash"]
         review_path = _review_output_path(commit_hash)
-        prompt = _build_prompt(task, commit_hash, review_path, node_config)
+        prompt = _build_prompt(current_task, commit_hash, review_path, self.prompt_preamble)
 
-        existing_volume = state.get("workspace_volume")
+        existing_volume = workspace_volume
         workspace_volume = existing_volume or f"archipelago-{int(time.time())}"
-        constraints = WorkerConstraints(**state.get("worker_constraints", {}))
-        extra_env = build_agent_env(task, node_config, existing_volume)
+        constraints = WorkerConstraints(**(worker_constraints or {}))
+
+        config = {
+            "acp_readonly_dirs": self.acp_readonly_dirs,
+            "acp_hidden_dirs": self.acp_hidden_dirs,
+            "role_instructions_path": self.role_instructions_path,
+        }
+        extra_env = build_agent_env(current_task, config, existing_volume)
 
         result = self.lifecycle.execute(
             prompt=prompt,
@@ -110,4 +127,4 @@ class SoftwareReviewer:
             collect_files=[review_path],
         )
 
-        return _map_output(result, state, workspace_volume, review_path)
+        return _map_output(result, workspace_volume, review_path)

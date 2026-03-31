@@ -5,42 +5,67 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from archipelago.models import CommitSpecification
+from archipelago.types import Objective, RepoRef, RepoUrl, WorkSpace
 
 
 class WorkerConstraints(BaseModel):
     """Resource and policy constraints for a Docker worker run."""
 
-    timeout_seconds: int = 3600
-    max_cost_usd: float | None = None
-    allowed_commands: list[str] = Field(default_factory=list)
-    network_policy: str = "none"
-    mem_limit_mb: int = 512
-    cpu_quota: int | None = None
-    pids_limit: int | None = None
-    turn_timeout_seconds: int = 3600
-    skip_permissions: bool = False
-    connection_timeout_seconds: int = 120
+    timeout_seconds: int = Field(default=3600, description="Max wall-clock seconds for the run")
+    max_cost_usd: float | None = Field(
+        default=None, description="Spending cap for this worker invocation"
+    )
+    allowed_commands: list[str] = Field(
+        default_factory=list, description="Shell commands the agent may execute"
+    )
+    network_policy: str = Field(
+        default="none", description="Network access policy: 'none', 'limited', or 'full'"
+    )
+    mem_limit_mb: int = Field(default=512, description="Container memory limit in MB")
+    cpu_quota: int | None = Field(default=None, description="CPU quota for the container")
+    pids_limit: int | None = Field(default=None, description="Max number of processes")
+    turn_timeout_seconds: int = Field(
+        default=3600, description="Max seconds for a single agent turn"
+    )
+    skip_permissions: bool = Field(default=False, description="Whether to skip permission prompts")
+    connection_timeout_seconds: int = Field(
+        default=120, description="Max seconds to wait for container connection"
+    )
 
 
 class WorkerInput(BaseModel):
     """Typed input for docker worker roles."""
 
     # Task data — what to work on (flows through state from the archipelago flow)
-    commit_spec: CommitSpecification
-    objective: str = ""
-    constraints_text: list[str] = Field(default_factory=list)
-    repo_ref: str
-    repo_url: str | None = None
+    commit_spec: CommitSpecification = Field(description="Specification for the commit to produce")
+    objective: Objective = Field(default="", description="High-level goal for the pipeline run")
+    constraints_text: list[str] = Field(
+        default_factory=list, description="Rules the agent must follow"
+    )
+    repo_ref: RepoRef = Field(description="Branch or tag to work on")
+    repo_url: RepoUrl | None = Field(
+        default=None, description="Git remote URL of the target repository"
+    )
 
     # Node config — static per-node settings (from archipelago_system.json via closure)
-    acp_hidden_dirs: list[str] = Field(default_factory=list)
-    acp_readonly_dirs: list[str] = Field(default_factory=list)
-    role_instructions_path: str | None = None
-    prompt_preamble: list[str] = Field(default_factory=list)
+    acp_hidden_dirs: list[str] = Field(
+        default_factory=list, description="Directories hidden from the agent"
+    )
+    acp_readonly_dirs: list[str] = Field(
+        default_factory=list, description="Directories the agent cannot modify"
+    )
+    role_instructions_path: str | None = Field(
+        default=None, description="Path to role-specific instruction markdown"
+    )
+    prompt_preamble: list[str] = Field(
+        default_factory=list, description="Lines prepended to the agent prompt"
+    )
 
     # Runtime state — changes during execution, shared between nodes
-    constraints: WorkerConstraints
-    workspace_volume: str | None = None
+    constraints: WorkerConstraints = Field(description="Resource and policy constraints")
+    workspace_volume: WorkSpace | None = Field(
+        default=None, description="Docker volume holding the working copy"
+    )
 
 
 class PatchInfo(BaseModel):

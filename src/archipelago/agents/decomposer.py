@@ -2,25 +2,34 @@
 
 from typing import Any
 
-from agent_foundry.registry.spec import RoleSpec
-
+from archipelago.agents.io_models import DecomposerOutput
 from archipelago.models import JobDefinition
 
 
 class DecomposerHandler:
-    def __init__(self, spec: RoleSpec) -> None:
+    def __init__(self, spec: Any = None, **kwargs: Any) -> None:
         self.spec = spec
 
-    def __call__(
-        self, state: dict[str, Any], node_config: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
-        return decomposer_handler(state, node_config or {})
+    def __call__(self, job_definition: dict[str, Any]) -> DecomposerOutput:
+        job = (
+            JobDefinition(**job_definition)
+            if isinstance(job_definition, dict)
+            else JobDefinition.model_validate(job_definition)
+        )
+        return DecomposerOutput(
+            objective=job.objective,
+            repo_url=job.repo_url,
+            repo_ref=job.repo_ref,
+            constraints=job.constraints,
+            commit_slices=[c.model_dump() for c in job.commits],
+            current_index=0,
+        )
 
 
 def decomposer_handler(
     state: dict[str, Any], node_config: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    """Parse job_definition into flat state keys and commit slices."""
+    """Legacy dict-based decomposer for backward compatibility."""
     raw = state.get("job_definition")
     if not raw:
         raise ValueError("job_definition is required")

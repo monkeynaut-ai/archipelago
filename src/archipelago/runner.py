@@ -56,8 +56,12 @@ def run_dev_test(dev_test_input: dict[str, Any]) -> dict[str, Any]:
         repo_url=dev_test_input.get("repo_url"),
         repo_ref=dev_test_input.get("repo_ref", "main"),
     )
-    agent = UnitTestWriter()
-    return agent(
-        {"current_task": task.model_dump()},
-        node_config=dev_test_input.get("node_config", {}),
+    node_config = dev_test_input.get("node_config", {})
+    agent = UnitTestWriter(
+        prompt_preamble=node_config.get("prompt_preamble"),
+        role_instructions_path=node_config.get("role_instructions_path"),
+        acp_readonly_dirs=node_config.get("acp_readonly_dirs"),
+        acp_hidden_dirs=node_config.get("acp_hidden_dirs"),
     )
+    result = agent(current_task=task)
+    return result.model_dump()

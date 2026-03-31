@@ -21,18 +21,14 @@ def _mock_lifecycle(
     return lifecycle
 
 
-def _valid_state() -> dict:
-    task = CurrentTask(
+def _valid_task() -> CurrentTask:
+    return CurrentTask(
         objective="Add user authentication",
         title="Add login endpoint",
         acceptance_criteria=["POST /login returns JWT", "invalid credentials return 401"],
         test_focus="auth edge cases",
         implementation_focus="src/auth/login.py",
     )
-    return {
-        "current_task": task.model_dump(),
-        "workspace_volume": "archipelago-123",
-    }
 
 
 class TestUnitTestWriter:
@@ -42,86 +38,100 @@ class TestUnitTestWriter:
         lifecycle = _mock_lifecycle()
         agent = UnitTestWriter(lifecycle=lifecycle)
 
-        agent(_valid_state(), node_config={})
+        agent(current_task=_valid_task(), workspace_volume="archipelago-123")
 
         prompt = lifecycle.execute.call_args[1]["prompt"]
         assert "POST /login returns JWT" in prompt
         assert "invalid credentials return 401" in prompt
         assert "auth edge cases" in prompt
 
-    def test_given_node_config_when_prompt_built_then_preamble_prepended(self):
+    def test_given_prompt_preamble_when_prompt_built_then_preamble_prepended(self):
         lifecycle = _mock_lifecycle()
-        agent = UnitTestWriter(lifecycle=lifecycle)
-        node_config = {
-            "prompt_preamble": ["Write unit tests for the following acceptance criteria."],
-        }
+        agent = UnitTestWriter(
+            lifecycle=lifecycle,
+            prompt_preamble=["Write unit tests for the following acceptance criteria."],
+        )
 
-        agent(_valid_state(), node_config=node_config)
+        agent(current_task=_valid_task(), workspace_volume="archipelago-123")
 
         prompt = lifecycle.execute.call_args[1]["prompt"]
         assert prompt.startswith("Write unit tests for the following acceptance criteria.")
 
-    def test_given_lifecycle_completes_when_called_then_worker_result_in_state(self):
+    def test_given_lifecycle_completes_when_called_then_worker_result_completed(self):
         lifecycle = _mock_lifecycle()
         agent = UnitTestWriter(lifecycle=lifecycle)
 
-        result = agent(_valid_state(), node_config={})
+        result = agent(current_task=_valid_task(), workspace_volume="archipelago-123")
 
-        assert result["worker_result"] is not None
-        assert result["worker_result"]["status"] == "completed"
+        assert result.worker_result is not None
+        assert result.worker_result.status == "completed"
 
-    def test_given_lifecycle_completes_when_called_then_workspace_volume_in_state(self):
+    def test_given_lifecycle_completes_when_called_then_workspace_volume_in_output(self):
         lifecycle = _mock_lifecycle()
         agent = UnitTestWriter(lifecycle=lifecycle)
 
-        result = agent(_valid_state(), node_config={})
+        result = agent(current_task=_valid_task(), workspace_volume="archipelago-123")
 
-        assert result["workspace_volume"] == "archipelago-123"
+        assert result.workspace_volume == "archipelago-123"
 
     def test_given_lifecycle_fails_when_called_then_status_is_failed(self):
         lifecycle = _mock_lifecycle(exit_code=1)
         agent = UnitTestWriter(lifecycle=lifecycle)
 
-        result = agent(_valid_state(), node_config={})
+        result = agent(current_task=_valid_task(), workspace_volume="archipelago-123")
 
-        assert result["worker_result"]["status"] == "failed"
+        assert result.worker_result.status == "failed"
 
     def test_given_task_with_repo_url_when_called_then_lifecycle_receives_extra_env_with_repo_url(
         self,
     ):
         lifecycle = _mock_lifecycle()
         agent = UnitTestWriter(lifecycle=lifecycle)
-        state = _valid_state()
-        state["current_task"]["repo_url"] = "https://github.com/org/repo"
-        del state["workspace_volume"]
+        task = _valid_task()
+        task.repo_url = "https://github.com/org/repo"
 
-        agent(state, node_config={})
+        agent(current_task=task)
 
         extra_env = lifecycle.execute.call_args[1]["extra_env"]
         assert extra_env["REPO_URL"] == "https://github.com/org/repo"
 
-    def test_given_worker_constraints_in_state_when_called_then_lifecycle_receives_constraints(
+    def test_given_worker_constraints_when_called_then_lifecycle_receives_constraints(
         self,
     ):
         lifecycle = _mock_lifecycle()
         agent = UnitTestWriter(lifecycle=lifecycle)
-        state = _valid_state()
-        state["worker_constraints"] = {"timeout_seconds": 1800, "mem_limit_mb": 1024}
 
-        agent(state, node_config={})
+        agent(
+            current_task=_valid_task(),
+            workspace_volume="archipelago-123",
+            worker_constraints={"timeout_seconds": 1800, "mem_limit_mb": 1024},
+        )
 
         constraints = lifecycle.execute.call_args[1]["constraints"]
         assert constraints.timeout_seconds == 1800
         assert constraints.mem_limit_mb == 1024
 
-    def test_given_node_config_with_readonly_dirs_when_called_then_lifecycle_receives_lockdown_env(
+    def test_given_readonly_dirs_in_constructor_when_called_then_lifecycle_receives_lockdown_env(
         self,
     ):
         lifecycle = _mock_lifecycle()
-        agent = UnitTestWriter(lifecycle=lifecycle)
-        node_config = {"acp_readonly_dirs": ["/workspace/src"]}
+        agent = UnitTestWriter(
+            lifecycle=lifecycle,
+            acp_readonly_dirs=["/workspace/src"],
+        )
 
-        agent(_valid_state(), node_config=node_config)
+        agent(current_task=_valid_task(), workspace_volume="archipelago-123")
 
         extra_env = lifecycle.execute.call_args[1]["extra_env"]
         assert extra_env["ACP_READONLY_DIRS"] == "/workspace/src"
+
+    def test_given_output_when_model_dumped_then_matches_state_shape(self):
+        lifecycle = _mock_lifecycle()
+        agent = UnitTestWriter(lifecycle=lifecycle)
+
+        result = agent(current_task=_valid_task(), workspace_volume="archipelago-123")
+        dumped = result.model_dump()
+
+        assert "worker_result" in dumped
+        assert "workspace_volume" in dumped
+        assert dumped["worker_result"]["status"] == "completed"

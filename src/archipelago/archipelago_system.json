@@ -24,6 +24,8 @@
       "id": "decomposer",
       "role": "decompose_job_definition",
       "config": {},
+      "inputs": ["JobDefinition"],
+      "outputs": ["Objective", "RepoUrl", "RepoRef", "list[str]", "list[dict]", "int"],
       "inputs_schema": {
         "type": "object",
         "properties": {
@@ -46,6 +48,8 @@
       "id": "dispatcher",
       "role": "dispatch_commit",
       "config": {"max_iterations": 100},
+      "inputs": ["list[dict]", "int", "Objective", "RepoUrl", "RepoRef", "list[str]"],
+      "outputs": ["CurrentTask", "int", "bool"],
       "inputs_schema": {
         "type": "object",
         "properties": {
@@ -94,6 +98,8 @@
                 "Do not write production code. Focus on test coverage for the acceptance criteria and test focus."
               ]
             },
+            "inputs": ["CurrentTask", "WorkSpace"],
+            "outputs": ["AgentWorkerResult", "WorkSpace"],
             "inputs_schema": {
               "type": "object",
               "properties": {
@@ -119,6 +125,8 @@
                 "Do not modify any test files."
               ]
             },
+            "inputs": ["CurrentTask", "WorkSpace"],
+            "outputs": ["AgentWorkerResult", "WorkSpace", "CommitHash"],
             "inputs_schema": {
               "type": "object",
               "properties": {
@@ -146,6 +154,8 @@
                 "Write your review as a JSON object to the review output path specified below, using the schema in your instructions."
               ]
             },
+            "inputs": ["CurrentTask", "CommitHash", "WorkSpace"],
+            "outputs": ["AgentWorkerResult", "WorkSpace"],
             "inputs_schema": {
               "type": "object",
               "properties": {
@@ -166,6 +176,8 @@
             "id": "evaluator",
             "role": "evaluate_commit",
             "config": {},
+            "inputs": ["CurrentTask", "AgentWorkerResult"],
+            "outputs": ["bool"],
             "inputs_schema": {
               "type": "object",
               "properties": {

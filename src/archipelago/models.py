@@ -4,12 +4,21 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from archipelago.types import CommitHash, Objective, RepoRef, RepoUrl, WorkSpace
+
 
 class CommitSpecification(BaseModel):
-    title: str
-    acceptance_criteria: list[str] = []
-    test_focus: str = ""
-    implementation_focus: str = ""
+    """A single commit's specification within a job definition."""
+
+    title: str = Field(description="Short description used as commit message seed")
+    acceptance_criteria: list[str] = Field(
+        default_factory=list,
+        description="Conditions that must be true for this commit to be accepted",
+    )
+    test_focus: str = Field(default="", description="What the tests should exercise")
+    implementation_focus: str = Field(
+        default="", description="Where implementation effort should concentrate"
+    )
 
 
 class CurrentTask(BaseModel):
@@ -19,32 +28,49 @@ class CurrentTask(BaseModel):
     commit-level specification (title, acceptance criteria, focus areas).
     """
 
-    objective: str
-    repo_url: str | None = None
-    repo_ref: str = "main"
-    constraints: list[str] = Field(default_factory=list)
-    title: str
-    acceptance_criteria: list[str] = Field(default_factory=list)
-    test_focus: str = ""
-    implementation_focus: str = ""
+    objective: Objective = Field(description="High-level goal for the pipeline run")
+    repo_url: RepoUrl | None = Field(
+        default=None, description="Git remote URL of the target repository"
+    )
+    repo_ref: RepoRef = Field(default="main", description="Branch or tag to work on")
+    constraints: list[str] = Field(default_factory=list, description="Rules the agent must follow")
+    title: str = Field(description="Commit title describing this unit of work")
+    acceptance_criteria: list[str] = Field(
+        default_factory=list,
+        description="Conditions that must be true for this task to pass",
+    )
+    test_focus: str = Field(default="", description="What the tests should exercise")
+    implementation_focus: str = Field(
+        default="", description="Where implementation effort should concentrate"
+    )
 
 
 class KernelState(BaseModel):
     """Typed state for the implementation kernel subgraph."""
 
-    current_task: CurrentTask
-    workspace_volume: str | None = None
-    commit_hash: str | None = None
-    worker_result: dict[str, Any] | None = None
-    commit_passed: bool | None = None
+    current_task: CurrentTask = Field(description="The task being executed")
+    workspace_volume: WorkSpace | None = Field(
+        default=None, description="Docker volume holding the working copy"
+    )
+    commit_hash: CommitHash | None = Field(
+        default=None, description="Git SHA of the most recent commit"
+    )
+    worker_result: dict[str, Any] | None = Field(
+        default=None, description="Output from the most recent agent execution"
+    )
+    commit_passed: bool | None = Field(
+        default=None, description="Whether the evaluator accepted the commit"
+    )
 
 
 class JobDefinition(BaseModel):
-    objective: str
-    repo_url: str
-    repo_ref: str = "main"
-    constraints: list[str] = []
-    commits: list[CommitSpecification]
+    """Top-level specification for a pipeline run."""
+
+    objective: Objective = Field(description="High-level goal for the pipeline run")
+    repo_url: RepoUrl = Field(description="Git remote URL of the target repository")
+    repo_ref: RepoRef = Field(default="main", description="Branch or tag to work on")
+    constraints: list[str] = Field(default_factory=list, description="Rules all agents must follow")
+    commits: list[CommitSpecification] = Field(description="Ordered list of commits to implement")
 
     @field_validator("commits")
     @classmethod
@@ -62,6 +88,22 @@ class TestResults(BaseModel):
     tests_failed: int
     test_output: str
     all_green: bool
+
+
+# ── Agent output models ──
+
+
+class AgentWorkerResult(BaseModel):
+    """Structured output from any docker-worker agent execution."""
+
+    result_summary: str = Field(description="Human-readable summary of agent execution")
+    status: Literal["completed", "failed"] = Field(description="Terminal status of the agent run")
+    output_lines: list[str] = Field(
+        default_factory=list, description="Raw output lines captured from the agent"
+    )
+    review: dict[str, Any] | None = Field(
+        default=None, description="Parsed CodeReview data (present only for software_reviewer)"
+    )
 
 
 # ── Code Review models ──

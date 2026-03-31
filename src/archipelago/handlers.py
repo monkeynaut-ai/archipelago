@@ -1,4 +1,13 @@
-"""Archipelago handler registry."""
+"""Archipelago handler registry.
+
+The docker-worker agents (UnitTestWriter, CodeWriter, SoftwareReviewer) are
+typed agents — the compiler detects them via ``is_typed_agent`` and wraps
+them with the connector.  Static config from ``NodeDef.config`` is injected
+at construction time via ``resolve_typed_handler``.
+
+The plain handlers (decomposer, dispatcher, evaluator) remain dict-based
+legacy functions until the full pipeline is wired through the connector.
+"""
 
 from typing import Any
 
