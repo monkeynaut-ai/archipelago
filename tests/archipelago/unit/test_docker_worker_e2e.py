@@ -66,7 +66,7 @@ def _stub_software_review(
 
 
 STUB_HANDLERS = {
-    "decompose_job_definition": decomposer_handler,
+    "decompose_job_specification": decomposer_handler,
     "dispatch_commit": dispatcher_handler,
     "evaluate_commit": evaluator_handler,
     "write_unit_tests_from_spec": _stub_docker_worker,
@@ -87,9 +87,9 @@ def final_state(registry, plan):
     job_def = {
         "objective": "Build a test product",
         "repo_url": "https://github.com/org/repo",
-        "commits": [{"title": "c1"}],
+        "change_sets": [{"title": "c1"}],
     }
-    return graph.invoke({"job_definition": job_def})
+    return graph.invoke({"job_specification": job_def})
 
 
 class TestEndToEnd:

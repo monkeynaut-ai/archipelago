@@ -1,4 +1,4 @@
-name: decompose_job_definition
+name: decompose_job_specification
 description: Parses a job definition into flat state keys and an ordered list of commit slices
 version: "1.0.0"
 implementation:

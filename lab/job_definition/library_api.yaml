@@ -1,4 +1,4 @@
-job_definition:
+job_specification:
   objective: "Implement a REST API server with two resources: Book and Library. Use FastAPI with Pydantic models. Book has title (str) and author (str). Library has name (str) and books (list of Book). Each resource supports full CRUD (GET list, GET by id, POST, PUT, DELETE)."
   repo_url: "https://github.com/730alchemy/scratch"
   repo_ref: "main"
@@ -12,7 +12,7 @@ job_definition:
     - "In-memory storage (no database)"
     - "Return 404 for missing resources"
     - "All endpoints return JSON"
-  commits:
+  change_sets:
     - title: "Add Book resource with CRUD endpoints"
       acceptance_criteria:
         - "GET /books returns empty list initially"

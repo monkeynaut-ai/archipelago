@@ -10,10 +10,10 @@ class TestCLI:
         job_def = {
             "objective": "Build a task management app",
             "repo_url": "https://github.com/org/repo",
-            "commits": [{"title": "c1"}],
+            "change_sets": [{"title": "c1"}],
         }
         input_file = tmp_path / "input.yaml"
-        input_file.write_text(yaml.dump({"job_definition": job_def}))
+        input_file.write_text(yaml.dump({"job_specification": job_def}))
 
         fake_result = {"commit_passed": True}
 

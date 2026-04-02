@@ -19,13 +19,13 @@ class TestRunArchipelago:
         job_def = {
             "objective": "Build a test app",
             "repo_url": "https://github.com/org/repo",
-            "commits": [{"title": "c1"}],
+            "change_sets": [{"title": "c1"}],
         }
         result = run_archipelago(job_def)
 
         mock_run_plan.assert_called_once()
         call_kwargs = mock_run_plan.call_args
-        assert call_kwargs.kwargs["initial_state"] == {"job_definition": job_def}
+        assert call_kwargs.kwargs["initial_state"] == {"job_specification": job_def}
         assert result == {"commit_passed": True}
 
 

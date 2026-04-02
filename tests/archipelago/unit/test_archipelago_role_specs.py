@@ -8,7 +8,7 @@ PRODUCT_ROLES_DIR = Path(__file__).parent.parent.parent.parent / "src" / "archip
 
 ARCHIPELAGO_SPEC_NAMES = [
     "code_implement_from_tests",
-    "decompose_job_definition",
+    "decompose_job_specification",
     "dispatch_commit",
     "evaluate_commit",
     "software_review",

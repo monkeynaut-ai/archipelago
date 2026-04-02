@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from archipelago.models import CommitSpecification
+from archipelago.models import ChangeSet
 from archipelago.types import Objective, RepoRef, RepoUrl, WorkSpace
 
 
@@ -37,7 +37,7 @@ class WorkerInput(BaseModel):
     """Typed input for docker worker roles."""
 
     # Task data — what to work on (flows through state from the archipelago flow)
-    commit_spec: CommitSpecification = Field(description="Specification for the commit to produce")
+    commit_spec: ChangeSet = Field(description="Specification for the commit to produce")
     objective: Objective = Field(default="", description="High-level goal for the pipeline run")
     constraints_text: list[str] = Field(
         default_factory=list, description="Rules the agent must follow"

@@ -21,14 +21,14 @@ def load_archipelago_plan() -> GraphWiringPlan:
 
 
 def run_archipelago(
-    job_definition: dict[str, Any],
+    job_specification: dict[str, Any],
     registry: RoleRegistry | None = None,
     plan: GraphWiringPlan | None = None,
 ) -> dict[str, Any]:
     """Run the Archipelago pipeline end-to-end.
 
     Args:
-        job_definition: Parsed job definition dict with objective, constraints, and commits.
+        job_specification: Parsed job definition dict with objective, constraints, and commits.
         registry: Optional role registry (auto-loaded if None).
         plan: Optional plan (auto-loaded if None).
 
@@ -41,7 +41,7 @@ def run_archipelago(
     if plan is None:
         plan = load_archipelago_plan()
 
-    initial_state = {"job_definition": job_definition}
+    initial_state = {"job_specification": job_specification}
     return run_plan(plan, registry, initial_state=initial_state)
 
 

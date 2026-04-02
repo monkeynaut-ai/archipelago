@@ -4,13 +4,13 @@ import pytest
 from pydantic import ValidationError
 
 from archipelago.models import (
+    ChangeSet,
     CodeReview,
     CodeReviewFinding,
     CodeReviewScope,
     CodeReviewSummary,
-    CommitSpecification,
     CurrentTask,
-    JobDefinition,
+    JobSpecification,
     KernelState,
     TestResults,
 )
@@ -26,55 +26,51 @@ def _valid_test_results() -> dict:
     }
 
 
-class TestCommitSpecification:
+class TestChangeSet:
     def test_given_title_only_when_instantiated_then_defaults_applied(self):
-        cs = CommitSpecification(title="Add models")
+        cs = ChangeSet(title="Add models")
         assert cs.title == "Add models"
         assert cs.acceptance_criteria == []
         assert cs.test_focus == ""
         assert cs.implementation_focus == ""
 
     def test_given_all_fields_when_json_round_tripped_then_no_field_loss(self):
-        cs = CommitSpecification(
+        cs = ChangeSet(
             title="Add models",
             acceptance_criteria=["Model exists"],
             test_focus="unit tests",
             implementation_focus="Pydantic models",
         )
-        reconstructed = CommitSpecification.model_validate_json(cs.model_dump_json())
+        reconstructed = ChangeSet.model_validate_json(cs.model_dump_json())
         assert reconstructed == cs
 
 
-class TestJobDefinition:
-    def test_given_valid_job_when_instantiated_then_commits_parsed(self):
-        job = JobDefinition(
+class TestJobSpecification:
+    def test_given_valid_job_when_instantiated_then_change_sets_parsed(self):
+        job = JobSpecification(
             objective="Add auth",
             repo_url="https://github.com/org/repo",
-            commits=[{"title": "Add models"}, {"title": "Add endpoints"}],
+            change_sets=[{"title": "Add models"}, {"title": "Add endpoints"}],
         )
         assert job.objective == "Add auth"
         assert job.repo_url == "https://github.com/org/repo"
         assert job.repo_ref == "main"
-        assert len(job.commits) == 2
+        assert len(job.change_sets) == 2
         assert job.constraints == []
-
-    def test_given_empty_commits_when_instantiated_then_raises_validation_error(self):
-        with pytest.raises(ValidationError, match="commits must not be empty"):
-            JobDefinition(objective="Add auth", repo_url="https://github.com/org/repo", commits=[])
 
     def test_given_missing_objective_when_instantiated_then_raises_validation_error(self):
         with pytest.raises(ValidationError):
-            JobDefinition(repo_url="https://github.com/org/repo", commits=[{"title": "c1"}])
+            JobSpecification(repo_url="https://github.com/org/repo", change_sets=[{"title": "c1"}])
 
     def test_given_valid_job_when_json_round_tripped_then_no_field_loss(self):
-        job = JobDefinition(
+        job = JobSpecification(
             objective="Add auth",
             repo_url="https://github.com/org/repo",
             repo_ref="develop",
             constraints=["No new deps"],
-            commits=[{"title": "Add models", "acceptance_criteria": ["Model exists"]}],
+            change_sets=[{"title": "Add models", "acceptance_criteria": ["Model exists"]}],
         )
-        reconstructed = JobDefinition.model_validate_json(job.model_dump_json())
+        reconstructed = JobSpecification.model_validate_json(job.model_dump_json())
         assert reconstructed == job
 
 

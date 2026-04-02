@@ -5,12 +5,12 @@ import pytest
 from archipelago.agents.decomposer import decomposer_handler
 
 
-def _valid_job_definition() -> dict:
+def _valid_job_specification() -> dict:
     return {
         "objective": "Add user authentication",
         "repo_url": "https://github.com/org/repo",
         "constraints": ["Must use OAuth2"],
-        "commits": [
+        "change_sets": [
             {
                 "title": "Add auth models",
                 "acceptance_criteria": ["User model exists"],
@@ -28,37 +28,26 @@ def _valid_job_definition() -> dict:
 
 
 class TestDecomposerHandler:
-    def test_given_valid_job_definition_when_called_then_returns_flat_job_fields(self):
-        state = {"job_definition": _valid_job_definition()}
+    def test_given_valid_job_specification_when_called_then_returns_flat_job_fields(self):
+        state = {"job_specification": _valid_job_specification()}
         result = decomposer_handler(state)
         assert result["objective"] == "Add user authentication"
         assert result["repo_url"] == "https://github.com/org/repo"
         assert result["repo_ref"] == "main"
         assert result["constraints"] == ["Must use OAuth2"]
 
-    def test_given_valid_job_definition_when_called_then_returns_commit_slices(self):
-        state = {"job_definition": _valid_job_definition()}
+    def test_given_valid_job_specification_when_called_then_returns_commit_slices(self):
+        state = {"job_specification": _valid_job_specification()}
         result = decomposer_handler(state)
         assert len(result["commit_slices"]) == 2
         assert result["commit_slices"][0]["title"] == "Add auth models"
         assert result["commit_slices"][1]["title"] == "Add auth endpoints"
 
-    def test_given_valid_job_definition_when_called_then_current_index_is_zero(self):
-        state = {"job_definition": _valid_job_definition()}
+    def test_given_valid_job_specification_when_called_then_current_index_is_zero(self):
+        state = {"job_specification": _valid_job_specification()}
         result = decomposer_handler(state)
         assert result["current_index"] == 0
 
-    def test_given_missing_job_definition_when_called_then_raises_value_error(self):
-        with pytest.raises(ValueError, match="job_definition is required"):
+    def test_given_missing_job_specification_when_called_then_raises_value_error(self):
+        with pytest.raises(ValueError, match="job_specification is required"):
             decomposer_handler({})
-
-    def test_given_job_definition_with_empty_commits_when_called_then_raises(self):
-        state = {
-            "job_definition": {
-                "objective": "test",
-                "repo_url": "https://github.com/org/repo",
-                "commits": [],
-            }
-        }
-        with pytest.raises(Exception, match="commits must not be empty"):
-            decomposer_handler(state)

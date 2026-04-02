@@ -49,7 +49,7 @@ def _stub_software_review(
 
 
 STUB_HANDLERS = {
-    "decompose_job_definition": decomposer_handler,
+    "decompose_job_specification": decomposer_handler,
     "dispatch_commit": dispatcher_handler,
     "evaluate_commit": evaluator_handler,
     "write_unit_tests_from_spec": _stub_docker_worker,
@@ -87,8 +87,8 @@ class TestPipelineExecution:
         job_def = {
             "objective": "test",
             "repo_url": "https://github.com/org/repo",
-            "commits": [{"title": "c1"}],
+            "change_sets": [{"title": "c1"}],
         }
-        result = graph.invoke({"job_definition": job_def})
+        result = graph.invoke({"job_specification": job_def})
         assert result["has_more_commits"] is False
         assert result["commit_passed"] is True

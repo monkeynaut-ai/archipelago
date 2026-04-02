@@ -48,7 +48,7 @@ def _stub_software_review(
 
 
 STUB_HANDLERS = {
-    "decompose_job_definition": decomposer_handler,
+    "decompose_job_specification": decomposer_handler,
     "dispatch_commit": dispatcher_handler,
     "evaluate_commit": evaluator_handler,
     "write_unit_tests_from_spec": _stub_docker_worker,
@@ -57,13 +57,13 @@ STUB_HANDLERS = {
 }
 
 
-def _job_definition(num_commits: int = 2) -> dict:
+def _job_specification(num_change_sets: int = 2) -> dict:
     return {
         "objective": "Add user authentication",
         "repo_url": "https://github.com/org/repo",
         "constraints": ["Must use OAuth2"],
-        "commits": [
-            {"title": f"commit-{i}", "test_focus": f"tests-{i}"} for i in range(num_commits)
+        "change_sets": [
+            {"title": f"commit-{i}", "test_focus": f"tests-{i}"} for i in range(num_change_sets)
         ],
     }
 
@@ -77,25 +77,29 @@ def plan():
 
 
 class TestEndToEnd:
-    def test_given_2_commits_when_pipeline_runs_then_all_commits_processed(self, registry, plan):
+    def test_given_2_change_sets_when_pipeline_runs_then_all_change_sets_processed(
+        self, registry, plan
+    ):
         graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-        result = graph.invoke({"job_definition": _job_definition(2)})
+        result = graph.invoke({"job_specification": _job_specification(2)})
         assert result["current_index"] == 2
         assert result["has_more_commits"] is False
 
-    def test_given_3_commits_when_pipeline_runs_then_all_3_dispatched(self, registry, plan):
+    def test_given_3_change_sets_when_pipeline_runs_then_all_3_dispatched(self, registry, plan):
         graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-        result = graph.invoke({"job_definition": _job_definition(3)})
+        result = graph.invoke({"job_specification": _job_specification(3)})
         assert result["current_index"] == 3
         assert result["has_more_commits"] is False
 
-    def test_given_1_commit_when_pipeline_runs_then_commit_passed_in_result(self, registry, plan):
+    def test_given_1_change_set_when_pipeline_runs_then_commit_passed_in_result(
+        self, registry, plan
+    ):
         graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-        result = graph.invoke({"job_definition": _job_definition(1)})
+        result = graph.invoke({"job_specification": _job_specification(1)})
         assert result["commit_passed"] is True
 
     def test_given_pipeline_runs_then_job_fields_preserved(self, registry, plan):
         graph = compile_plan(plan, registry, handler_registry=STUB_HANDLERS)
-        result = graph.invoke({"job_definition": _job_definition(1)})
+        result = graph.invoke({"job_specification": _job_specification(1)})
         assert result["objective"] == "Add user authentication"
         assert result["constraints"] == ["Must use OAuth2"]

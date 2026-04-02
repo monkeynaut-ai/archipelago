@@ -19,7 +19,7 @@ from archipelago.agents.software_reviewer import SoftwareReviewer
 from archipelago.agents.unit_test_writer import UnitTestWriter
 
 ARCHIPELAGO_HANDLERS: dict[str, Any] = {
-    "decompose_job_definition": decomposer_handler,
+    "decompose_job_specification": decomposer_handler,
     "dispatch_commit": dispatcher_handler,
     "evaluate_commit": evaluator_handler,
     "write_unit_tests_from_spec": UnitTestWriter(),

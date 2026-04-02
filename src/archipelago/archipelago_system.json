@@ -3,7 +3,7 @@
   "state_schema": {
     "type": "object",
     "properties": {
-      "job_definition": {"type": "object"},
+      "job_specification": {"type": "object"},
       "objective": {"type": "string"},
       "repo_url": {"type": "string"},
       "repo_ref": {"type": "string"},
@@ -16,20 +16,20 @@
       "commit_hash": {"type": ["string", "null"]},
       "commit_passed": {"type": ["boolean", "null"]}
     },
-    "required": ["job_definition"],
+    "required": ["job_specification"],
     "additionalProperties": false
   },
   "nodes": [
     {
       "id": "decomposer",
-      "role": "decompose_job_definition",
+      "role": "decompose_job_specification",
       "config": {},
-      "inputs": ["JobDefinition"],
+      "inputs": ["JobSpecification"],
       "outputs": ["Objective", "RepoUrl", "RepoRef", "list[str]", "list[dict]", "int"],
       "inputs_schema": {
         "type": "object",
         "properties": {
-          "job_definition": {"type": "object"}
+          "job_specification": {"type": "object"}
         }
       },
       "outputs_schema": {
@@ -228,7 +228,7 @@
   "entry_point": "decomposer",
   "breakpoints": [],
   "role_versions": {
-    "decompose_job_definition": "1.0.0",
+    "decompose_job_specification": "1.0.0",
     "dispatch_commit": "1.0.0"
   }
 }

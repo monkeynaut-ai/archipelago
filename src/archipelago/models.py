@@ -2,14 +2,90 @@
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from archipelago.types import CommitHash, Objective, RepoRef, RepoUrl, WorkSpace
 
 
-class CommitSpecification(BaseModel):
-    """A single commit's specification within a job definition."""
+class FeatureDefinition(BaseModel):
+    """
+    A FeatureDefinition defines the business case for a feature enhancement or enablement.
 
+    It will be transformed into a JobSpecification.
+    """
+
+    id: str = Field(description="The id of the feature definition")
+    name: str = Field(description="Concise name that conveys the capability being enabled")
+    problem_statement: str = Field(
+        description="crisp articulation of the user or business problem this feature solves"
+    )
+    feature_intent: str = Field(
+        description="A single declarative statement of what this feature is meant to achieve. \
+            This is the north star for all work on this feature."
+    )
+    desired_outcomes: list[str] = Field(
+        default_factory=list,
+        description="Express outcomes as observable or measurable states, not activities.",
+    )
+    # success_metrics: list[str] = Field(default_factory=list, description="Define 2-4 specific,
+    # measurable indicators that would confirm this feature is succeeding. Align these to metrics
+    # already defined in the product compass where possible. Include: Metric name Direction of
+    # change (increase/decrease/achieve) Indicative target or threshold if determinable from
+    # compass context")
+    scope_boundaries: list[str] = Field(
+        default_factory=list,
+        description="Explicit statement of what is out of scope for this feature.",
+    )
+    assumptions: list[str] = Field(
+        default_factory=list,
+        description="Key assumptions that must hold for this feature to deliver its intended \
+            outcomes",
+    )
+    dependencies: list[str] = Field(
+        default_factory=list,
+        description="Dependencies on other features, platform capabilities, data, or third parties",
+    )
+    value_hypothesis: str = Field(
+        description="A testable claim of how achieving the objective will create meaningful \
+            impact. Keep focus on impact, not implementation."
+    )
+    constraints: list[str] = Field(
+        default_factory=list,
+        description="Constraints that must be followed when implementing this feature definition",
+    )
+    rules: list[str] = Field(
+        default_factory=list,
+        description="Rules that must be followed when implementing this feature definition",
+    )
+
+
+class JobSpecification(BaseModel):
+    """
+    A JobSpecification specifies changes that implement a feature definition (or fix, refactor,
+    enhancement).
+    """
+
+    # id: str = Field(description="The id of the job")
+    repo_url: RepoUrl = Field(description="Git remote URL of the target repository")
+    repo_ref: RepoRef = Field(default="main", description="Branch or tag to work on")
+    objective: Objective = Field(description="High-level goal for the pipeline run")
+    # scope, constraints, rules
+    constraints: list[str] = Field(default_factory=list, description="Rules all agents must follow")
+    change_sets: list[ChangeSet] = Field(description="The change sets of the job")
+
+
+class ChangeSet(BaseModel):
+    """
+    A ChangeSet defines a cohesive unit of work in a job specification.
+
+    """
+
+    # id: str = Field(description="The id of the change set")
+    # steps: list[Step] = Field(description="Sequenced steps that implement a change set")
+    # acceptanceptance criteria
+    # api contract
+    # data model
+    # user flows and states
     title: str = Field(description="Short description used as commit message seed")
     acceptance_criteria: list[str] = Field(
         default_factory=list,
@@ -18,6 +94,54 @@ class CommitSpecification(BaseModel):
     test_focus: str = Field(default="", description="What the tests should exercise")
     implementation_focus: str = Field(
         default="", description="Where implementation effort should concentrate"
+    )
+
+
+class Step(BaseModel):
+    """
+    An atomic change in a change set
+
+    A Step will be transformed into an ImplementationTask
+
+    - id
+    - description
+    - interface_changes: list[InterfaceChange]
+    """
+
+    id: str = Field(description="The id of the step")
+    # reference to acceptance criteria addressed
+
+
+class ImplementationTask(BaseModel):
+    """
+    A self-contained atomic change that delivers a bit of value
+
+    TODO: what if this is a breaking change
+    """
+
+    id: str = Field(description="The id of the implementation task")
+    unit_test_changes: UnitTestUpdates = Field(
+        description="unit test updates that verify desired implementation change"
+    )
+    # an implementation change can apply to source code, database schema, api schema
+    implementation_change: str = Field(
+        description="describe the implemented change needed to make the tests green"
+    )
+
+
+class UnitTestUpdates(BaseModel):
+    """
+    Unit tests to add and remove. To modify an existing test, remove the test and add a test that
+    represents the desired change.
+
+    TODO: consider including the name of the containing module
+    """
+
+    add: list[str] = Field(
+        default_factory=list, description="test description in given-when-then format"
+    )
+    remove: list[str] = Field(
+        default_factory=list, description="name of test to remove and reason for removing the test"
     )
 
 
@@ -61,23 +185,6 @@ class KernelState(BaseModel):
     commit_passed: bool | None = Field(
         default=None, description="Whether the evaluator accepted the commit"
     )
-
-
-class JobDefinition(BaseModel):
-    """Top-level specification for a pipeline run."""
-
-    objective: Objective = Field(description="High-level goal for the pipeline run")
-    repo_url: RepoUrl = Field(description="Git remote URL of the target repository")
-    repo_ref: RepoRef = Field(default="main", description="Branch or tag to work on")
-    constraints: list[str] = Field(default_factory=list, description="Rules all agents must follow")
-    commits: list[CommitSpecification] = Field(description="Ordered list of commits to implement")
-
-    @field_validator("commits")
-    @classmethod
-    def _commits_not_empty(cls, v: list[CommitSpecification]) -> list[CommitSpecification]:
-        if not v:
-            raise ValueError("commits must not be empty")
-        return v
 
 
 class TestResults(BaseModel):
