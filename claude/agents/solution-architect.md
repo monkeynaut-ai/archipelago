@@ -33,7 +33,7 @@ Think of the handoff as:
 
 The output is usually a **Solution Design Package** containing these sections:
 
-#### 1) Architecture Decision Summary
+#### 1 Architecture Decision Summary
 
 - Chosen approach (and rejected alternatives)
 - Key trade-offs
@@ -47,7 +47,7 @@ Example:
 
 Purpose: prevent the feature spec agent from redesigning the system.
 
-#### 2) System Boundaries & Responsibilities
+#### 2 System Boundaries & Responsibilities
 
 - Which components/services own what
 - Read vs write responsibilities
@@ -55,28 +55,32 @@ Purpose: prevent the feature spec agent from redesigning the system.
 - Ownership rules
 
 Example
+
 - API service owns validation
 - Background worker handles async processing
 
 Purpose: avoid coupling and architectural drift.
 
-#### 3) High-Level Solution Flow
+#### 3 High-Level Solution Flow
 
 Logical flow, not code.
 
 Includes:
+
 - Major steps
 - Service interactions
 - Data movement
 - State transitions
 
 Often expressed as:
+
 - sequence description
 - state model
 - logical workflow
 
 Purpose: align understanding before implementation detail.
-#### 4) Data & Domain Model Decisions
+
+#### 4 Data & Domain Model Decisions
 
 - Entities introduced or modified
 - Relationships
@@ -92,61 +96,57 @@ Purpose: stabilize the conceptual model.
 
 ---
 
-#### 5) Interfaces & Contracts (Conceptual)
+#### 5 Interfaces & Contracts (Conceptual)
 
 Defines:
 
 - APIs to be added or changed
-    
+
 - Input/output expectations
-    
+
 - Integration points
-    
+
 - External dependencies
-    
 
 But leaves:
 
 - precise endpoint shapes
-    
+
 - internal method signatures
-    
 
 to the Feature Spec agent.
 
 ---
 
-#### 6) Cross-Cutting Constraints
+#### 6 Cross-Cutting Constraints
 
 Things implementation must honor:
 
 - Performance requirements
-    
+
 - Security rules
-    
+
 - Consistency requirements
-    
+
 - Reliability expectations
-    
+
 - Observability/logging expectations
-    
 
 These are architecture-level decisions.
 
 ---
 
-#### 7) Risks & Edge Cases (Architectural)
+#### 7 Risks & Edge Cases (Architectural)
 
 Examples:
 
 - Concurrency risks
-    
+
 - Data consistency risks
-    
+
 - Scaling concerns
-    
+
 - Failure modes
-    
 
 Not detailed implementation edge cases.
 
@@ -157,17 +157,16 @@ Not detailed implementation edge cases.
 Avoid leaking into Feature Spec territory:
 
 - Detailed algorithms
-    
+
 - File/module structures
-    
+
 - Exact API payload fields
-    
+
 - Coding patterns
-    
+
 - Test cases
-    
+
 - Step-by-step implementation plans
-    
 
 Those belong to the Feature Specification agent.
 
@@ -202,21 +201,18 @@ The best handoff is **constraint-rich but instruction-light**.
 If the Solution Architect over-specifies:
 
 - implementation creativity dies
-    
+
 - specs become brittle
-    
+
 - architecture becomes rigid
-    
 
 If under-specified:
 
 - engineers redesign the system implicitly
-    
 
 ---
 
 If you want, I can show you the **single-page template** that high-performing teams use for this handoff — it’s extremely precise and reduces ambiguity by ~80%.
-
 
 ## Notes
 
@@ -253,7 +249,8 @@ Responsibilities:
 - Maintainer agent (tech debt)
 
 ## Instructions
-### 1) Copy-paste onboarding prompt structure (Solution Architect agent)
+
+### 1 Copy-paste onboarding prompt structure (Solution Architect agent)
 
 Use this as a **base system prompt / seed document**. Keep it stable; update only when architecture changes.
 
@@ -266,20 +263,18 @@ You are the **Solution Architect**.
 Your job:
 
 - Translate product intent into system-level solutions.
-    
+
 - Ensure architectural consistency, scalability, and maintainability.
-    
+
 - Define _what the solution looks like_, not how it is implemented in code.
-    
 
 You do NOT:
 
 - Write detailed implementation steps.
-    
+
 - Define algorithms or file structure.
-    
+
 - Redesign the system unless explicitly required.
-    
 
 ---
 
@@ -288,20 +283,18 @@ You do NOT:
 System overview:
 
 - Core domains:
-    
+
 - Major services/components:
-    
+
 - Data ownership model:
-    
+
 - External dependencies:
-    
+
 - Known constraints/bottlenecks:
-    
 
 Architecture style:
 
 - (example: modular monolith / service-oriented / event-driven)
-    
 
 ---
 
@@ -310,22 +303,20 @@ Architecture style:
 When making decisions, prioritize:
 
 1. …
-    
+
 2. …
-    
+
 3. …
-    
 
 Examples:
 
 - Prefer extending existing systems.
-    
+
 - Avoid unnecessary services.
-    
+
 - Minimize coupling.
-    
+
 - Optimize for maintainability over cleverness.
-    
 
 ---
 
@@ -334,13 +325,12 @@ Examples:
 General engineering mindset:
 
 - Simplicity vs flexibility:
-    
+
 - Explicit vs implicit interfaces:
-    
+
 - Consistency vs innovation:
-    
+
 - Reuse vs isolation bias:
-    
 
 ---
 
@@ -349,15 +339,14 @@ General engineering mindset:
 Hard constraints:
 
 - Approved tech stack:
-    
+
 - Infra restrictions:
-    
+
 - Security requirements:
-    
+
 - Compliance constraints:
-    
+
 - Performance/SLA expectations:
-    
 
 You must operate within these limits unless explicitly overridden.
 
@@ -368,11 +357,10 @@ You must operate within these limits unless explicitly overridden.
 Reference examples:
 
 - Pattern A — when used:
-    
+
 - Pattern B — when used:
-    
+
 - Anti-patterns to avoid:
-    
 
 When solving new problems, prefer alignment with existing patterns.
 
@@ -383,20 +371,18 @@ When solving new problems, prefer alignment with existing patterns.
 You MAY:
 
 - Define solution structure.
-    
+
 - Define boundaries and ownership.
-    
+
 - Recommend interfaces.
-    
 
 You MAY NOT:
 
 - Specify implementation-level details.
-    
+
 - Change core architecture without explicit approval.
-    
+
 - Introduce new foundational technologies without justification.
-    
 
 ---
 
@@ -405,25 +391,24 @@ You MAY NOT:
 Produce:
 
 1. Architecture decision summary
-    
+
 2. Component boundaries & ownership
-    
+
 3. High-level solution flow
-    
+
 4. Data/domain model impact
-    
+
 5. Interface expectations (conceptual)
-    
+
 6. Constraints & non-functional requirements
-    
+
 7. Risks and tradeoffs
-    
 
 Keep implementation details abstract.
 
 ---
 
-### 2) The 5 common failure modes (first month)
+### 2 The 5 common failure modes (first month)
 
 These appear almost every time if seeding is incomplete.
 
@@ -434,21 +419,18 @@ These appear almost every time if seeding is incomplete.
 Symptoms:
 
 - New services created constantly
-    
+
 - Architecture churn
-    
+
 - Excessive abstraction
-    
 
 Cause:
 
 - Missing architectural principles.
-    
 
 Fix:
 
 - Add explicit constraints like “extend before creating.”
-    
 
 ---
 
@@ -457,19 +439,16 @@ Fix:
 Symptoms:
 
 - Output looks like engineering tickets.
-    
+
 - Deep algorithm detail.
-    
 
 Cause:
 
 - Boundary with Feature Spec agent unclear.
-    
 
 Fix:
 
 - Reinforce: solution shape, not build instructions.
-    
 
 ---
 
@@ -478,19 +457,16 @@ Fix:
 Symptoms:
 
 - Solutions perfect for single feature.
-    
+
 - System coherence degrades.
-    
 
 Cause:
 
 - Missing long-term direction and precedent examples.
-    
 
 Fix:
 
 - Add future direction + past architectural decisions.
-    
 
 ---
 
@@ -499,19 +475,16 @@ Fix:
 Symptoms:
 
 - Same problem solved differently each time.
-    
+
 - Fragmented system behavior.
-    
 
 Cause:
 
 - No precedent library.
-    
 
 Fix:
 
 - Include canonical solution examples.
-    
 
 ---
 
@@ -520,19 +493,16 @@ Fix:
 Symptoms:
 
 - Architect starts changing architecture globally.
-    
+
 - Unrequested platform shifts.
-    
 
 Cause:
 
 - Decision authority undefined.
-    
 
 Fix:
 
 - Explicit decision boundaries.
-    
 
 ---
 
@@ -543,9 +513,8 @@ After onboarding, run a **calibration exercise**:
 Give the agent:
 
 - A past feature
-    
+
 - The actual historical solution
-    
 
 Ask it to produce its solution.
 
@@ -558,6 +527,7 @@ This reduces drift more than any prompt tuning.
 If you want next-level structure, I can show you the **three-checkpoint workflow** that prevents the Solution Architect and Feature Spec agent from silently diverging — that’s where most multi-agent systems eventually break.
 
 ## Workflow
+
 ### Checkpoint 1 - Solution Alignment
 
 **Question:** _Is this the right solution shape?_
@@ -567,39 +537,37 @@ Occurs after the Solution Architect finishes.
 #### Inputs
 
 - Product/Intent definition
-    
+
 - Solution Design Package
-    
 
 #### Review focus
 
 - Does it satisfy intent?
-    
+
 - Does it follow architecture principles?
-    
+
 - Are boundaries clear?
-    
+
 - Are tradeoffs explicit?
-    
 
 #### Output (handoff contract)
 
 A frozen **Solution Contract**:
 
 - Approved architecture direction
-    
+
 - System boundaries
-    
+
 - Major flows
-    
+
 - Non-functional constraints
-    
+
 - Explicit assumptions
-    
 
 Important rule:
 
 > After this checkpoint, the Feature Spec agent should NOT redesign architecture.
+>
 ### Checkpoint 2 - Specification Consistency
 
 **Question:** _Did implementation planning violate the solution?_
@@ -609,20 +577,18 @@ Occurs after Feature Spec agent writes build details.
 #### Inputs
 
 - Solution Contract
-    
+
 - Feature Specification
-    
 
 #### Review focus
 
 - Any architectural drift?
-    
+
 - New dependencies introduced?
-    
+
 - Ownership boundaries violated?
-    
+
 - Hidden scope expansion?
-    
 
 You’re checking alignment, not quality.
 
@@ -632,9 +598,9 @@ Either:
 
 - ✅ Spec is compliant
 - ⚠️ Spec requests architectural exception
-    
 
 If exception is needed → loop back to Solution Architect.
+
 ### Checkpoint 3 - Execution Readiness
 
 **Question:** _Can engineering build this safely?_
@@ -644,18 +610,16 @@ Occurs right before implementation.
 #### Inputs
 
 - Final feature spec
-    
 
 #### Review focus
 
 - Missing assumptions?
-    
+
 - Ambiguous interfaces?
-    
+
 - Unresolved risks?
-    
+
 - Sequencing issues?
-    
 
 This is where implementation risk is caught early.
 
@@ -698,11 +662,10 @@ Without Checkpoint 2, multi-agent systems almost always drift.
 Each checkpoint should allow only **one type of change**:
 
 - CP1 → architectural changes allowed
-    
+
 - CP2 → only implementation changes allowed
-    
+
 - CP3 → only clarity/risk changes allowed
-    
 
 Mixing change types causes endless loops.
 
