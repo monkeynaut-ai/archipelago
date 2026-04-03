@@ -20,10 +20,3 @@ class EvaluatorHandler:
         worker_result: AgentWorkerResult | dict[str, Any] | None = None,
     ) -> EvaluatorOutput:
         return EvaluatorOutput(commit_passed=True)
-
-
-def evaluator_handler(
-    state: dict[str, Any], node_config: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """Legacy dict-based evaluator for backward compatibility."""
-    return {**state, "commit_passed": True}

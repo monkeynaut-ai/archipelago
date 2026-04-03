@@ -8,10 +8,6 @@ import pytest
 from agent_foundry.compiler.compiler import compile_plan
 from agent_foundry.planner.wiring_plan import GraphWiringPlan
 
-from archipelago.agents.decomposer import decomposer_handler
-from archipelago.agents.dispatcher import dispatcher_handler
-from archipelago.agents.evaluator import evaluator_handler
-
 PLAN_PATH = (
     Path(__file__).parent.parent.parent.parent / "src" / "archipelago" / "archipelago_system.json"
 )
@@ -65,10 +61,42 @@ def _stub_software_review(
     }
 
 
+def _stub_decomposer(state, node_config=None):
+    raw = state["job_specification"]
+    return {
+        **state,
+        "objective": raw["objective"],
+        "repo_url": raw.get("repo_url", ""),
+        "repo_ref": raw.get("repo_ref", "main"),
+        "constraints": raw.get("constraints", []),
+        "commit_slices": raw.get("change_sets", []),
+        "current_index": 0,
+    }
+
+
+def _stub_dispatcher(state, node_config=None):
+    slices = state.get("commit_slices", [])
+    idx = state.get("current_index", 0)
+    if idx >= len(slices):
+        return {**state, "has_more_commits": False}
+    return {
+        **state,
+        "current_task": {
+            "objective": state.get("objective", ""),
+            "repo_url": state.get("repo_url", ""),
+            "repo_ref": state.get("repo_ref", "main"),
+            "constraints": state.get("constraints", []),
+            **slices[idx],
+        },
+        "current_index": idx + 1,
+        "has_more_commits": True,
+    }
+
+
 STUB_HANDLERS = {
-    "decompose_job_specification": decomposer_handler,
-    "dispatch_commit": dispatcher_handler,
-    "evaluate_commit": evaluator_handler,
+    "decompose_job_specification": _stub_decomposer,
+    "dispatch_commit": _stub_dispatcher,
+    "evaluate_commit": lambda state, node_config=None: {**state, "commit_passed": True},
     "write_unit_tests_from_spec": _stub_docker_worker,
     "code_implement_from_tests": _stub_docker_worker,
     "software_review": _stub_software_review,

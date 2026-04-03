@@ -27,24 +27,3 @@ class DecomposerHandler:
             commit_slices=[c.model_dump() for c in job.change_sets],
             current_index=0,
         )
-
-
-def decomposer_handler(
-    state: dict[str, Any], node_config: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """Legacy dict-based decomposer for backward compatibility."""
-    raw = state.get("job_specification")
-    if not raw:
-        raise ValueError("job_specification is required")
-
-    job = JobSpecification(**raw) if isinstance(raw, dict) else JobSpecification.model_validate(raw)
-
-    return {
-        **state,
-        "objective": job.objective,
-        "repo_url": job.repo_url,
-        "repo_ref": job.repo_ref,
-        "constraints": job.constraints,
-        "commit_slices": [c.model_dump() for c in job.change_sets],
-        "current_index": 0,
-    }

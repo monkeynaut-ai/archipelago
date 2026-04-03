@@ -42,31 +42,3 @@ class DispatcherHandler:
             current_index=current_index + 1,
             has_more_commits=True,
         )
-
-
-def dispatcher_handler(
-    state: dict[str, Any], node_config: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """Legacy dict-based dispatcher for backward compatibility."""
-    commit_slices = state.get("commit_slices", [])
-    current_index = state.get("current_index", 0)
-
-    if current_index >= len(commit_slices):
-        return {**state, "has_more_commits": False}
-
-    current_slice = commit_slices[current_index]
-
-    current_task = {
-        "objective": state.get("objective", ""),
-        "repo_url": state.get("repo_url", ""),
-        "repo_ref": state.get("repo_ref", "main"),
-        "constraints": state.get("constraints", []),
-        **current_slice,
-    }
-
-    return {
-        **state,
-        "current_task": current_task,
-        "current_index": current_index + 1,
-        "has_more_commits": True,
-    }
