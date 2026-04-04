@@ -10,6 +10,12 @@
 
 **Status: COMPLETED** — implemented and committed to Agent Foundry on branch `support-review-with-jig`.
 
+**Implementation note:** During implementation, the `name` field was removed from all primitives and string-based references were replaced with direct Python object references. The code blocks below reflect the original plan and are now stale. The source of truth is the implemented code:
+- Models: `agent-foundry/src/agent_foundry/primitives/models.py`
+- Plan: `agent-foundry/src/agent_foundry/primitives/plan.py`
+- Tests: `agent-foundry/tests/agent_foundry/primitives/test_primitive_models.py`
+- Tests: `agent-foundry/tests/agent_foundry/primitives/test_primitive_plan.py`
+
 **Tech Stack:** Python 3.14, Pydantic >=2.12.5, pytest
 
 ---
