@@ -162,3 +162,5 @@ A working session in Archipelago is composed of the following control and data f
 - implementation task origin analysis for system improvement feedback
 - failure handling for PR submission failures (CI checks, merge conflicts, branch protection)
 - failure handling for human escalation timeouts
+- add a design agent that operates between Job Specification input and execution.
+  - it takes sets and their high-level steps, analyzes the repo, and produces enriched steps with scope hints, dependency ordering, and interface sketches. Essentially doing the work that a senior engineer does when they look at a feature spec and mentally decompose it before handing tasks to the team. Keeps Job Specification author's burden low (describe intent, not implementation detail) while giving the Planner rich, repo-aware input.

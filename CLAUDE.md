@@ -1,3 +1,6 @@
+This project uses **Jig** for development workflow management.
+See `jig.config.md` for pipeline configuration.
+
 # Archipelago
 
 An system of agents (AI, human, services, programs) for autonomous software engineering.
