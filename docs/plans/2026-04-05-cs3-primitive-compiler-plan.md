@@ -650,31 +650,7 @@ class TestCompileSequence:
         result = graph.invoke({"items": []})
         assert result["items"] == ["a", "b", "c"]
 
-    def test_state_isolation(self):
-        """Step's internal fields don't leak to siblings or parent."""
-
-        class SeqIn(BaseModel):
-            x: str
-
-        class StepMid(BaseModel):
-            x: str
-            internal_temp: str  # only exists within step1's scope
-
-        class SeqOut(BaseModel):
-            x: str
-
-        step1 = FunctionAction[SeqIn, StepMid](
-            function=lambda s: StepMid(x=s.x, internal_temp="should_not_leak"),
-        )
-        step2 = FunctionAction[StepMid, SeqOut](
-            function=lambda s: SeqOut(x=f"{s.x}_done"),
-        )
-        seq = Sequence[SeqIn, SeqOut](steps=[step1, step2])
-        plan = PrimitivePlan(root=seq)
-        graph = compile_primitive(plan)
-        result = graph.invoke({"x": "start"})
-        assert result["x"] == "start_done"
-        assert "internal_temp" not in result  # scoped out by Sequence
+    # State isolation tests are in the dedicated TestStateIsolation class
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -983,35 +959,7 @@ class TestCompileLoop:
         result = graph.invoke({"items": ["x"], "processed": []})
         assert result["processed"] == ["X"]
 
-    def test_iterations_get_fresh_scope(self):
-        """Each iteration starts fresh — previous iteration's internal state doesn't leak."""
-
-        class LoopState(BaseModel):
-            items: list[str]
-            results: list[str] = []
-            current_item: str = ""
-            temp: str = ""  # body sets this; must not carry to next iteration
-
-        def body_fn(s: LoopState) -> LoopState:
-            # temp should be "" at start of each iteration (fresh scope)
-            assert s.temp == "", f"temp leaked from previous iteration: {s.temp}"
-            return LoopState(
-                items=s.items,
-                results=[*s.results, s.current_item],
-                current_item=s.current_item,
-                temp="was_set",
-            )
-
-        body = FunctionAction[LoopState, LoopState](function=body_fn)
-        loop = Loop[LoopState, LoopState](
-            over=lambda s: s.items,
-            item_key="current_item",
-            body=body,
-        )
-        plan = PrimitivePlan(root=loop)
-        graph = compile_primitive(plan)
-        result = graph.invoke({"items": ["a", "b", "c"], "results": []})
-        assert result["results"] == ["a", "b", "c"]
+    # Per-iteration isolation tests are in the dedicated TestStateIsolation class
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1495,13 +1443,244 @@ git commit -m "test(compiler): add nested composition tests including retry-cond
 
 ---
 
-### Task 11: Final Exports and Full Verification
+### Task 11: State Isolation Tests
+
+**Files:**
+- Modify: `tests/agent_foundry/primitives/test_primitive_compiler.py`
+
+**Dependencies:** Tasks 3-10
+
+Isolation is essential to correctness. This dedicated test class verifies that state scoping works at every composition boundary, including nested primitives.
+
+- [ ] **Step 1: Write tests**
+
+```python
+class TestStateIsolation:
+    """Verify state scoping at every composition boundary."""
+
+    def test_conditional_branches_dont_leak(self):
+        """then_branch internal fields don't appear in parent output."""
+
+        class CondIn(BaseModel):
+            flag: bool
+            value: str
+
+        class BranchInternal(BaseModel):
+            flag: bool
+            value: str
+            branch_temp: str  # internal to branch
+
+        class CondOut(BaseModel):
+            flag: bool
+            value: str
+
+        then = FunctionAction[CondIn, BranchInternal](
+            function=lambda s: BranchInternal(
+                flag=s.flag, value="then", branch_temp="should_not_leak"
+            ),
+        )
+        else_ = FunctionAction[CondIn, BranchInternal](
+            function=lambda s: BranchInternal(
+                flag=s.flag, value="else", branch_temp="also_should_not_leak"
+            ),
+        )
+        cond = Conditional[CondIn, CondOut](
+            condition=lambda s: s.flag,
+            then_branch=then,
+            else_branch=else_,
+        )
+        plan = PrimitivePlan(root=cond)
+        graph = compile_primitive(plan)
+        result = graph.invoke({"flag": True, "value": "start"})
+        assert result["value"] == "then"
+        assert "branch_temp" not in result
+
+    def test_retry_body_internals_dont_leak(self):
+        """Retry body's internal fields don't appear in retry output."""
+
+        class RetryIn(BaseModel):
+            attempts: int = 0
+            done: bool = False
+
+        class BodyInternal(BaseModel):
+            attempts: int
+            done: bool
+            debug_info: str = ""  # internal to body
+
+        class RetryOut(BaseModel):
+            attempts: int
+            done: bool
+
+        body = FunctionAction[RetryIn, BodyInternal](
+            function=lambda s: BodyInternal(
+                attempts=s.attempts + 1, done=True, debug_info="internal"
+            ),
+        )
+        retry = Retry[RetryIn, RetryOut](
+            max_attempts=3, until=lambda s: s.done, body=body,
+        )
+        plan = PrimitivePlan(root=retry)
+        graph = compile_primitive(plan)
+        result = graph.invoke({"attempts": 0, "done": False})
+        assert result["attempts"] == 1
+        assert "debug_info" not in result
+
+    def test_sibling_primitives_dont_interfere(self):
+        """Two sequential steps using the same internal field name don't collide."""
+
+        class StepIn(BaseModel):
+            value: str
+
+        class StepMid(BaseModel):
+            value: str
+            temp: str  # both steps use 'temp' internally
+
+        class StepOut(BaseModel):
+            value: str
+
+        step1 = FunctionAction[StepIn, StepMid](
+            function=lambda s: StepMid(value=s.value + "_a", temp="from_step1"),
+        )
+        step2 = FunctionAction[StepMid, StepOut](
+            function=lambda s: StepOut(value=s.value + "_b"),
+        )
+        seq = Sequence[StepIn, StepOut](steps=[step1, step2])
+        plan = PrimitivePlan(root=seq)
+        graph = compile_primitive(plan)
+        result = graph.invoke({"value": "start"})
+        assert result["value"] == "start_a_b"
+        assert "temp" not in result
+
+    def test_nested_loop_in_sequence_isolation(self):
+        """Loop body internals don't leak to sequence siblings."""
+
+        class SeqState(BaseModel):
+            items: list[str]
+            results: list[str] = []
+            current_item: str = ""
+
+        class BodyState(BaseModel):
+            items: list[str]
+            results: list[str]
+            current_item: str
+            processing_temp: str = ""  # internal to loop body
+
+        pre = FunctionAction[SeqState, SeqState](
+            function=lambda s: SeqState(
+                items=s.items, results=["pre"], current_item=s.current_item,
+            ),
+        )
+        body = FunctionAction[BodyState, BodyState](
+            function=lambda s: BodyState(
+                items=s.items,
+                results=[*s.results, s.current_item.upper()],
+                current_item=s.current_item,
+                processing_temp="should_not_leak",
+            ),
+        )
+        loop = Loop[SeqState, SeqState](
+            over=lambda s: s.items, item_key="current_item", body=body,
+        )
+        post = FunctionAction[SeqState, SeqState](
+            function=lambda s: SeqState(
+                items=s.items, results=[*s.results, "post"],
+                current_item=s.current_item,
+            ),
+        )
+        seq = Sequence[SeqState, SeqState](steps=[pre, loop, post])
+        plan = PrimitivePlan(root=seq)
+        graph = compile_primitive(plan)
+        result = graph.invoke({"items": ["a", "b"], "results": []})
+        assert result["results"] == ["pre", "A", "B", "post"]
+        assert "processing_temp" not in result
+
+    def test_loop_iterations_get_fresh_scope(self):
+        """Each loop iteration starts fresh — previous iteration's internal state doesn't leak."""
+
+        class LoopState(BaseModel):
+            items: list[str]
+            results: list[str] = []
+            current_item: str = ""
+            temp: str = ""
+
+        def body_fn(s: LoopState) -> LoopState:
+            assert s.temp == "", f"temp leaked from previous iteration: {s.temp}"
+            return LoopState(
+                items=s.items,
+                results=[*s.results, s.current_item],
+                current_item=s.current_item,
+                temp="was_set",
+            )
+
+        body = FunctionAction[LoopState, LoopState](function=body_fn)
+        loop = Loop[LoopState, LoopState](
+            over=lambda s: s.items, item_key="current_item", body=body,
+        )
+        plan = PrimitivePlan(root=loop)
+        graph = compile_primitive(plan)
+        result = graph.invoke({"items": ["a", "b", "c"], "results": []})
+        assert result["results"] == ["a", "b", "c"]
+
+    def test_three_levels_deep_isolation(self):
+        """Isolation holds across Sequence > Loop > Sequence > FunctionAction."""
+
+        class Outer(BaseModel):
+            items: list[str]
+            final: list[str] = []
+            current_item: str = ""
+
+        class Inner(BaseModel):
+            items: list[str]
+            final: list[str]
+            current_item: str
+            inner_temp: str = ""
+
+        step1 = FunctionAction[Inner, Inner](
+            function=lambda s: Inner(
+                items=s.items, final=s.final, current_item=s.current_item,
+                inner_temp="deep_internal",
+            ),
+        )
+        step2 = FunctionAction[Inner, Outer](
+            function=lambda s: Outer(
+                items=s.items,
+                final=[*s.final, s.current_item.upper()],
+                current_item=s.current_item,
+            ),
+        )
+        inner_seq = Sequence[Inner, Outer](steps=[step1, step2])
+        loop = Loop[Outer, Outer](
+            over=lambda s: s.items, item_key="current_item", body=inner_seq,
+        )
+        outer_seq = Sequence[Outer, Outer](steps=[loop])
+        plan = PrimitivePlan(root=outer_seq)
+        graph = compile_primitive(plan)
+        result = graph.invoke({"items": ["x", "y"], "final": []})
+        assert result["final"] == ["X", "Y"]
+        assert "inner_temp" not in result
+```
+
+- [ ] **Step 2: Run tests**
+
+Run: `pdm run pytest tests/agent_foundry/primitives/test_primitive_compiler.py::TestStateIsolation -x`
+Expected: PASS (6 tests)
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add tests/agent_foundry/primitives/test_primitive_compiler.py
+git commit -m "test(compiler): add dedicated state isolation test class"
+```
+
+---
+
+### Task 12: Final Exports and Full Verification
 
 **Files:**
 - Modify: `src/agent_foundry/primitives/__init__.py`
 - Modify: `src/agent_foundry/compiler/__init__.py`
 
-**Dependencies:** Tasks 1-10
+**Dependencies:** Tasks 1-11
 
 - [ ] **Step 1: Update exports**
 
