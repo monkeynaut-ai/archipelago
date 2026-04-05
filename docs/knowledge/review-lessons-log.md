@@ -1,14 +1,16 @@
 # Design Lessons Log
 
-Decisions and principles captured during the review feedback loop implementation (CS1: Primitive Models).
+Decisions and principles captured during the review feedback loop implementation.
 
 ## Principles
 
-**Clarity** — The system is unambiguous about what it is, what it expects, and what it guarantees. Vagueness causes bugs. Types, contracts, and APIs should leave no room for misinterpretation.
+**Clarity** — The system is unambiguous about what it is, what it expects, and what it guarantees — in its APIs and its implementation. Vagueness causes bugs. Types, contracts, and code structure should leave no room for misinterpretation.
 
 **Empathy** — The user's experience matters more than the implementer's convenience. Power without friction. Guardrails should guide, not punish.
 
 **Discipline** — If it matters, enforce it automatically. If it doesn't matter, remove it. Humans forget; machines don't. Every representation must be current or deleted.
+
+**Coherence** — Decisions compound. An architectural choice in one layer should simplify — not complicate — decisions in adjacent layers. If a downstream choice requires fighting an upstream decision, one of them is wrong.
 
 ## Decisions
 
@@ -56,3 +58,23 @@ After removing names from the implementation, the design doc, roadmap, and CS1 p
 **Principle:** Discipline
 
 The initial validator plan treated all primitive composition the same: "output of one must match input of the next." But chaining (Sequence steps) and containment (Loop/Retry/Conditional wrapping a body) have different type contracts. A Loop body's input may legitimately differ from the loop's input — the loop injects an item and the body may need parent context (a joined scope). Validating `body.I == Loop.I` would reject valid compositions. Loop body type validation was deferred to the compiler. Meanwhile, Retry has a unique re-entry constraint (`body.O` must be compatible with `body.I`) that the initial plan missed entirely. Validating the wrong thing is worse than not validating at all — it creates false confidence. Understand what you're validating before you validate it.
+
+### Exact type matching at state boundaries
+**Principle:** Coherence
+
+The initial validator plan used `issubclass` checks with covariance/contravariance rules for type boundaries between primitives. The directionality was wrong in some cases, and the variance rules added real complexity. The turning point was a deliberate architectural decision: mandate composition over inheritance for state models. That single choice eliminated subtype relationships between Pydantic state types entirely, which made the downstream validator design trivially obvious — replace all `issubclass` checks with identity checks (`is`), delete every subtype test case. The variance machinery was solving a problem that the architecture now prohibited. One upstream decision dissolved an entire category of downstream complexity.
+
+### Conditional without else is a detour, not a fork
+**Principle:** Clarity
+
+A `Conditional` with no `else_branch` has two paths: execute `then_branch`, or skip it. If the condition is false, the input passes through as output unchanged. This means `Conditional.I` must equal `Conditional.O` — and `then_branch` must accept and return the same type. All four types identical. The initial plan allowed `Conditional[A, B]` with no else branch, which would silently produce an `A` where a `B` is expected when the condition is false. If you genuinely need diverging paths, that's a `Fork` primitive (which doesn't exist yet). Don't let a missing abstraction corrupt an existing one.
+
+### Plan tests must reflect plan constraints
+**Principle:** Discipline
+
+After adding the no-else detour constraint, two existing plan test cases (`test_then_input_mismatch`, `test_then_output_mismatch`) used no-else Conditionals with mismatched I/O types. They hit the new constraint before reaching the check they were testing. The plan's tests became stale the moment we added a new rule. When you change a contract, audit every test that touches it — not just the tests you're adding.
+
+### Don't deduplicate different semantics
+**Principle:** Clarity
+
+The Conditional validator's no-else path and with-else path had similar-looking type checks, but different meanings: the no-else path enforces a detour constraint (all types identical), while the with-else path validates independent branch boundaries. Extracting a shared helper would save ~10 lines but obscure *why* the checks exist. Code that looks the same but means different things should stay separate — deduplication is a lie when the semantics diverge.
