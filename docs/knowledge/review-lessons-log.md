@@ -98,3 +98,28 @@ The initial compiler plan used `dict[str, Any]` for input/output and smuggled in
 **Principle:** Discipline
 
 The compiler initially used `isinstance` dispatch to resolve primitive types — simple, but requires modifying core code for every new type. Agent Foundry is a platform: users (including Archipelago) will define custom primitive types. A compiler registry (`dict[type[Primitive], CompilerFn]`) costs the same as isinstance dispatch but is open for extension. When a design choice is equally simple either way, choose the one that supports the platform's extensibility contract. Don't wait for the third user to justify a registry.
+
+### Probe fundamental assumptions before detailed planning
+**Principle:** Discipline
+
+We spent 3 hours refining CS3 task details — test code, commit messages, task dependencies — before discovering that the compiler's flat shared state contradicted a requirement in the design doc: "anything not in output is discarded when the primitive completes." The fix (subgraph-based state isolation) restructured every composite primitive's compilation. Verify that the architecture satisfies the design's foundational requirements before planning tasks. "How does state flow?" should be the first question, not the last.
+
+### One probing question can cascade into multiple design corrections
+**Principle:** Clarity
+
+"What happens when should_block is True?" revealed that Gate's `condition` duplicated routing that belongs upstream. Removing it led to reclassifying Gate as an action variant (GateAction), which led to renaming Action to FunctionAction, which led to removing `on_exhausted` from Retry (same cross-scope coupling), which led to the typed public API (no more dict smuggling). Each fix was small, but the cascade revealed that the original design conflated control flow with leaf actions. Ask "what exactly happens here?" at every boundary.
+
+### Don't let implementation convenience shape the public API
+**Principle:** Clarity
+
+LangGraph uses `dict[str, Any]` internally, so the initial compiler plan exposed dicts in the public API: `graph.invoke({"key": "value"})`. This leaked an implementation detail into the contract users depend on. The fix — `run_primitive_plan(plan, input: I) -> O` — required bridging work (model_dump/model_validate) but gave users the typed guarantees the primitive system promises. The internal representation is not the public interface.
+
+### Exhaustion is a routing signal, not runtime state
+**Principle:** Coherence
+
+Retry's `on_exhausted: "escalate"` was a cross-scope reference — the Retry named a destination it couldn't see. And `__exhausted_action` smuggled framework bookkeeping through domain state as a hard-coded string key. Both violated the tree model's self-containment. The fix: remove `on_exhausted` entirely. When Retry exits with `done=False`, the parent reads that domain state and routes via Conditional. The domain data is the signal — no framework plumbing needed.
+
+### YAGNI doesn't apply when the need is visible in the current roadmap
+**Principle:** Discipline
+
+The compiler used `isinstance` dispatch. The argument for keeping it: "add a registry when we need it." But Archipelago's agents (CS5-8) will be custom primitive types — the registry is a near-term requirement, not speculative. YAGNI protects against imagined futures, not documented ones. When the roadmap shows the need within a few change sets, build the extensibility now.
