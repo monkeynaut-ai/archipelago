@@ -6,14 +6,25 @@
 
 **Goal:** Update primitive models (rename Action → FunctionAction, Gate → GateAction, remove on_exhausted from Retry), then compile the typed primitive graph into an executable LangGraph `StateGraph` with a fully typed public API. The old `compile_plan(GraphWiringPlan)` path is deleted after the new compiler proves working.
 
-**Architecture — Direct to LangGraph:** The compiler walks the primitive tree recursively, generating LangGraph nodes and edges directly. No intermediate `GraphWiringPlan`.
+**Architecture — Direct to LangGraph with subgraph-based state isolation:**
+
+The compiler walks the primitive tree recursively, generating LangGraph nodes and edges directly. No intermediate `GraphWiringPlan`.
+
+**Composite primitives compile as subgraphs** (Sequence, Loop, Retry, Conditional). Each subgraph has its own state type derived from its I/O models. State is scoped at every composition boundary:
+1. **Scope in**: extract child's I fields from parent state → construct child's fresh input dict
+2. **Execute**: child subgraph runs in isolation — cannot see or mutate parent state
+3. **Scope out**: extract child's O fields from subgraph result → merge back into parent state
+
+**Leaf primitives compile as nodes** (FunctionAction, GateAction). They receive scoped state from their parent subgraph.
+
+This guarantees that "anything not in output is discarded when the primitive completes" (per design doc). Loop iterations get a fresh scope each time — no state leakage between iterations.
 
 **Key design decisions:**
 - **Typed public API**: `run_primitive_plan(plan, input: I) -> O` — Pydantic models in and out, no dicts exposed
 - **Compiler registry**: `dict[type[Primitive], CompilerFn]` — extensible dispatch, no isinstance chains
-- **`_compile_node()` returns `(entry_id, exit_id)` tuples** — parents wire LangGraph edges between children without knowing internal structure
-- **State type** derived from union of root primitive's I and O model fields as `TypedDict(total=False)`
-- **Pydantic boundary validation** at each primitive entry (construct model from state dict)
+- **Subgraph isolation**: composite primitives are LangGraph subgraphs with scoped state derived from Pydantic I/O types
+- **`_compile_node()` returns `(entry_id, exit_id)` tuples** — parents wire edges between children without knowing internal structure
+- **Pydantic boundary validation** at scope-in/scope-out transitions
 - **Router functions close over condition callables** — no state pollution with routing flags or magic string keys
 - **Loop/Retry iteration** tracked via closure dicts
 - **GateAction auto-injects `MemorySaver`** + `interrupt_before` when detected anywhere in tree
@@ -242,6 +253,44 @@ class TestValidateBoundary:
 
         with pytest.raises(PrimitiveCompilationError):
             _validate_boundary({}, InputState, "test_node")
+
+
+# ======================================================================
+# State Scoping
+# ======================================================================
+
+
+class TestScopeIn:
+    def test_extracts_only_model_fields(self):
+        from agent_foundry.compiler.primitive_compiler import _scope_in
+
+        parent_state = {"query": "hello", "result": "world", "extra": "ignored"}
+        scoped = _scope_in(parent_state, InputState)
+        assert scoped == {"query": "hello"}
+        assert "result" not in scoped
+        assert "extra" not in scoped
+
+    def test_validates_required_fields(self):
+        from agent_foundry.compiler.primitive_compiler import _scope_in
+
+        with pytest.raises(PrimitiveCompilationError):
+            _scope_in({}, InputState)
+
+
+class TestScopeOut:
+    def test_extracts_only_output_fields(self):
+        from agent_foundry.compiler.primitive_compiler import _scope_out
+
+        child_result = {"query": "hello", "result": "HELLO", "internal": "temp"}
+        scoped = _scope_out(child_result, OutputState)
+        assert scoped == {"query": "hello", "result": "HELLO"}
+        assert "internal" not in scoped
+
+    def test_validates_output(self):
+        from agent_foundry.compiler.primitive_compiler import _scope_out
+
+        with pytest.raises(PrimitiveCompilationError):
+            _scope_out({}, OutputState)  # missing required fields
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -319,6 +368,36 @@ def _validate_boundary(
     return state
 
 
+def _scope_in(
+    parent_state: dict[str, Any], child_input_type: type[BaseModel]
+) -> dict[str, Any]:
+    """Scope parent state down to child's input fields. Validates required fields."""
+    fields = set(child_input_type.model_fields.keys())
+    scoped = {k: v for k, v in parent_state.items() if k in fields}
+    try:
+        child_input_type.model_validate(scoped)
+    except ValidationError as e:
+        raise PrimitiveCompilationError(
+            f"Scope-in failed: {e}", primitive_type="scope_in"
+        ) from e
+    return scoped
+
+
+def _scope_out(
+    child_result: dict[str, Any], child_output_type: type[BaseModel]
+) -> dict[str, Any]:
+    """Scope child result down to output fields. Validates output completeness."""
+    fields = set(child_output_type.model_fields.keys())
+    scoped = {k: v for k, v in child_result.items() if k in fields}
+    try:
+        child_output_type.model_validate(scoped)
+    except ValidationError as e:
+        raise PrimitiveCompilationError(
+            f"Scope-out failed: {e}", primitive_type="scope_out"
+        ) from e
+    return scoped
+
+
 def _compile_node(
     graph: StateGraph, prim: Primitive, prefix: str, gate_ids: list[str]
 ) -> tuple[str, str]:
@@ -375,13 +454,13 @@ def run_primitive_plan(
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pdm run pytest tests/agent_foundry/primitives/test_primitive_compiler.py -x`
-Expected: PASS (9 tests)
+Expected: PASS (13 tests)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add src/agent_foundry/primitives/errors.py src/agent_foundry/compiler/primitive_compiler.py tests/agent_foundry/primitives/test_primitive_compiler.py
-git commit -m "feat(compiler): add compiler infrastructure (registry, state derivation, boundary validation)"
+git commit -m "feat(compiler): add compiler infrastructure (registry, state derivation, scoping, boundary validation)"
 ```
 
 ---
@@ -570,11 +649,39 @@ class TestCompileSequence:
         graph = compile_primitive(plan)
         result = graph.invoke({"items": []})
         assert result["items"] == ["a", "b", "c"]
+
+    def test_state_isolation(self):
+        """Step's internal fields don't leak to siblings or parent."""
+
+        class SeqIn(BaseModel):
+            x: str
+
+        class StepMid(BaseModel):
+            x: str
+            internal_temp: str  # only exists within step1's scope
+
+        class SeqOut(BaseModel):
+            x: str
+
+        step1 = FunctionAction[SeqIn, StepMid](
+            function=lambda s: StepMid(x=s.x, internal_temp="should_not_leak"),
+        )
+        step2 = FunctionAction[StepMid, SeqOut](
+            function=lambda s: SeqOut(x=f"{s.x}_done"),
+        )
+        seq = Sequence[SeqIn, SeqOut](steps=[step1, step2])
+        plan = PrimitivePlan(root=seq)
+        graph = compile_primitive(plan)
+        result = graph.invoke({"x": "start"})
+        assert result["x"] == "start_done"
+        assert "internal_temp" not in result  # scoped out by Sequence
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 - [ ] **Step 3: Write minimal implementation**
+
+The Sequence compiles as a subgraph. Steps run inside the subgraph's isolated state. The subgraph's state type is derived from the Sequence's I and O types. Scope-in extracts I fields from parent, scope-out extracts O fields back to parent.
 
 ```python
 from agent_foundry.primitives.models import Sequence
@@ -582,19 +689,39 @@ from agent_foundry.primitives.models import Sequence
 def _compile_sequence(
     graph: StateGraph, seq: Sequence, prefix: str, gate_ids: list[str]
 ) -> tuple[str, str]:
+    seq_in, seq_out = get_type_args(seq)
+
+    # Build subgraph with its own state type
+    sub_state_type = _derive_state_type(seq_in, seq_out)
+    sub_graph = StateGraph(sub_state_type)
+
     first_entry = None
     prev_exit = None
     for i, step in enumerate(seq.steps):
         child_prefix = f"{prefix}_step_{i}"
-        entry, exit_ = _compile_node(graph, step, child_prefix, gate_ids)
+        entry, exit_ = _compile_node(sub_graph, step, child_prefix, gate_ids)
         if first_entry is None:
             first_entry = entry
         if prev_exit is not None:
-            graph.add_edge(prev_exit, entry)
+            sub_graph.add_edge(prev_exit, entry)
         prev_exit = exit_
     assert first_entry is not None
     assert prev_exit is not None
-    return (first_entry, prev_exit)
+
+    sub_graph.set_entry_point(first_entry)
+    sub_graph.add_edge(prev_exit, END)
+    compiled_sub = sub_graph.compile()
+
+    # Wrapper node: scope-in → execute subgraph → scope-out
+    node_id = f"{prefix}_seq"
+
+    def seq_node(state: dict[str, Any]) -> dict[str, Any]:
+        scoped_input = _scope_in(state, seq_in)
+        result = compiled_sub.invoke(scoped_input)
+        return _scope_out(result, seq_out)
+
+    graph.add_node(node_id, seq_node)
+    return (node_id, node_id)
 
 register_compiler(Sequence, _compile_sequence)
 ```
@@ -604,7 +731,7 @@ register_compiler(Sequence, _compile_sequence)
 
 ```bash
 git add src/agent_foundry/compiler/primitive_compiler.py tests/agent_foundry/primitives/test_primitive_compiler.py
-git commit -m "feat(compiler): add Sequence compilation"
+git commit -m "feat(compiler): add Sequence compilation with subgraph state isolation"
 ```
 
 ---
@@ -693,7 +820,7 @@ class TestCompileConditional:
 - [ ] **Step 2: Run test to verify it fails**
 - [ ] **Step 3: Write minimal implementation**
 
-Router function evaluates condition directly in the router closure — no state pollution:
+Conditional compiles as a subgraph. Router evaluates condition in closure. Branches are compiled inside the subgraph. Scope-in/scope-out at the boundary.
 
 ```python
 from agent_foundry.primitives.models import Conditional
@@ -701,14 +828,19 @@ from agent_foundry.primitives.models import Conditional
 def _compile_conditional(
     graph: StateGraph, cond: Conditional, prefix: str, gate_ids: list[str]
 ) -> tuple[str, str]:
-    input_type, _ = get_type_args(cond)
+    cond_in, cond_out = get_type_args(cond)
+
+    # Build subgraph
+    sub_state_type = _derive_state_type(cond_in, cond_out)
+    sub_graph = StateGraph(sub_state_type)
+
     router_id = f"{prefix}_router"
     merge_id = f"{prefix}_merge"
 
-    then_entry, then_exit = _compile_node(graph, cond.then_branch, f"{prefix}_then", gate_ids)
+    then_entry, then_exit = _compile_node(sub_graph, cond.then_branch, f"{prefix}_then", gate_ids)
 
     if cond.else_branch is not None:
-        else_entry, else_exit = _compile_node(graph, cond.else_branch, f"{prefix}_else", gate_ids)
+        else_entry, else_exit = _compile_node(sub_graph, cond.else_branch, f"{prefix}_else", gate_ids)
         targets = [then_entry, else_entry]
     else:
         targets = [then_entry, merge_id]
@@ -716,20 +848,33 @@ def _compile_conditional(
     condition_fn = cond.condition
 
     def router_fn(state: dict[str, Any]) -> str:
-        model = input_type.model_validate(state)
+        model = cond_in.model_validate(state)
         if condition_fn(model):
             return then_entry
         return else_entry if cond.else_branch is not None else merge_id
 
-    graph.add_node(router_id, lambda state: state)
-    graph.add_conditional_edges(router_id, router_fn, targets)
+    sub_graph.add_node(router_id, lambda state: state)
+    sub_graph.add_conditional_edges(router_id, router_fn, targets)
 
-    graph.add_node(merge_id, lambda state: state)
-    graph.add_edge(then_exit, merge_id)
+    sub_graph.add_node(merge_id, lambda state: state)
+    sub_graph.add_edge(then_exit, merge_id)
     if cond.else_branch is not None:
-        graph.add_edge(else_exit, merge_id)
+        sub_graph.add_edge(else_exit, merge_id)
 
-    return (router_id, merge_id)
+    sub_graph.set_entry_point(router_id)
+    sub_graph.add_edge(merge_id, END)
+    compiled_sub = sub_graph.compile()
+
+    # Wrapper node: scope-in → execute subgraph → scope-out
+    node_id = f"{prefix}_cond"
+
+    def cond_node(state: dict[str, Any]) -> dict[str, Any]:
+        scoped_input = _scope_in(state, cond_in)
+        result = compiled_sub.invoke(scoped_input)
+        return _scope_out(result, cond_out)
+
+    graph.add_node(node_id, cond_node)
+    return (node_id, node_id)
 
 register_compiler(Conditional, _compile_conditional)
 ```
@@ -739,7 +884,7 @@ register_compiler(Conditional, _compile_conditional)
 
 ```bash
 git add src/agent_foundry/compiler/primitive_compiler.py tests/agent_foundry/primitives/test_primitive_compiler.py
-git commit -m "feat(compiler): add Conditional compilation"
+git commit -m "feat(compiler): add Conditional compilation with subgraph isolation"
 ```
 
 ---
@@ -837,10 +982,42 @@ class TestCompileLoop:
         graph = compile_primitive(plan)
         result = graph.invoke({"items": ["x"], "processed": []})
         assert result["processed"] == ["X"]
+
+    def test_iterations_get_fresh_scope(self):
+        """Each iteration starts fresh — previous iteration's internal state doesn't leak."""
+
+        class LoopState(BaseModel):
+            items: list[str]
+            results: list[str] = []
+            current_item: str = ""
+            temp: str = ""  # body sets this; must not carry to next iteration
+
+        def body_fn(s: LoopState) -> LoopState:
+            # temp should be "" at start of each iteration (fresh scope)
+            assert s.temp == "", f"temp leaked from previous iteration: {s.temp}"
+            return LoopState(
+                items=s.items,
+                results=[*s.results, s.current_item],
+                current_item=s.current_item,
+                temp="was_set",
+            )
+
+        body = FunctionAction[LoopState, LoopState](function=body_fn)
+        loop = Loop[LoopState, LoopState](
+            over=lambda s: s.items,
+            item_key="current_item",
+            body=body,
+        )
+        plan = PrimitivePlan(root=loop)
+        graph = compile_primitive(plan)
+        result = graph.invoke({"items": ["a", "b", "c"], "results": []})
+        assert result["results"] == ["a", "b", "c"]
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 - [ ] **Step 3: Write minimal implementation**
+
+Loop compiles the body as a subgraph. Each iteration: scope-in (extract body.I fields + inject current item under item_key) → execute body subgraph → scope-out (extract body.O fields back to loop state). Fresh scope per iteration — no state leakage.
 
 ```python
 from agent_foundry.primitives.models import Loop
@@ -848,46 +1025,45 @@ from agent_foundry.primitives.models import Loop
 def _compile_loop(
     graph: StateGraph, loop: Loop, prefix: str, gate_ids: list[str]
 ) -> tuple[str, str]:
-    input_type, _ = get_type_args(loop)
-    ctrl_id = f"{prefix}_ctrl"
-    exit_id = f"{prefix}_exit"
-    inc_id = f"{prefix}_inc"
+    loop_in, loop_out = get_type_args(loop)
+    body_in, body_out = get_type_args(loop.body)
 
-    body_entry, body_exit = _compile_node(graph, loop.body, f"{prefix}_body", gate_ids)
+    # Compile body as isolated subgraph
+    body_state_type = _derive_state_type(body_in, body_out)
+    body_graph = StateGraph(body_state_type)
+    body_entry, body_exit = _compile_node(body_graph, loop.body, f"{prefix}_body", gate_ids)
+    body_graph.set_entry_point(body_entry)
+    body_graph.add_edge(body_exit, END)
+    compiled_body = body_graph.compile()
 
-    iter_state: dict[str, Any] = {"index": 0, "items": []}
     over_fn = loop.over
     item_key = loop.item_key
     max_iter = loop.max_iterations
 
-    def ctrl_node(state: dict[str, Any]) -> dict[str, Any]:
-        if iter_state["index"] == 0:
-            model = input_type.model_validate(state)
-            iter_state["items"] = over_fn(model)
-        idx = iter_state["index"]
-        if idx < len(iter_state["items"]) and idx < max_iter:
-            return {**state, item_key: iter_state["items"][idx]}
-        return state
+    # Wrapper node: iterates, scoping in/out per iteration
+    node_id = f"{prefix}_loop"
 
-    def router(state: dict[str, Any]) -> str:
-        idx = iter_state["index"]
-        if idx < len(iter_state["items"]) and idx < max_iter:
-            return body_entry
-        return exit_id
+    def loop_node(state: dict[str, Any]) -> dict[str, Any]:
+        model = loop_in.model_validate(state)
+        items = over_fn(model)
+        current_state = dict(state)
 
-    def inc_node(state: dict[str, Any]) -> dict[str, Any]:
-        iter_state["index"] += 1
-        return state
+        for i, item in enumerate(items):
+            if i >= max_iter:
+                break
+            # Scope in: body.I fields from current state + item injection
+            scoped = _scope_in(current_state, body_in)
+            scoped[item_key] = item
+            # Execute body in isolation
+            result = compiled_body.invoke(scoped)
+            # Scope out: merge body.O fields back
+            updates = _scope_out(result, body_out)
+            current_state.update(updates)
 
-    graph.add_node(ctrl_id, ctrl_node)
-    graph.add_node(inc_id, inc_node)
-    graph.add_node(exit_id, lambda state: state)
+        return _scope_out(current_state, loop_out)
 
-    graph.add_conditional_edges(ctrl_id, router, [body_entry, exit_id])
-    graph.add_edge(body_exit, inc_id)
-    graph.add_edge(inc_id, ctrl_id)
-
-    return (ctrl_id, exit_id)
+    graph.add_node(node_id, loop_node)
+    return (node_id, node_id)
 
 register_compiler(Loop, _compile_loop)
 ```
@@ -897,7 +1073,7 @@ register_compiler(Loop, _compile_loop)
 
 ```bash
 git add src/agent_foundry/compiler/primitive_compiler.py tests/agent_foundry/primitives/test_primitive_compiler.py
-git commit -m "feat(compiler): add Loop compilation"
+git commit -m "feat(compiler): add Loop compilation with per-iteration state isolation"
 ```
 
 ---
@@ -993,44 +1169,46 @@ class TestCompileRetry:
 - [ ] **Step 2: Run test to verify it fails**
 - [ ] **Step 3: Write minimal implementation**
 
+Retry compiles the body as a subgraph. Each attempt: scope-in → execute body → scope-out → check `until`. Body output feeds back as input on re-entry (same type by validator constraint). On exhaustion, exits normally with domain state intact.
+
 ```python
 from agent_foundry.primitives.models import Retry
 
 def _compile_retry(
     graph: StateGraph, retry: Retry, prefix: str, gate_ids: list[str]
 ) -> tuple[str, str]:
-    input_type, _ = get_type_args(retry)
-    start_id = f"{prefix}_start"
-    check_id = f"{prefix}_check"
-    exit_id = f"{prefix}_exit"
+    retry_in, retry_out = get_type_args(retry)
+    body_in, body_out = get_type_args(retry.body)
 
-    body_entry, body_exit = _compile_node(graph, retry.body, f"{prefix}_body", gate_ids)
+    # Compile body as isolated subgraph
+    body_state_type = _derive_state_type(body_in, body_out)
+    body_graph = StateGraph(body_state_type)
+    body_entry, body_exit = _compile_node(body_graph, retry.body, f"{prefix}_body", gate_ids)
+    body_graph.set_entry_point(body_entry)
+    body_graph.add_edge(body_exit, END)
+    compiled_body = body_graph.compile()
 
-    attempt = {"count": 0}
     until_fn = retry.until
     max_attempts = retry.max_attempts
 
-    def check_node(state: dict[str, Any]) -> dict[str, Any]:
-        attempt["count"] += 1
-        return state
+    # Wrapper node: retry loop with scoped body execution
+    node_id = f"{prefix}_retry"
 
-    def router(state: dict[str, Any]) -> str:
-        model = input_type.model_validate(state)
-        if until_fn(model):
-            return exit_id
-        if attempt["count"] >= max_attempts:
-            return exit_id  # exit normally — domain state carries the signal
-        return body_entry
+    def retry_node(state: dict[str, Any]) -> dict[str, Any]:
+        current_state = _scope_in(state, retry_in)
+        for attempt in range(max_attempts):
+            # Execute body in isolation
+            scoped = _scope_in(current_state, body_in)
+            result = compiled_body.invoke(scoped)
+            current_state.update(_scope_out(result, body_out))
+            # Check until condition
+            model = retry_in.model_validate(current_state)
+            if until_fn(model):
+                break
+        return _scope_out(current_state, retry_out)
 
-    graph.add_node(start_id, lambda state: state)
-    graph.add_node(check_id, check_node)
-    graph.add_node(exit_id, lambda state: state)
-
-    graph.add_edge(start_id, body_entry)
-    graph.add_edge(body_exit, check_id)
-    graph.add_conditional_edges(check_id, router, [exit_id, body_entry])
-
-    return (start_id, exit_id)
+    graph.add_node(node_id, retry_node)
+    return (node_id, node_id)
 
 register_compiler(Retry, _compile_retry)
 ```
@@ -1040,7 +1218,7 @@ register_compiler(Retry, _compile_retry)
 
 ```bash
 git add src/agent_foundry/compiler/primitive_compiler.py tests/agent_foundry/primitives/test_primitive_compiler.py
-git commit -m "feat(compiler): add Retry compilation (exhaustion exits normally)"
+git commit -m "feat(compiler): add Retry compilation with subgraph isolation"
 ```
 
 ---
