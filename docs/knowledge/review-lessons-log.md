@@ -78,3 +78,23 @@ After adding the no-else detour constraint, two existing plan test cases (`test_
 **Principle:** Clarity
 
 The Conditional validator's no-else path and with-else path had similar-looking type checks, but different meanings: the no-else path enforces a detour constraint (all types identical), while the with-else path validates independent branch boundaries. Extracting a shared helper would save ~10 lines but obscure *why* the checks exist. Code that looks the same but means different things should stay separate — deduplication is a lie when the semantics diverge.
+
+### Gate is an action variant, not a structural primitive
+**Principle:** Coherence
+
+Gate was modeled as a structural primitive with a `condition` field that decides whether to block. But the blocking decision is made by the *parent* — a Retry exhausts, a Conditional checks the state, and routes to the Gate. The Gate's `condition` duplicated routing logic that belongs upstream. Removing it and reclassifying Gate as `GateAction` (a leaf primitive like `FunctionAction`) simplified both the primitive taxonomy and the compiler: control flow primitives structure the graph, action primitives do work at the leaves. Each category has one job.
+
+### Retry doesn't own its exhaustion routing
+**Principle:** Coherence
+
+Retry's `on_exhausted: str` field was a destination name — telling the compiler where to route when attempts ran out. But this is a cross-scope reference: the Retry names a destination it can't see. The parent should make this decision. When Retry exhausts, it exits normally — the domain state (e.g., `done=False`) carries the signal implicitly. The parent reads that state and routes via a Conditional. Removing `on_exhausted` eliminated a cross-scope coupling and kept the tree model self-contained.
+
+### No untyped state at public boundaries
+**Principle:** Discipline
+
+The initial compiler plan used `dict[str, Any]` for input/output and smuggled internal bookkeeping (`__exhausted_action`, `__cond_result`) through the state as hard-coded string keys. This violates the typing guarantees of the primitive system. The fix: `run_primitive_plan(plan, input: I) -> O` accepts and returns Pydantic models. LangGraph's dict internals are encapsulated within the compiler. Internal signals (like routing decisions) use closures or conditional edges, never state pollution.
+
+### Design for platform extensibility from the start
+**Principle:** Discipline
+
+The compiler initially used `isinstance` dispatch to resolve primitive types — simple, but requires modifying core code for every new type. Agent Foundry is a platform: users (including Archipelago) will define custom primitive types. A compiler registry (`dict[type[Primitive], CompilerFn]`) costs the same as isinstance dispatch but is open for extension. When a design choice is equally simple either way, choose the one that supports the platform's extensibility contract. Don't wait for the third user to justify a registry.

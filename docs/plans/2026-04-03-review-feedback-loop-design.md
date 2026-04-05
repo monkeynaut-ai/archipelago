@@ -175,8 +175,8 @@ working_session:
           sequence: [planner, test_agent, implementer, commit]
 
     # 3. Escalate if must-fix findings remain after 2 cycles
-    gate(must_fix_findings_remain):
-      human_escalation(unresolved_findings)
+    conditional(must_fix_findings_remain):
+      gate_action(human_escalation)
 
     # 4. Submit PR
     submit_pr
@@ -186,8 +186,8 @@ working_session:
       dispatcher
 
       # 6. Handle escalations from dispatcher
-      gate(has_escalations):
-        human_escalation(unroutable_findings)
+      conditional(has_escalations):
+        gate_action(human_escalation)
 
       # 7. Integrate routed findings into future change sets
       loop(affected_change_sets):
@@ -201,7 +201,7 @@ working_session:
 
 - The **step loop** (#1) executes sequentially. Each iteration sees the repo as left by the previous commit.
 - The **review-fix cycle** (#2) reviews all commits from the step loop. If must-fix findings exist, each finding goes through the full Planner -> Test Agent -> Implementer -> Commit sequence, then the Reviewer runs again. Up to 2 cycles.
-- **Gate** (#3) only activates if must-fix findings survive 2 cycles. Blocks on stdin, human provides resolution guidance, which is fed as a Review Finding origin to the Planner.
+- **Escalation** (#3): a Conditional checks whether must-fix findings survive 2 cycles. If so, routes to a GateAction that blocks on stdin — human provides resolution guidance, which is fed as a Review Finding origin to the Planner.
 - **Submit PR** (#4) is a deterministic action. PR title from Change Set name.
 - **Post-PR flow** (#5-7) only runs if the Reviewer produced can-defer findings. Dispatcher routes them, Integrator revises affected future change sets.
 - **Post-job report** (#8) writes all accumulated deferred findings to a markdown file, prints file path to stdout.
@@ -287,7 +287,7 @@ change_set_loop = Loop(
 )
 ```
 
-**`Retry`** — execute body, evaluate condition, repeat up to N times
+**`Retry`** — execute body, evaluate condition, repeat up to N times. When attempts are exhausted, Retry exits normally — the domain state carries the signal (e.g., `done=False`). The parent reads that state and routes accordingly (e.g., via a Conditional to a GateAction for escalation).
 
 ```python
 review_fix_cycle = Retry(
@@ -296,7 +296,6 @@ review_fix_cycle = Retry(
     max_attempts=2,
     until=lambda state: state.no_must_fix_findings,
     body=review_and_fix,
-    on_exhausted="escalate",
 )
 ```
 
@@ -312,27 +311,32 @@ fix_if_needed = Conditional(
 )
 ```
 
-**`Gate`** — block execution until external input is received
+#### Action Primitives
+
+Action primitives are leaves — they do work. Each variant has a different execution mechanism, but all share the same contract: typed input in, typed output out.
+
+**`FunctionAction`** — synchronous, in-process function call (deterministic, non-AI)
 
 ```python
-escalate_unresolved = Gate(
-    input=EscalationInput,
-    output=EscalationOutput,
-    condition=lambda state: state.must_fix_findings_remain,
-    interaction="human_stdin",
-    prompt_key="escalation_context",
-)
-```
-
-**`Action`** — deterministic, non-AI step
-
-```python
-commit_changes = Action(
+commit_changes = FunctionAction(
     input=CommitInput,
     output=CommitOutput,
     function=commit_changes_fn,
 )
 ```
+
+**`GateAction`** — block execution until external input is received. Always blocks when reached — routing to the gate is the parent's responsibility (e.g., a Conditional checking whether escalation is needed). The human sees the `prompt_key` field value and provides a response that becomes typed output.
+
+```python
+escalate_unresolved = GateAction(
+    input=EscalationInput,
+    output=EscalationOutput,
+    interaction="human_stdin",
+    prompt_key="escalation_context",
+)
+```
+
+Future action variants: `ServiceAction` (API calls), `AgentAction` (containerized AI agents), etc.
 
 ### Composability
 
@@ -364,17 +368,17 @@ fix_findings_loop = Loop(
 
 ### Compiler Changes
 
-The Agent Foundry compiler translates the typed primitive graph into LangGraph (for now). Changes:
+The Agent Foundry compiler translates the typed primitive graph directly into LangGraph (no intermediate `GraphWiringPlan`). The old `compile_plan(GraphWiringPlan)` path is deleted.
 
-1. Accept Python primitive objects as input (in addition to or replacing JSON `GraphWiringPlan`)
-2. Walk the primitive graph, validating input/output type compatibility at each boundary
-3. Translate into LangGraph constructs (conditional edges for branching, subgraphs with cycles for loops/retry, interrupt nodes for gates)
-4. Enforce runtime validation at state boundary transitions using Pydantic
+1. **Typed public API**: `run_primitive_plan(plan, input: I) -> O` — accepts and returns Pydantic models, never raw dicts. LangGraph's dict internals are encapsulated.
+2. **Compiler registry**: Per-type compiler functions registered in `dict[type[Primitive], CompilerFn]`. New primitive types register their own compiler without modifying core code.
+3. Walk the primitive graph, validating input/output type compatibility at each boundary
+4. Translate into LangGraph constructs (conditional edges for branching, subgraphs with cycles for loops/retry, interrupt nodes for gates)
+5. Enforce runtime validation at state boundary transitions using Pydantic
 
 ### What Doesn't Change
 
 - Role definitions (YAML specs for agents — these are simple metadata, not typed data flow)
-- Handler interface
 - Registry and role discovery
 
 ### Mock Adapter
