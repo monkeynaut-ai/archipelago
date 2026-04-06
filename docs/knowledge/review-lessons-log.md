@@ -123,3 +123,8 @@ Retry's `on_exhausted: "escalate"` was a cross-scope reference — the Retry nam
 **Principle:** Discipline
 
 The compiler used `isinstance` dispatch. The argument for keeping it: "add a registry when we need it." But Archipelago's agents (CS5-8) will be custom primitive types — the registry is a near-term requirement, not speculative. YAGNI protects against imagined futures, not documented ones. When the roadmap shows the need within a few change sets, build the extensibility now.
+
+### Subgraph state accumulates like a repository, not a pipeline
+**Principle:** Coherence
+
+Real-world testing exposed three requirements the pipeline model couldn't meet: (1) functions in FunctionActions must be reusable — not forced to accept the full composite input type just because they're the first step; (2) all fields in the composite's accumulated state must be available to every step, not just the previous step's output; (3) the composite output is assembled from the full accumulated state, not just the last step's output. The initial compiler treated data flow as a unix pipe (step N output → step N+1 input), forcing every step to explicitly forward fields it didn't use. The correct model: subgraph state accumulates like a git repository. Each step reads what it needs from the accumulated state, writes what it produces back, and the state grows. The composite's scope-out selects which fields leave. This enables function reusability — a step only declares the fields it needs, independent of where it sits in the sequence.
