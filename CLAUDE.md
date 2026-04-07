@@ -9,6 +9,7 @@ An system of agents (AI, human, services, programs) for autonomous software engi
 
 - **Test-Driven Development (TDD)**: Write tests before implementation. Red-green-refactor cycle. All code changes must be covered by tests.
 - **Trunk-Based Development**: Work directly on `main` with short-lived branches. Keep commits small and atomic. No long-lived feature branches.
+- **Full test gate**: All tests (unit + integration) must pass before every commit and before creating a PR. Use `pdm test-all` to run the full suite in one command. Integration tests that cannot run in the current environment (e.g., no Docker daemon) will skip gracefully — that is acceptable; a *failure* is not. Never claim tests pass without running them. The pre-commit hook runs unit tests on every `git commit` and the pre-push hook runs the full suite on every `git push` to enforce this automatically.
 
 ## Tech Stack
 
