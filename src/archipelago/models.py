@@ -205,6 +205,20 @@ class DispatcherOutput(BaseModel):
     )
 
 
+class IntegratorOutput(BaseModel):
+    """Revised step sequence for a change set after Integrator processing."""
+
+    target_change_set_name: str = Field(description="Which change set was revised")
+    revised_steps: list[ChangeSetStep] = Field(
+        description="Updated ordered list of Change Set Steps",
+    )
+    changes_made: list[str] = Field(
+        default_factory=list,
+        description="Natural-language descriptions of what was inserted, modified, "
+        "reordered, or removed, and why",
+    )
+
+
 class ChangeSet(BaseModel):
     """A cohesive unit of work in a job specification."""
 

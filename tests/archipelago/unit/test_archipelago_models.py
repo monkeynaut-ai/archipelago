@@ -16,6 +16,7 @@ from archipelago.models import (
     Disposition,
     FindingOrigin,
     ImplementationTask,
+    IntegratorOutput,
     JobSpecification,
     OriginKind,
     ReviewFinding,
@@ -499,3 +500,36 @@ class TestDispatcherOutput:
             ],
         )
         assert DispatcherOutput.model_validate_json(out.model_dump_json()) == out
+
+
+class TestIntegratorOutput:
+    def test_given_required_fields_when_instantiated_then_changes_made_defaults_empty(self):
+        out = IntegratorOutput(
+            target_change_set_name="CS7",
+            revised_steps=[ChangeSetStep(description="Add a new interface")],
+        )
+        assert out.target_change_set_name == "CS7"
+        assert len(out.revised_steps) == 1
+        assert out.changes_made == []
+
+    def test_given_missing_revised_steps_when_instantiated_then_validation_error(self):
+        with pytest.raises(ValidationError):
+            IntegratorOutput(target_change_set_name="CS7")
+
+    def test_given_missing_target_when_instantiated_then_validation_error(self):
+        with pytest.raises(ValidationError):
+            IntegratorOutput(revised_steps=[])
+
+    def test_given_all_fields_when_round_tripped_then_no_field_loss(self):
+        out = IntegratorOutput(
+            target_change_set_name="CS7",
+            revised_steps=[
+                ChangeSetStep(description="Add interface A"),
+                ChangeSetStep(description="Add interface B"),
+            ],
+            changes_made=[
+                "Inserted step for interface A ahead of existing implementation step",
+                "Reworded step 3 to reference new naming",
+            ],
+        )
+        assert IntegratorOutput.model_validate_json(out.model_dump_json()) == out
