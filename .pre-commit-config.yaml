@@ -16,13 +16,13 @@ repos:
         name: pytest (unit)
         entry: pdm run test-unit
         language: system
-        types: [python]
         pass_filenames: false
+        always_run: true
         stages: [pre-commit]
       - id: pytest-all
         name: pytest (unit + integration)
         entry: pdm run test-all
         language: system
-        types: [python]
         pass_filenames: false
+        always_run: true
         stages: [pre-push]
