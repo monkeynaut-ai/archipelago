@@ -168,6 +168,43 @@ class ImplementationTask(BaseModel):
     )
 
 
+class Disposition(StrEnum):
+    """Dispatcher routing decision for a single review finding."""
+
+    ROUTE_TO_CHANGE_SET = "route_to_change_set"
+    DEFER_TO_POST_JOB = "defer_to_post_job"
+    ESCALATE = "escalate"
+
+
+class DispatchedFinding(BaseModel):
+    """A routing decision for a single review finding."""
+
+    finding: ReviewFinding
+    disposition: Disposition
+    target_change_set_name: str | None = Field(
+        default=None,
+        description="Target change set when disposition is ROUTE_TO_CHANGE_SET",
+    )
+    rationale: str = Field(description="Why the Dispatcher chose this routing")
+
+
+class DispatcherOutput(BaseModel):
+    """Categorized output from the Dispatcher agent."""
+
+    routed_findings: list[DispatchedFinding] = Field(
+        default_factory=list,
+        description="Findings routed to specific change sets",
+    )
+    deferred_findings: list[DispatchedFinding] = Field(
+        default_factory=list,
+        description="Findings deferred to the post-job report",
+    )
+    escalations: list[DispatchedFinding] = Field(
+        default_factory=list,
+        description="Findings requiring human routing decisions",
+    )
+
+
 class ChangeSet(BaseModel):
     """A cohesive unit of work in a job specification."""
 

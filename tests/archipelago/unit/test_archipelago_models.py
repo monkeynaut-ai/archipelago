@@ -11,6 +11,9 @@ from archipelago.models import (
     CodeReviewScope,
     CodeReviewSummary,
     CurrentTask,
+    DispatchedFinding,
+    DispatcherOutput,
+    Disposition,
     FindingOrigin,
     ImplementationTask,
     JobSpecification,
@@ -415,3 +418,84 @@ class TestCodeReview:
         data["quality"] = "prettiness"
         with pytest.raises(ValidationError):
             CodeReviewFinding(**data)
+
+
+class TestDispatchedFinding:
+    def test_given_route_disposition_when_instantiated_then_target_stored(self):
+        df = DispatchedFinding(
+            finding=ReviewFinding(
+                description="x",
+                severity=Severity.CAN_DEFER,
+                category="code_quality",
+            ),
+            disposition=Disposition.ROUTE_TO_CHANGE_SET,
+            target_change_set_name="Cleanup Pass",
+            rationale="Touches the same subsystem",
+        )
+        assert df.disposition is Disposition.ROUTE_TO_CHANGE_SET
+        assert df.target_change_set_name == "Cleanup Pass"
+
+    def test_given_string_disposition_when_instantiated_then_coerced_to_enum(self):
+        df = DispatchedFinding(
+            finding=ReviewFinding(
+                description="x",
+                severity=Severity.CAN_DEFER,
+                category="code_quality",
+            ),
+            disposition="defer_to_post_job",
+            rationale="Out of scope",
+        )
+        assert df.disposition is Disposition.DEFER_TO_POST_JOB
+        assert df.target_change_set_name is None
+
+    def test_given_invalid_disposition_when_instantiated_then_validation_error(self):
+        with pytest.raises(ValidationError):
+            DispatchedFinding(
+                finding=ReviewFinding(
+                    description="x",
+                    severity=Severity.CAN_DEFER,
+                    category="code_quality",
+                ),
+                disposition="ignore",
+                rationale="nope",
+            )
+
+
+class TestDispatcherOutput:
+    def test_given_empty_when_instantiated_then_all_lists_empty(self):
+        out = DispatcherOutput()
+        assert out.routed_findings == []
+        assert out.deferred_findings == []
+        assert out.escalations == []
+
+    def test_given_mixed_dispositions_when_round_tripped_then_no_field_loss(self):
+        finding = ReviewFinding(
+            description="x",
+            severity=Severity.CAN_DEFER,
+            category="code_quality",
+        )
+        out = DispatcherOutput(
+            routed_findings=[
+                DispatchedFinding(
+                    finding=finding,
+                    disposition=Disposition.ROUTE_TO_CHANGE_SET,
+                    target_change_set_name="CS7",
+                    rationale="fits",
+                )
+            ],
+            deferred_findings=[
+                DispatchedFinding(
+                    finding=finding,
+                    disposition=Disposition.DEFER_TO_POST_JOB,
+                    rationale="out of scope",
+                )
+            ],
+            escalations=[
+                DispatchedFinding(
+                    finding=finding,
+                    disposition=Disposition.ESCALATE,
+                    rationale="ambiguous",
+                )
+            ],
+        )
+        assert DispatcherOutput.model_validate_json(out.model_dump_json()) == out
