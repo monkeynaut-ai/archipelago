@@ -128,3 +128,23 @@ The compiler used `isinstance` dispatch. The argument for keeping it: "add a reg
 **Principle:** Coherence
 
 Real-world testing exposed three requirements the pipeline model couldn't meet: (1) functions in FunctionActions must be reusable — not forced to accept the full composite input type just because they're the first step; (2) all fields in the composite's accumulated state must be available to every step, not just the previous step's output; (3) the composite output is assembled from the full accumulated state, not just the last step's output. The initial compiler treated data flow as a unix pipe (step N output → step N+1 input), forcing every step to explicitly forward fields it didn't use. The correct model: subgraph state accumulates like a git repository. Each step reads what it needs from the accumulated state, writes what it produces back, and the state grows. The composite's scope-out selects which fields leave. This enables function reusability — a step only declares the fields it needs, independent of where it sits in the sequence.
+
+### Test-driven discovery vs test-driven verification
+**Principle:** Discipline
+
+Tests we wrote ourselves during TDD caught implementation bugs against our own intent. Tests the user wrote as a real consumer of the package caught *design* bugs we hadn't anticipated — the function reusability problem, the pipeline model flaw. These are different kinds of value: TDD verifies the implementation matches the design; real-world usage verifies the design matches the need. Both are necessary; neither is sufficient. Plan to do both — write your TDD tests, then build something real with the result and let the friction tell you what's wrong.
+
+### Iteration earned the design
+**Principle:** Coherence
+
+The accumulated state model wasn't in any plan or design doc. It emerged mid-conversation when a user testing a Sequence found that step functions couldn't be reused without artificially declaring fields they didn't need. Good designs often look obvious in hindsight but are reached through iteration, not foresight. Don't try to plan your way to the right answer on day one — plan a reasonable starting point, build it, test it under real conditions, and let the friction tell you what to fix. Iteration is not a sign of poor planning; it's how good design happens.
+
+### Plan agents reason from prompts, not running code
+**Principle:** Discipline
+
+The Plan subagent designed the original pipeline-based compiler. It didn't catch the flat-state isolation problem because it doesn't execute code or run tests — it synthesizes from text. Plan agents are useful for breaking down structure and exploring alternatives, but they're not oracles. The only ground truth is running the code against real requirements. Use plan agents to scaffold and explore; verify with execution.
+
+### The cost of cleanup is paid now or later, not avoided
+**Principle:** Discipline
+
+CS3 deleted ~6,500 lines of dead code (old compiler, planner, registry, role specs, demo). Leaving it would have been easier in the moment, but every day that code lived in the repo it polluted searches, generated warnings, confused future readers, and made every grep more expensive. The initial argument for keeping it ("CS5-8 might need it") was speculative — the cost of removing it later, after it had been re-read and re-considered dozens of times, would have been higher than removing it now. Defer-and-forget is rarely cheaper than do-it-now; the cost compounds invisibly.
