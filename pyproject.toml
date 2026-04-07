@@ -36,8 +36,6 @@ distribution = false
 
 [tool.pdm.scripts]
 post_install.cmd = "pre-commit install"
-archipelago.cmd = "python -m archipelago.cli"
-archipelago.env = {PYTHONPATH = "src"}
 generate-review-schema.cmd = "python -m archipelago.docker.generate_review_schema"
 generate-review-schema.env = {PYTHONPATH = "src"}
 docker-archipelago.composite = ["generate-review-schema", "_docker-build-archipelago"]
