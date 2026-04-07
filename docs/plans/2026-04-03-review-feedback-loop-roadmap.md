@@ -3,6 +3,11 @@
 **Design doc**: `docs/plans/2026-04-03-review-feedback-loop-design.md`
 **Issue**: 730alchemy/archipelago#1
 
+## Scope Updates (post-planning)
+
+- **CS4 (MockClaudeCodeAdapter) is deferred** until CS12 needs it. CS4 builds a generic mock mechanism whose only consumer is the CS12 integration tests; building it ahead of CS12 would be speculative (we wouldn't know what agent I/O shapes the scripts need to emit until CS5–CS7 define them). Revisit when CS12 starts.
+- **CS5 scope was broadened** to absorb transition cleanup originally deferred to CS11. The Archipelago package is already non-functional as a runtime (`runner.py`, `cli.py`, several tests, and `archipelago_system.json` all depend on `agent_foundry.compiler`/`agent_foundry.planner` modules that agent-foundry CS3 deleted), so CS5 removes the dead code wholesale rather than leaving it broken through CS11. The three agents with no transition value (`decomposer`, `dispatcher`, `evaluator`) are also deleted in CS5. See `docs/plans/2026-04-07-cs5-data-models-plan.md`.
+
 ## Overview
 
 12 change sets across two repos. Agent Foundry (CS1-4) comes first — Archipelago (CS5-12) depends on the new primitives. TDD throughout: tests before implementation in every task.
