@@ -1,5 +1,6 @@
 """Canonical artifact models for the Archipelago pipeline."""
 
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -79,6 +80,50 @@ class JobSpecification(BaseModel):
     change_sets: list[ChangeSet] = Field(description="The change sets of the job")
 
 
+class ChangeSetStep(BaseModel):
+    """An atomic unit of work inside a ChangeSet."""
+
+    description: str = Field(description="What to do in this step")
+    acceptance_criteria_addressed: list[str] = Field(
+        default_factory=list,
+        description="Copies of the parent ChangeSet acceptance criteria this step addresses",
+    )
+
+
+class Severity(StrEnum):
+    """Review finding severity — drives review-fix cycle routing."""
+
+    MUST_FIX = "must_fix"
+    CAN_DEFER = "can_defer"
+
+
+class ReviewFinding(BaseModel):
+    """A single finding produced by the Reviewer agent."""
+
+    description: str = Field(description="What the issue is")
+    severity: Severity = Field(
+        description="must_fix = blocks merge and enters the review-fix cycle; "
+        "can_defer = routed post-PR by the Dispatcher",
+    )
+    category: str = Field(
+        description="Short category label for the finding. Prefer one of: "
+        "design_quality, code_quality, test_complexity, naming. "
+        "Use a different label only if none of these fit.",
+    )
+    affected_files_and_locations: list[str] = Field(
+        default_factory=list,
+        description="Where in the code the finding applies (file:line or file:symbol)",
+    )
+    suggested_resolution: str = Field(
+        default="",
+        description="What the Reviewer proposes changing to resolve the finding",
+    )
+    source_commit_hashes: list[str] = Field(
+        default_factory=list,
+        description="Commits that introduced the issue",
+    )
+
+
 class ChangeSet(BaseModel):
     """A cohesive unit of work in a job specification."""
 
@@ -92,10 +137,9 @@ class ChangeSet(BaseModel):
         default=None,
         description="Contracts (signatures, data shapes) this change set introduces or modifies",
     )
-    # NOTE: typed as list[Any] transitionally; Task 6 tightens to list[ChangeSetStep].
-    steps: list[Any] = Field(
+    steps: list[ChangeSetStep] = Field(
         default_factory=list,
-        description="Ordered list of change set steps — tightened to list[ChangeSetStep] in Task 6",
+        description="Ordered list of change set steps",
     )
 
 

@@ -5,12 +5,15 @@ from pydantic import ValidationError
 
 from archipelago.models import (
     ChangeSet,
+    ChangeSetStep,
     CodeReview,
     CodeReviewFinding,
     CodeReviewScope,
     CodeReviewSummary,
     CurrentTask,
     JobSpecification,
+    ReviewFinding,
+    Severity,
     TestResults,
 )
 
@@ -104,6 +107,96 @@ class TestJobSpecification:
         )
         reconstructed = JobSpecification.model_validate_json(job.model_dump_json())
         assert reconstructed == job
+
+
+class TestChangeSetStep:
+    def test_given_description_only_when_instantiated_then_defaults_applied(self):
+        step = ChangeSetStep(description="Add the ReviewFinding model")
+        assert step.description == "Add the ReviewFinding model"
+        assert step.acceptance_criteria_addressed == []
+
+    def test_given_all_fields_when_round_tripped_then_no_field_loss(self):
+        step = ChangeSetStep(
+            description="Add the ReviewFinding model",
+            acceptance_criteria_addressed=["New models exist", "Tests pass"],
+        )
+        assert ChangeSetStep.model_validate_json(step.model_dump_json()) == step
+
+
+class TestReviewFinding:
+    def test_given_enum_severity_when_instantiated_then_fields_stored(self):
+        finding = ReviewFinding(
+            description="Function name is ambiguous",
+            severity=Severity.CAN_DEFER,
+            category="naming",
+        )
+        assert finding.severity is Severity.CAN_DEFER
+        assert finding.category == "naming"
+        assert finding.affected_files_and_locations == []
+        assert finding.suggested_resolution == ""
+        assert finding.source_commit_hashes == []
+
+    def test_given_string_severity_when_instantiated_then_coerced_to_enum(self):
+        # Agent output arrives as JSON strings — Pydantic must coerce.
+        finding = ReviewFinding(
+            description="Function returns wrong type",
+            severity="must_fix",
+            category="code_quality",
+        )
+        assert finding.severity is Severity.MUST_FIX
+
+    def test_given_invalid_severity_when_instantiated_then_validation_error(self):
+        with pytest.raises(ValidationError):
+            ReviewFinding(
+                description="x",
+                severity="critical",  # not a Severity member
+                category="code_quality",
+            )
+
+    def test_given_nonstandard_category_when_instantiated_then_accepted(self):
+        # category is a free str — the Reviewer can invent labels if needed
+        finding = ReviewFinding(
+            description="x",
+            severity=Severity.CAN_DEFER,
+            category="accessibility",
+        )
+        assert finding.category == "accessibility"
+
+    def test_given_severity_when_dumped_to_json_then_serializes_as_string(self):
+        finding = ReviewFinding(
+            description="x",
+            severity=Severity.MUST_FIX,
+            category="code_quality",
+        )
+        dumped = finding.model_dump_json()
+        assert '"severity":"must_fix"' in dumped
+
+    def test_given_all_fields_when_round_tripped_then_no_field_loss(self):
+        finding = ReviewFinding(
+            description="Function name is ambiguous",
+            severity=Severity.CAN_DEFER,
+            category="naming",
+            affected_files_and_locations=["src/foo.py:42"],
+            suggested_resolution="Rename `process` to `compile_primitive`",
+            source_commit_hashes=["abc123"],
+        )
+        assert ReviewFinding.model_validate_json(finding.model_dump_json()) == finding
+
+
+class TestChangeSetStepsTightening:
+    def test_given_change_set_with_steps_when_instantiated_then_steps_typed(self):
+        step = ChangeSetStep(description="Add models")
+        cs = ChangeSet(name="CS5", intent="data models", steps=[step])
+        assert isinstance(cs.steps[0], ChangeSetStep)
+
+    def test_given_change_set_with_dict_step_when_instantiated_then_coerced(self):
+        cs = ChangeSet(
+            name="CS5",
+            intent="data models",
+            steps=[{"description": "Add models"}],
+        )
+        assert isinstance(cs.steps[0], ChangeSetStep)
+        assert cs.steps[0].description == "Add models"
 
 
 class TestTestResults:
