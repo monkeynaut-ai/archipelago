@@ -115,19 +115,28 @@ Reviews change set commits for coding quality, design quality, and test complexi
 
 ### Dispatcher Agent
 
-Routes review findings into the appropriate future change sets by creating new steps. Decides where work belongs based on the finding's scope, the remaining change sets' descriptions, and dependency ordering. When creating steps, the dispatcher must provide acceptance criteria — either referencing existing acceptance criteria from the change set or generating new acceptance criteria derived from the review finding.
+Routes deferred review findings to appropriate destinations. Decides where findings belong based on the finding's scope, the remaining change sets' descriptions, and dependency ordering. The Dispatcher does not create steps — it classifies and routes findings to the Integrator Agent for step creation.
 
-- inputs: Review Findings to address in remaining change sets, remaining Change Sets (descriptions and existing steps), Job Specification (for constraints and scope)
-- outputs: new Change Set Steps added to the appropriate remaining Change Sets
+- inputs: can-defer Review Findings, remaining Change Sets (names, intents, steps), Job Specification (for constraints and scope)
+- outputs: Dispatcher Output containing routed findings (grouped by target change set), deferred findings (for post-job report), and escalations (for human input)
 - context: cleared between invocations
 - repo access: read-only
 
 Routing rules:
 
-- if a finding fits a single remaining change set, add a step to that change set
-- if a finding cross-cuts multiple change sets, add a step to each affected change set scoped to fit that change set's intent
+- if a finding fits a single remaining change set, route to that change set
+- if a finding cross-cuts multiple change sets, route to each affected change set
 - if a finding does not fit any remaining change set but belongs to the job specification's scope, escalate to a human and ask whether to create a new change set or defer until after the job is completed
 - if a finding falls outside the job specification's scope, defer it to the post-job findings report
+
+### Integrator Agent
+
+Revises a change set's step sequence to coherently incorporate routed findings from the Dispatcher. This agent exists because step integration is backward-looking (incorporating findings into an existing plan) while the Planner is forward-looking (transforming steps into implementation tasks). These objectives are in tension per the guiding principle of cohesive agent objectives. The Integrator considers all routed findings for a change set in the full context of the change set's existing steps, and may insert new steps, modify existing steps, reorder steps, or remove steps to maintain coherence.
+
+- inputs: routed findings for one change set (from Dispatcher Output), the change set's current state (intent, acceptance criteria, existing steps)
+- outputs: Integrator Output containing the revised step sequence and a description of changes made (inserts, modifications, reorderings, removals with rationale)
+- context: cleared between invocations
+- repo access: read-only
 
 ## Control and Data Flow
 
@@ -153,3 +162,5 @@ A working session in Archipelago is composed of the following control and data f
 - implementation task origin analysis for system improvement feedback
 - failure handling for PR submission failures (CI checks, merge conflicts, branch protection)
 - failure handling for human escalation timeouts
+- add a design agent that operates between Job Specification input and execution.
+  - it takes sets and their high-level steps, analyzes the repo, and produces enriched steps with scope hints, dependency ordering, and interface sketches. Essentially doing the work that a senior engineer does when they look at a feature spec and mentally decompose it before handing tasks to the team. Keeps Job Specification author's burden low (describe intent, not implementation detail) while giving the Planner rich, repo-aware input.

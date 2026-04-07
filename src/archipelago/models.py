@@ -1,10 +1,11 @@
 """Canonical artifact models for the Archipelago pipeline."""
 
-from typing import Any, Literal
+from enum import StrEnum
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
-from archipelago.types import CommitHash, Objective, RepoRef, RepoUrl, WorkSpace
+from archipelago.types import Objective, RepoRef, RepoUrl
 
 
 class FeatureDefinition(BaseModel):
@@ -71,77 +72,169 @@ class JobSpecification(BaseModel):
     objective: Objective = Field(description="High-level goal for the pipeline run")
     # scope, constraints, rules
     constraints: list[str] = Field(default_factory=list, description="Rules all agents must follow")
+    test_paths: list[str] = Field(
+        default_factory=list,
+        description="Directories containing test code (for write-permission enforcement). "
+        "Will move to a repo-level Archipelago config in a future version.",
+    )
     change_sets: list[ChangeSet] = Field(description="The change sets of the job")
 
 
-class ChangeSet(BaseModel):
-    """
-    A ChangeSet defines a cohesive unit of work in a job specification.
+class ChangeSetStep(BaseModel):
+    """An atomic unit of work inside a ChangeSet."""
 
-    """
-
-    # id: str = Field(description="The id of the change set")
-    # steps: list[Step] = Field(description="Sequenced steps that implement a change set")
-    # acceptanceptance criteria
-    # api contract
-    # data model
-    # user flows and states
-    title: str = Field(description="Short description used as commit message seed")
-    acceptance_criteria: list[str] = Field(
+    description: str = Field(description="What to do in this step")
+    acceptance_criteria_addressed: list[str] = Field(
         default_factory=list,
-        description="Conditions that must be true for this commit to be accepted",
-    )
-    test_focus: str = Field(default="", description="What the tests should exercise")
-    implementation_focus: str = Field(
-        default="", description="Where implementation effort should concentrate"
+        description="Copies of the parent ChangeSet acceptance criteria this step addresses",
     )
 
 
-class Step(BaseModel):
-    """
-    An atomic change in a change set
+class Severity(StrEnum):
+    """Review finding severity — drives review-fix cycle routing."""
 
-    A Step will be transformed into an ImplementationTask
+    MUST_FIX = "must_fix"
+    CAN_DEFER = "can_defer"
 
-    - id
-    - description
-    - interface_changes: list[InterfaceChange]
-    """
 
-    id: str = Field(description="The id of the step")
-    # reference to acceptance criteria addressed
+class ReviewFinding(BaseModel):
+    """A single finding produced by the Reviewer agent."""
+
+    description: str = Field(description="What the issue is")
+    severity: Severity = Field(
+        description="must_fix = blocks merge and enters the review-fix cycle; "
+        "can_defer = routed post-PR by the Dispatcher",
+    )
+    category: str = Field(
+        description="Short category label for the finding. Prefer one of: "
+        "design_quality, code_quality, test_complexity, naming. "
+        "Use a different label only if none of these fit.",
+    )
+    affected_files_and_locations: list[str] = Field(
+        default_factory=list,
+        description="Where in the code the finding applies (file:line or file:symbol)",
+    )
+    suggested_resolution: str = Field(
+        default="",
+        description="What the Reviewer proposes changing to resolve the finding",
+    )
+    source_commit_hashes: list[str] = Field(
+        default_factory=list,
+        description="Commits that introduced the issue",
+    )
+
+
+class OriginKind(StrEnum):
+    """Tag identifying which origin variant wraps an ImplementationTask source."""
+
+    STEP = "step"
+    FINDING = "finding"
+
+
+class StepOrigin(BaseModel):
+    """Forward-looking task origin: a planned ChangeSetStep."""
+
+    kind: Literal[OriginKind.STEP] = OriginKind.STEP
+    step: ChangeSetStep
+
+
+class FindingOrigin(BaseModel):
+    """Backward-looking task origin: a ReviewFinding to fix."""
+
+    kind: Literal[OriginKind.FINDING] = OriginKind.FINDING
+    finding: ReviewFinding
+
+
+TaskOrigin = Annotated[
+    StepOrigin | FindingOrigin,
+    Field(discriminator="kind"),
+]
 
 
 class ImplementationTask(BaseModel):
-    """
-    A self-contained atomic change that delivers a bit of value
+    """Planner output — the unit of work consumed by the Test Agent and Implementer."""
 
-    TODO: what if this is a breaking change
-    """
-
-    id: str = Field(description="The id of the implementation task")
-    unit_test_changes: UnitTestUpdates = Field(
-        description="unit test updates that verify desired implementation change"
+    origin: TaskOrigin = Field(description="Either a ChangeSetStep or a ReviewFinding")
+    interface_specifications: list[str] = Field(
+        default_factory=list,
+        description="Function signatures, data shapes, contracts introduced or modified",
     )
-    # an implementation change can apply to source code, database schema, api schema
+    unit_test_changes: list[str] = Field(
+        default_factory=list,
+        description="Test behaviors to add or remove, each mapped to an acceptance criterion",
+    )
     implementation_change: str = Field(
-        description="describe the implemented change needed to make the tests green"
+        description="Behavioral description of the software change needed",
     )
 
 
-class UnitTestUpdates(BaseModel):
-    """
-    Unit tests to add and remove. To modify an existing test, remove the test and add a test that
-    represents the desired change.
+class Disposition(StrEnum):
+    """Dispatcher routing decision for a single review finding."""
 
-    TODO: consider including the name of the containing module
-    """
+    ROUTE_TO_CHANGE_SET = "route_to_change_set"
+    DEFER_TO_POST_JOB = "defer_to_post_job"
+    ESCALATE = "escalate"
 
-    add: list[str] = Field(
-        default_factory=list, description="test description in given-when-then format"
+
+class DispatchedFinding(BaseModel):
+    """A routing decision for a single review finding."""
+
+    finding: ReviewFinding
+    disposition: Disposition
+    target_change_set_name: str | None = Field(
+        default=None,
+        description="Target change set when disposition is ROUTE_TO_CHANGE_SET",
     )
-    remove: list[str] = Field(
-        default_factory=list, description="name of test to remove and reason for removing the test"
+    rationale: str = Field(description="Why the Dispatcher chose this routing")
+
+
+class DispatcherOutput(BaseModel):
+    """Categorized output from the Dispatcher agent."""
+
+    routed_findings: list[DispatchedFinding] = Field(
+        default_factory=list,
+        description="Findings routed to specific change sets",
+    )
+    deferred_findings: list[DispatchedFinding] = Field(
+        default_factory=list,
+        description="Findings deferred to the post-job report",
+    )
+    escalations: list[DispatchedFinding] = Field(
+        default_factory=list,
+        description="Findings requiring human routing decisions",
+    )
+
+
+class IntegratorOutput(BaseModel):
+    """Revised step sequence for a change set after Integrator processing."""
+
+    target_change_set_name: str = Field(description="Which change set was revised")
+    revised_steps: list[ChangeSetStep] = Field(
+        description="Updated ordered list of Change Set Steps",
+    )
+    changes_made: list[str] = Field(
+        default_factory=list,
+        description="Natural-language descriptions of what was inserted, modified, "
+        "reordered, or removed, and why",
+    )
+
+
+class ChangeSet(BaseModel):
+    """A cohesive unit of work in a job specification."""
+
+    name: str = Field(description="Short title — used as the PR title")
+    intent: str = Field(description="Purpose and motivation for this change set")
+    acceptance_criteria: list[str] = Field(
+        default_factory=list,
+        description="Success conditions for this change set",
+    )
+    interface_specifications: list[str] | None = Field(
+        default=None,
+        description="Contracts (signatures, data shapes) this change set introduces or modifies",
+    )
+    steps: list[ChangeSetStep] = Field(
+        default_factory=list,
+        description="Ordered list of change set steps",
     )
 
 
@@ -166,24 +259,6 @@ class CurrentTask(BaseModel):
     test_focus: str = Field(default="", description="What the tests should exercise")
     implementation_focus: str = Field(
         default="", description="Where implementation effort should concentrate"
-    )
-
-
-class KernelState(BaseModel):
-    """Typed state for the implementation kernel subgraph."""
-
-    current_task: CurrentTask = Field(description="The task being executed")
-    workspace_volume: WorkSpace | None = Field(
-        default=None, description="Docker volume holding the working copy"
-    )
-    commit_hash: CommitHash | None = Field(
-        default=None, description="Git SHA of the most recent commit"
-    )
-    worker_result: dict[str, Any] | None = Field(
-        default=None, description="Output from the most recent agent execution"
-    )
-    commit_passed: bool | None = Field(
-        default=None, description="Whether the evaluator accepted the commit"
     )
 
 

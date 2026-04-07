@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:edefcdc649cb207b97eded139327b2c782a8a0d61eb11f5c15141436be2e1933"
+content_hash = "sha256:239b652096aa58ccd985b5df4f350c92291c27a7b825cc97fa7d23be2cb5ce9c"
 
 [[metadata.targets]]
 requires_python = "==3.14.*"
@@ -14,7 +14,7 @@ requires_python = "==3.14.*"
 name = "agent-foundry"
 version = "0.4.0"
 requires_python = "==3.14.*"
-path = "../agent-foundry/agent-foundry"
+path = "../agent-foundry"
 summary = "Default template for PDM package"
 groups = ["default"]
 dependencies = [
