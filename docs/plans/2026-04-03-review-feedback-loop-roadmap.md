@@ -230,6 +230,11 @@ CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (th
 
 4. **Update CLI** — stdin/stdout interaction for Gate callbacks
    - Modify: `archipelago/src/archipelago/cli.py`
+   - Call `archipelago.logging_config.configure_logging()` at process startup (extracted from the old `cli.py` during CS5 follow-up; location: `src/archipelago/logging_config.py`)
+
+5. **[Deferred from CS5] Recreate the config-to-env pipeline tests** — the original `tests/archipelago/integration/test_config_to_lockdown.py` exercised the full plan → `compile_plan` → node config → env builder pipeline. Its `TestConfigToEnvPipeline` class was deleted during CS5 because `compile_plan`/`GraphWiringPlan` no longer exist. The lockdown enforcement half (env → container) was already recreated in CS5 at `tests/archipelago/integration/test_docker_worker_lockdown.py` by constructing `WorkerInput` directly. CS10 must complete the coverage by adding new integration tests that verify a `PrimitivePlan` node config with `acp_hidden_dirs`/`acp_readonly_dirs` propagates correctly through the new runner into `build_container_env` (or its CS10 successor) and then through the env → container lockdown path. This closes the security regression gap introduced by CS5's deletion of the old pipeline tests.
+   - Create: `archipelago/tests/archipelago/integration/test_plan_to_lockdown.py` (or equivalent)
+   - Cross-reference: `tests/archipelago/integration/test_docker_worker_lockdown.py` (CS5 follow-up) for the env → container half that is already covered.
 
 ---
 
