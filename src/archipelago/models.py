@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from archipelago.types import CommitHash, Objective, RepoRef, RepoUrl, WorkSpace
+from archipelago.types import Objective, RepoRef, RepoUrl
 
 
 class FeatureDefinition(BaseModel):
@@ -81,7 +81,6 @@ class ChangeSet(BaseModel):
     """
 
     # id: str = Field(description="The id of the change set")
-    # steps: list[Step] = Field(description="Sequenced steps that implement a change set")
     # acceptanceptance criteria
     # api contract
     # data model
@@ -94,54 +93,6 @@ class ChangeSet(BaseModel):
     test_focus: str = Field(default="", description="What the tests should exercise")
     implementation_focus: str = Field(
         default="", description="Where implementation effort should concentrate"
-    )
-
-
-class Step(BaseModel):
-    """
-    An atomic change in a change set
-
-    A Step will be transformed into an ImplementationTask
-
-    - id
-    - description
-    - interface_changes: list[InterfaceChange]
-    """
-
-    id: str = Field(description="The id of the step")
-    # reference to acceptance criteria addressed
-
-
-class ImplementationTask(BaseModel):
-    """
-    A self-contained atomic change that delivers a bit of value
-
-    TODO: what if this is a breaking change
-    """
-
-    id: str = Field(description="The id of the implementation task")
-    unit_test_changes: UnitTestUpdates = Field(
-        description="unit test updates that verify desired implementation change"
-    )
-    # an implementation change can apply to source code, database schema, api schema
-    implementation_change: str = Field(
-        description="describe the implemented change needed to make the tests green"
-    )
-
-
-class UnitTestUpdates(BaseModel):
-    """
-    Unit tests to add and remove. To modify an existing test, remove the test and add a test that
-    represents the desired change.
-
-    TODO: consider including the name of the containing module
-    """
-
-    add: list[str] = Field(
-        default_factory=list, description="test description in given-when-then format"
-    )
-    remove: list[str] = Field(
-        default_factory=list, description="name of test to remove and reason for removing the test"
     )
 
 
@@ -166,24 +117,6 @@ class CurrentTask(BaseModel):
     test_focus: str = Field(default="", description="What the tests should exercise")
     implementation_focus: str = Field(
         default="", description="Where implementation effort should concentrate"
-    )
-
-
-class KernelState(BaseModel):
-    """Typed state for the implementation kernel subgraph."""
-
-    current_task: CurrentTask = Field(description="The task being executed")
-    workspace_volume: WorkSpace | None = Field(
-        default=None, description="Docker volume holding the working copy"
-    )
-    commit_hash: CommitHash | None = Field(
-        default=None, description="Git SHA of the most recent commit"
-    )
-    worker_result: dict[str, Any] | None = Field(
-        default=None, description="Output from the most recent agent execution"
-    )
-    commit_passed: bool | None = Field(
-        default=None, description="Whether the evaluator accepted the commit"
     )
 
 

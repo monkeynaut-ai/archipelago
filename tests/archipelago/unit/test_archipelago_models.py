@@ -11,7 +11,6 @@ from archipelago.models import (
     CodeReviewSummary,
     CurrentTask,
     JobSpecification,
-    KernelState,
     TestResults,
 )
 
@@ -143,45 +142,6 @@ class TestCurrentTask:
         task = CurrentTask(**_valid_current_task())
         reconstructed = CurrentTask.model_validate_json(task.model_dump_json())
         assert reconstructed == task
-
-
-# ── KernelState ──
-
-
-class TestKernelState:
-    def test_given_initial_entry_when_kernel_state_created_then_only_current_task_required(self):
-        task = CurrentTask(**_valid_current_task())
-        state = KernelState(current_task=task)
-        assert state.current_task == task
-        assert state.workspace_volume is None
-        assert state.commit_hash is None
-        assert state.worker_result is None
-        assert state.commit_passed is None
-
-    def test_given_full_state_when_kernel_state_created_then_all_fields_populated(self):
-        task = CurrentTask(**_valid_current_task())
-        state = KernelState(
-            current_task=task,
-            workspace_volume="archipelago-123",
-            commit_hash="abc123",
-            worker_result={"status": "completed"},
-            commit_passed=True,
-        )
-        assert state.workspace_volume == "archipelago-123"
-        assert state.commit_hash == "abc123"
-        assert state.worker_result == {"status": "completed"}
-        assert state.commit_passed is True
-
-    def test_given_state_dict_when_kernel_state_constructed_then_round_trip_preserves_data(self):
-        task = CurrentTask(**_valid_current_task())
-        state = KernelState(
-            current_task=task,
-            workspace_volume="archipelago-123",
-            commit_hash="abc123",
-            commit_passed=True,
-        )
-        reconstructed = KernelState.model_validate_json(state.model_dump_json())
-        assert reconstructed == state
 
 
 # ── CodeReview ──
