@@ -4,7 +4,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from archipelago.models import ChangeSet
 from archipelago.types import Objective, RepoRef, RepoUrl, WorkSpace
 
 
@@ -33,11 +32,32 @@ class WorkerConstraints(BaseModel):
     )
 
 
+class WorkerCommitSpec(BaseModel):
+    """Commit-spec shape consumed by docker_worker.
+
+    Quarantined copy of the old ChangeSet field shape. docker_worker
+    reads these fields from the implementation task it runs. Kept local
+    to docker_worker to decouple it from upstream ChangeSet restructuring
+    in CS5. This quarantine can be removed when docker_worker is
+    rewired or retired.
+    """
+
+    title: str = Field(description="Short description used as commit message seed")
+    acceptance_criteria: list[str] = Field(
+        default_factory=list,
+        description="Conditions that must be true for this commit to be accepted",
+    )
+    test_focus: str = Field(default="", description="What the tests should exercise")
+    implementation_focus: str = Field(
+        default="", description="Where implementation effort should concentrate"
+    )
+
+
 class WorkerInput(BaseModel):
     """Typed input for docker worker roles."""
 
     # Task data — what to work on (flows through state from the archipelago flow)
-    commit_spec: ChangeSet = Field(description="Specification for the commit to produce")
+    commit_spec: WorkerCommitSpec = Field(description="Specification for the commit to produce")
     objective: Objective = Field(default="", description="High-level goal for the pipeline run")
     constraints_text: list[str] = Field(
         default_factory=list, description="Rules the agent must follow"
@@ -47,7 +67,7 @@ class WorkerInput(BaseModel):
         default=None, description="Git remote URL of the target repository"
     )
 
-    # Node config — static per-node settings (from archipelago_system.json via closure)
+    # Node config — static per-node settings
     acp_hidden_dirs: list[str] = Field(
         default_factory=list, description="Directories hidden from the agent"
     )

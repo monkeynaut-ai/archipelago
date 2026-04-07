@@ -12,6 +12,7 @@ from archipelago.docker_worker.models import (
     PermissionRequest,
     ProgressEvent,
     ResumePoint,
+    WorkerCommitSpec,
     WorkerConstraints,
     WorkerInput,
     WorkerResult,
@@ -82,6 +83,32 @@ def _valid_progress_event() -> dict:
 
 
 # ── Commit 1: WorkerInput, WorkerConstraints, WorkerResult, PatchInfo, CommitEvidence ──
+
+
+class TestWorkerCommitSpec:
+    def test_given_all_fields_when_instantiated_then_round_trips(self):
+        spec = WorkerCommitSpec(
+            title="Add foo",
+            acceptance_criteria=["tests pass", "lint clean"],
+            test_focus="unit tests for foo",
+            implementation_focus="src/foo.py",
+        )
+        assert spec.title == "Add foo"
+        assert spec.acceptance_criteria == ["tests pass", "lint clean"]
+        assert spec.test_focus == "unit tests for foo"
+        assert spec.implementation_focus == "src/foo.py"
+
+    def test_given_only_title_when_instantiated_then_other_fields_default(self):
+        spec = WorkerCommitSpec(title="x")
+        assert spec.acceptance_criteria == []
+        assert spec.test_focus == ""
+        assert spec.implementation_focus == ""
+
+    def test_given_worker_commit_spec_when_assigned_to_worker_input_then_title_accessible(self):
+        data = _valid_worker_input()
+        data["commit_spec"] = WorkerCommitSpec(title="Test Feature")
+        wi = WorkerInput(**data)
+        assert wi.commit_spec.title == "Test Feature"
 
 
 class TestWorkerInput:
