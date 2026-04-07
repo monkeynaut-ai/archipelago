@@ -71,28 +71,31 @@ class JobSpecification(BaseModel):
     objective: Objective = Field(description="High-level goal for the pipeline run")
     # scope, constraints, rules
     constraints: list[str] = Field(default_factory=list, description="Rules all agents must follow")
+    test_paths: list[str] = Field(
+        default_factory=list,
+        description="Directories containing test code (for write-permission enforcement). "
+        "Will move to a repo-level Archipelago config in a future version.",
+    )
     change_sets: list[ChangeSet] = Field(description="The change sets of the job")
 
 
 class ChangeSet(BaseModel):
-    """
-    A ChangeSet defines a cohesive unit of work in a job specification.
+    """A cohesive unit of work in a job specification."""
 
-    """
-
-    # id: str = Field(description="The id of the change set")
-    # acceptanceptance criteria
-    # api contract
-    # data model
-    # user flows and states
-    title: str = Field(description="Short description used as commit message seed")
+    name: str = Field(description="Short title — used as the PR title")
+    intent: str = Field(description="Purpose and motivation for this change set")
     acceptance_criteria: list[str] = Field(
         default_factory=list,
-        description="Conditions that must be true for this commit to be accepted",
+        description="Success conditions for this change set",
     )
-    test_focus: str = Field(default="", description="What the tests should exercise")
-    implementation_focus: str = Field(
-        default="", description="Where implementation effort should concentrate"
+    interface_specifications: list[str] | None = Field(
+        default=None,
+        description="Contracts (signatures, data shapes) this change set introduces or modifies",
+    )
+    # NOTE: typed as list[Any] transitionally; Task 6 tightens to list[ChangeSetStep].
+    steps: list[Any] = Field(
+        default_factory=list,
+        description="Ordered list of change set steps — tightened to list[ChangeSetStep] in Task 6",
     )
 
 

@@ -26,22 +26,32 @@ def _valid_test_results() -> dict:
 
 
 class TestChangeSet:
-    def test_given_title_only_when_instantiated_then_defaults_applied(self):
-        cs = ChangeSet(title="Add models")
-        assert cs.title == "Add models"
+    def test_given_name_and_intent_when_instantiated_then_defaults_applied(self):
+        cs = ChangeSet(name="Add models", intent="install types")
+        assert cs.name == "Add models"
+        assert cs.intent == "install types"
         assert cs.acceptance_criteria == []
-        assert cs.test_focus == ""
-        assert cs.implementation_focus == ""
+        assert cs.interface_specifications is None
+        assert cs.steps == []
 
     def test_given_all_fields_when_json_round_tripped_then_no_field_loss(self):
         cs = ChangeSet(
-            title="Add models",
+            name="Add models",
+            intent="install Pydantic types for job artifacts",
             acceptance_criteria=["Model exists"],
-            test_focus="unit tests",
-            implementation_focus="Pydantic models",
+            interface_specifications=["class ChangeSet(BaseModel): ..."],
+            steps=[],
         )
         reconstructed = ChangeSet.model_validate_json(cs.model_dump_json())
         assert reconstructed == cs
+
+    def test_given_missing_name_when_instantiated_then_raises_validation_error(self):
+        with pytest.raises(ValidationError):
+            ChangeSet(intent="install types")  # type: ignore[call-arg]
+
+    def test_given_missing_intent_when_instantiated_then_raises_validation_error(self):
+        with pytest.raises(ValidationError):
+            ChangeSet(name="Add models")  # type: ignore[call-arg]
 
 
 class TestJobSpecification:
@@ -49,17 +59,33 @@ class TestJobSpecification:
         job = JobSpecification(
             objective="Add auth",
             repo_url="https://github.com/org/repo",
-            change_sets=[{"title": "Add models"}, {"title": "Add endpoints"}],
+            change_sets=[
+                {"name": "Add models", "intent": "install types"},
+                {"name": "Add endpoints", "intent": "wire up routes"},
+            ],
         )
         assert job.objective == "Add auth"
         assert job.repo_url == "https://github.com/org/repo"
         assert job.repo_ref == "main"
         assert len(job.change_sets) == 2
         assert job.constraints == []
+        assert job.test_paths == []
 
     def test_given_missing_objective_when_instantiated_then_raises_validation_error(self):
         with pytest.raises(ValidationError):
-            JobSpecification(repo_url="https://github.com/org/repo", change_sets=[{"title": "c1"}])
+            JobSpecification(
+                repo_url="https://github.com/org/repo",
+                change_sets=[{"name": "c1", "intent": "i1"}],
+            )
+
+    def test_given_explicit_test_paths_when_instantiated_then_stored(self):
+        job = JobSpecification(
+            objective="Add auth",
+            repo_url="https://github.com/org/repo",
+            change_sets=[{"name": "c1", "intent": "i1"}],
+            test_paths=["tests/unit", "tests/integration"],
+        )
+        assert job.test_paths == ["tests/unit", "tests/integration"]
 
     def test_given_valid_job_when_json_round_tripped_then_no_field_loss(self):
         job = JobSpecification(
@@ -67,7 +93,14 @@ class TestJobSpecification:
             repo_url="https://github.com/org/repo",
             repo_ref="develop",
             constraints=["No new deps"],
-            change_sets=[{"title": "Add models", "acceptance_criteria": ["Model exists"]}],
+            test_paths=["tests/unit"],
+            change_sets=[
+                {
+                    "name": "Add models",
+                    "intent": "install types",
+                    "acceptance_criteria": ["Model exists"],
+                }
+            ],
         )
         reconstructed = JobSpecification.model_validate_json(job.model_dump_json())
         assert reconstructed == job
