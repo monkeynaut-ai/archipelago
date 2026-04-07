@@ -1,7 +1,7 @@
 """Canonical artifact models for the Archipelago pipeline."""
 
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -121,6 +121,50 @@ class ReviewFinding(BaseModel):
     source_commit_hashes: list[str] = Field(
         default_factory=list,
         description="Commits that introduced the issue",
+    )
+
+
+class OriginKind(StrEnum):
+    """Tag identifying which origin variant wraps an ImplementationTask source."""
+
+    STEP = "step"
+    FINDING = "finding"
+
+
+class StepOrigin(BaseModel):
+    """Forward-looking task origin: a planned ChangeSetStep."""
+
+    kind: Literal[OriginKind.STEP] = OriginKind.STEP
+    step: ChangeSetStep
+
+
+class FindingOrigin(BaseModel):
+    """Backward-looking task origin: a ReviewFinding to fix."""
+
+    kind: Literal[OriginKind.FINDING] = OriginKind.FINDING
+    finding: ReviewFinding
+
+
+TaskOrigin = Annotated[
+    StepOrigin | FindingOrigin,
+    Field(discriminator="kind"),
+]
+
+
+class ImplementationTask(BaseModel):
+    """Planner output — the unit of work consumed by the Test Agent and Implementer."""
+
+    origin: TaskOrigin = Field(description="Either a ChangeSetStep or a ReviewFinding")
+    interface_specifications: list[str] = Field(
+        default_factory=list,
+        description="Function signatures, data shapes, contracts introduced or modified",
+    )
+    unit_test_changes: list[str] = Field(
+        default_factory=list,
+        description="Test behaviors to add or remove, each mapped to an acceptance criterion",
+    )
+    implementation_change: str = Field(
+        description="Behavioral description of the software change needed",
     )
 
 

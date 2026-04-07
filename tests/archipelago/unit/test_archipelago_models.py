@@ -11,9 +11,13 @@ from archipelago.models import (
     CodeReviewScope,
     CodeReviewSummary,
     CurrentTask,
+    FindingOrigin,
+    ImplementationTask,
     JobSpecification,
+    OriginKind,
     ReviewFinding,
     Severity,
+    StepOrigin,
     TestResults,
 )
 
@@ -181,6 +185,74 @@ class TestReviewFinding:
             source_commit_hashes=["abc123"],
         )
         assert ReviewFinding.model_validate_json(finding.model_dump_json()) == finding
+
+
+class TestImplementationTask:
+    def test_given_step_origin_when_instantiated_then_origin_is_step(self):
+        task = ImplementationTask(
+            origin=StepOrigin(step=ChangeSetStep(description="Add models")),
+            implementation_change="Add pydantic classes to models.py",
+        )
+        assert task.origin.kind is OriginKind.STEP
+        assert task.origin.step.description == "Add models"
+
+    def test_given_finding_origin_when_instantiated_then_origin_is_finding(self):
+        finding = ReviewFinding(
+            description="Ambiguous name",
+            severity=Severity.MUST_FIX,
+            category="naming",
+        )
+        task = ImplementationTask(
+            origin=FindingOrigin(finding=finding),
+            implementation_change="Rename `process` to `compile_primitive`",
+        )
+        assert task.origin.kind is OriginKind.FINDING
+        assert task.origin.finding.severity is Severity.MUST_FIX
+
+    def test_given_dict_with_kind_step_when_parsed_then_discriminated_to_step(self):
+        data = {
+            "origin": {"kind": "step", "step": {"description": "Add models"}},
+            "implementation_change": "Add pydantic classes",
+        }
+        task = ImplementationTask.model_validate(data)
+        assert isinstance(task.origin, StepOrigin)
+
+    def test_given_dict_with_kind_finding_when_parsed_then_discriminated_to_finding(self):
+        data = {
+            "origin": {
+                "kind": "finding",
+                "finding": {
+                    "description": "x",
+                    "severity": "must_fix",
+                    "category": "naming",
+                },
+            },
+            "implementation_change": "y",
+        }
+        task = ImplementationTask.model_validate(data)
+        assert isinstance(task.origin, FindingOrigin)
+
+    def test_given_missing_kind_discriminator_when_parsed_then_validation_error(self):
+        data = {
+            "origin": {"step": {"description": "Add models"}},  # no kind
+            "implementation_change": "x",
+        }
+        with pytest.raises(ValidationError):
+            ImplementationTask.model_validate(data)
+
+    def test_given_all_fields_when_round_tripped_then_no_field_loss(self):
+        task = ImplementationTask(
+            origin=StepOrigin(
+                step=ChangeSetStep(
+                    description="Add models",
+                    acceptance_criteria_addressed=["Models exist"],
+                )
+            ),
+            interface_specifications=["ReviewFinding(BaseModel)"],
+            unit_test_changes=["add: construction sets defaults"],
+            implementation_change="Create pydantic classes",
+        )
+        assert ImplementationTask.model_validate_json(task.model_dump_json()) == task
 
 
 class TestChangeSetStepsTightening:
