@@ -88,3 +88,14 @@ class TestReviewChangeSetSpec:
             expected_module="archipelago.agents.reviewer",
             expected_class="Reviewer",
         )
+
+
+class TestDispatchFindingsSpec:
+    def test_given_dispatch_findings_yaml_when_loaded_then_matches_schema(self):
+        spec = _load("dispatch_findings.yaml")
+        _assert_schema(
+            spec,
+            expected_name="dispatch_findings",
+            expected_module="archipelago.agents.finding_dispatcher",
+            expected_class="FindingDispatcher",
+        )

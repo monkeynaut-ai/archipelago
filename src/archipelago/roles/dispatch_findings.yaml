@@ -1,0 +1,13 @@
+name: dispatch_findings
+description: Routes can_defer review findings to target change sets, post-job deferral, or human escalation using Claude Code in an ephemeral Docker container
+version: "1.0.0"
+implementation:
+  module: archipelago.agents.finding_dispatcher
+  class_name: FindingDispatcher
+tags:
+  - archipelago
+  - docker-worker
+  - dispatch
+quality_controls:
+  timeout_seconds: 3600
+  max_retries: 1
