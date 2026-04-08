@@ -124,6 +124,27 @@ class ReviewFinding(BaseModel):
     )
 
 
+class ReviewerPayload(BaseModel):
+    """Reviewer agent's structured-output payload.
+
+    Thin wrapper around a list of ReviewFindings. Exists because the
+    ``--json-schema`` enforcement path (CS6.5) and Pydantic's
+    ``model_json_schema`` both require a top-level object, not a bare
+    list. Used by CS7's Reviewer handler as the ``T`` in
+    ``AgentTurnEnvelope[T]``.
+    """
+
+    findings: list[ReviewFinding] = Field(
+        default_factory=list,
+        description=(
+            "All review findings produced in this review pass — must_fix and "
+            "can_defer together. Severity is carried on each finding; the "
+            "Runner filters/branches downstream, so the Reviewer does not "
+            "pre-split them."
+        ),
+    )
+
+
 class OriginKind(StrEnum):
     """Tag identifying which origin variant wraps an ImplementationTask source."""
 
