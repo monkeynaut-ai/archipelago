@@ -77,3 +77,14 @@ class TestPlanImplementationTaskSpec:
             expected_module="archipelago.agents.planner",
             expected_class="Planner",
         )
+
+
+class TestReviewChangeSetSpec:
+    def test_given_review_change_set_yaml_when_loaded_then_matches_schema(self):
+        spec = _load("review_change_set.yaml")
+        _assert_schema(
+            spec,
+            expected_name="review_change_set",
+            expected_module="archipelago.agents.reviewer",
+            expected_class="Reviewer",
+        )
