@@ -19,6 +19,7 @@ from archipelago.models import (
     IntegratorOutput,
     JobSpecification,
     OriginKind,
+    ReviewerPayload,
     ReviewFinding,
     Severity,
     StepOrigin,
@@ -257,6 +258,45 @@ class TestImplementationTask:
             implementation_change="Create pydantic classes",
         )
         assert ImplementationTask.model_validate_json(task.model_dump_json()) == task
+
+
+class TestReviewerPayload:
+    def test_given_empty_when_constructed_then_findings_defaults_to_empty_list(self):
+        payload = ReviewerPayload()
+        assert payload.findings == []
+
+    def test_given_findings_when_constructed_then_preserved(self):
+        findings = [
+            ReviewFinding(
+                description="Missing input validation",
+                severity=Severity.MUST_FIX,
+                category="design_quality",
+            ),
+            ReviewFinding(
+                description="Ambiguous function name",
+                severity=Severity.CAN_DEFER,
+                category="naming",
+            ),
+        ]
+        payload = ReviewerPayload(findings=findings)
+        assert payload.findings == findings
+
+    def test_given_instance_when_round_tripped_then_equals(self):
+        findings = [
+            ReviewFinding(
+                description="x",
+                severity=Severity.MUST_FIX,
+                category="code_quality",
+            ),
+        ]
+        payload = ReviewerPayload(findings=findings)
+        assert ReviewerPayload.model_validate_json(payload.model_dump_json()) == payload
+
+    def test_given_payload_when_schema_generated_then_findings_is_array_property(self):
+        schema = ReviewerPayload.model_json_schema()
+        assert schema["type"] == "object"
+        assert "findings" in schema["properties"]
+        assert schema["properties"]["findings"]["type"] == "array"
 
 
 class TestChangeSetStepsTightening:

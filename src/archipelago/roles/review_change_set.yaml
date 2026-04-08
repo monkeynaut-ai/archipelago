@@ -1,0 +1,13 @@
+name: review_change_set
+description: Reviews all commits in a change set and categorizes findings as must_fix or can_defer using Claude Code in an ephemeral Docker container
+version: "1.0.0"
+implementation:
+  module: archipelago.agents.reviewer
+  class_name: Reviewer
+tags:
+  - archipelago
+  - docker-worker
+  - review
+quality_controls:
+  timeout_seconds: 7200
+  max_retries: 1

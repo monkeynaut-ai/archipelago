@@ -1,0 +1,13 @@
+name: plan_implementation_task
+description: Synthesizes an ImplementationTask from a ChangeSetStep or ReviewFinding using Claude Code in an ephemeral Docker container
+version: "1.0.0"
+implementation:
+  module: archipelago.agents.planner
+  class_name: Planner
+tags:
+  - archipelago
+  - docker-worker
+  - planning
+quality_controls:
+  timeout_seconds: 3600
+  max_retries: 1
