@@ -28,7 +28,11 @@ def _load(name: str) -> dict:
     path = ROLES_DIR / name
     assert path.is_file(), f"Role spec not found: {path}"
     with path.open() as f:
-        return yaml.safe_load(f)
+        data = yaml.safe_load(f)
+    assert isinstance(data, dict), (
+        f"Role spec {name} did not parse as a YAML mapping; got {type(data).__name__}"
+    )
+    return data
 
 
 def _assert_schema(
@@ -38,19 +42,31 @@ def _assert_schema(
     expected_module: str,
     expected_class: str,
 ) -> None:
-    assert REQUIRED_TOP_LEVEL_KEYS.issubset(spec.keys()), (
-        f"Missing top-level keys: {REQUIRED_TOP_LEVEL_KEYS - spec.keys()}"
+    # Exact set equality — rejects typos (extra keys) as well as missing keys,
+    # because this harness is the only gate until the registry loads these files.
+    assert spec.keys() == REQUIRED_TOP_LEVEL_KEYS, (
+        f"Top-level keys mismatch: "
+        f"extra={spec.keys() - REQUIRED_TOP_LEVEL_KEYS}, "
+        f"missing={REQUIRED_TOP_LEVEL_KEYS - spec.keys()}"
     )
     assert spec["name"] == expected_name
     assert isinstance(spec["description"], str) and spec["description"]
     assert isinstance(spec["version"], str) and spec["version"]
     impl = spec["implementation"]
-    assert REQUIRED_IMPLEMENTATION_KEYS.issubset(impl.keys())
+    assert impl.keys() == REQUIRED_IMPLEMENTATION_KEYS, (
+        f"implementation keys mismatch: "
+        f"extra={impl.keys() - REQUIRED_IMPLEMENTATION_KEYS}, "
+        f"missing={REQUIRED_IMPLEMENTATION_KEYS - impl.keys()}"
+    )
     assert impl["module"] == expected_module
     assert impl["class_name"] == expected_class
     assert isinstance(spec["tags"], list) and len(spec["tags"]) > 0
     qc = spec["quality_controls"]
-    assert REQUIRED_QC_KEYS.issubset(qc.keys())
+    assert qc.keys() == REQUIRED_QC_KEYS, (
+        f"quality_controls keys mismatch: "
+        f"extra={qc.keys() - REQUIRED_QC_KEYS}, "
+        f"missing={REQUIRED_QC_KEYS - qc.keys()}"
+    )
     assert isinstance(qc["timeout_seconds"], int) and qc["timeout_seconds"] > 0
     assert isinstance(qc["max_retries"], int) and qc["max_retries"] >= 0
 
