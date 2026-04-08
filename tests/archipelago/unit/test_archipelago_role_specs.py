@@ -99,3 +99,14 @@ class TestDispatchFindingsSpec:
             expected_module="archipelago.agents.finding_dispatcher",
             expected_class="FindingDispatcher",
         )
+
+
+class TestIntegrateFindingsSpec:
+    def test_given_integrate_findings_yaml_when_loaded_then_matches_schema(self):
+        spec = _load("integrate_findings.yaml")
+        _assert_schema(
+            spec,
+            expected_name="integrate_findings",
+            expected_module="archipelago.agents.integrator",
+            expected_class="Integrator",
+        )
