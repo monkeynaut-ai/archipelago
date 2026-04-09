@@ -7,10 +7,12 @@
 
 - **CS4 (MockClaudeCodeAdapter) is deferred** until CS12 needs it. CS4 builds a generic mock mechanism whose only consumer is the CS12 integration tests; building it ahead of CS12 would be speculative (we wouldn't know what agent I/O shapes the scripts need to emit until CS5–CS7 define them). Revisit when CS12 starts.
 - **CS5 scope was broadened** to absorb transition cleanup originally deferred to CS11. The Archipelago package is already non-functional as a runtime (`runner.py`, `cli.py`, several tests, and `archipelago_system.json` all depend on `agent_foundry.compiler`/`agent_foundry.planner` modules that agent-foundry CS3 deleted), so CS5 removes the dead code wholesale rather than leaving it broken through CS11. The three agents with no transition value (`decomposer`, `dispatcher`, `evaluator`) are also deleted in CS5. See `docs/plans/2026-04-07-cs5-data-models-plan.md`.
+- **CS6 shipped as "Option A"** — radically trimmed from the original plan. Only `ReviewerPayload` (a thin wrapper around `list[ReviewFinding]`) was added to `models.py`. The originally planned agent wrapper types (`PlannerOutput`, `NewDispatcherOutput`, `IntegratorAgentOutput`, `CommitActionOutput`, `SubmitPRActionOutput`) were intentionally not built — the `--json-schema` structured-output design (CS6.5) requires LLM-facing types to contain only fields the LLM can populate. Execution metadata (`worker_result`, `workspace_volume`) is adapter/runner concern, not in the schema. CS7 will call `to_claude_code_schema(AgentTurnEnvelope[ImplementationTask])` etc. on the CS5 domain types directly. See `docs/plans/2026-04-08-cs6-agent-output-models-plan.md`.
+- **CS6.5 was inserted between CS6 and CS7** — a new cross-repo change set for structured-output protocol extension in Agent Foundry. Motivated by the discovery that Claude Code's `--json-schema` works on Pro subscriptions. CS6.5 adds: schema flattener (`to_claude_code_schema`), `StructuredOutputMessage` protocol type, adapter integration (`--json-schema` plumbing, `StructuredOutput` tool-use detection, hybrid stderr-on-error, local retry on missing structured output with stop-reason-aware skip for refusals/max_tokens), and `AgentTurnEnvelope[T]` generic discriminated-union envelope with four outcome kinds. All work in Agent Foundry — Archipelago gains no new files. See `docs/plans/2026-04-08-cs6.5-structured-output-protocol-plan.md`.
 
 ## Overview
 
-12 change sets across two repos. Agent Foundry (CS1-4) comes first — Archipelago (CS5-12) depends on the new primitives. TDD throughout: tests before implementation in every task.
+13 change sets across two repos. Agent Foundry (CS1-4, CS6.5) comes first — Archipelago (CS5-12) depends on the new primitives and protocol. TDD throughout: tests before implementation in every task.
 
 ## Dependency Graph
 
@@ -18,11 +20,11 @@
 CS1 (Primitives) → CS2 (Validators) → CS3 (Compiler) ──┐
                                                          ├→ CS9 (System Def) → CS10 (Runner/CLI) → CS11 (Cleanup) → CS12 (Integration)
 CS4 (MockAdapter) ───────────────────────────────────────┤
-CS5 (Data Models) → CS6 (Output Models) → CS7 (New Agents) ──┤
-CS5 (Data Models) → CS8 (Evolve Agents) ─────────────────────┘
+CS5 (Data Models) → CS6 (Payload + Roles) → CS6.5 (Structured Output Protocol) → CS7 (New Agents) ──┤
+CS5 (Data Models) → CS8 (Evolve Agents) ─────────────────────────────────────────────────────────────┘
 ```
 
-CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (they don't need the compiler yet). CS9 needs CS3 + CS7 + CS8. CS12 needs CS10 + CS4.
+CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (they don't need the compiler yet). CS6.5 is in Agent Foundry (not Archipelago) and must complete before CS7 — it provides the `AgentTurnEnvelope[T]` and `to_claude_code_schema` that every CS7 agent handler uses. CS9 needs CS3 + CS7 + CS8. CS12 needs CS10 + CS4.
 
 ---
 
@@ -129,23 +131,74 @@ CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (th
 
 ---
 
-## Change Set 6 (Archipelago): Agent Output Models and Role Specs
+## Change Set 6 (Archipelago): Agent Payload Models and Role Specs
 
-**Goal**: Per-agent output models for new agents and their YAML role specs.
+**Goal**: Minimum LLM-facing payload type for the Reviewer agent and four role spec YAMLs for the new agents. Shipped as "Option A" — no agent wrapper types.
+
+**Plan**: `docs/plans/2026-04-08-cs6-agent-output-models-plan.md`
 
 ### Tasks
 
-1. **Tests for output models**
+1. **ReviewerPayload** — thin wrapper around `list[ReviewFinding]` in `models.py`. Exists because `AgentTurnEnvelope[T]` (CS6.5) requires `T` to be a single BaseModel, not a bare list.
+   - Modify: `archipelago/src/archipelago/models.py`
    - Modify: `archipelago/tests/archipelago/unit/test_archipelago_models.py`
 
-2. **New output models** — `PlannerOutput`, `ReviewerOutput`, `NewDispatcherOutput`, `IntegratorAgentOutput`, `CommitActionOutput`, `SubmitPRActionOutput`
-   - Modify: `archipelago/src/archipelago/agents/io_models.py`
+2. **Role spec test harness** — parses each YAML with PyYAML, asserts structural schema with exact-match key checks.
+   - Create: `archipelago/tests/archipelago/unit/test_archipelago_role_specs.py`
 
-3. **Role specs**
+3. **Role specs** — four new agents, each referencing CS7 classes (dangling until CS7; safe because role specs are lazy-loaded).
    - Create: `archipelago/src/archipelago/roles/plan_implementation_task.yaml`
    - Create: `archipelago/src/archipelago/roles/review_change_set.yaml`
    - Create: `archipelago/src/archipelago/roles/dispatch_findings.yaml`
    - Create: `archipelago/src/archipelago/roles/integrate_findings.yaml`
+
+### Key Decisions
+- **No PlannerOutput / NewDispatcherOutput / IntegratorAgentOutput wrappers** — the domain types from CS5 (`ImplementationTask`, `DispatcherOutput`, `IntegratorOutput`) are the LLM-facing payloads directly. Execution metadata (`worker_result`, `workspace_volume`) is adapter/runner concern.
+- **No CommitActionOutput / SubmitPRActionOutput** — deterministic `FunctionAction` primitives in CS7, not agents.
+- **`io_models.py` untouched** — legacy wrappers stay until CS11 deletes them.
+
+---
+
+## Change Set 6.5 (Agent Foundry): Structured-Output Protocol Extension
+
+**Goal**: Protocol machinery so CS7 agent handlers can invoke `claude --json-schema`, receive typed agent outcomes via `AgentTurnEnvelope[T]`, and route all four outcome kinds (success, clarification, permission, failed) through a single code path.
+
+**Plan**: `docs/plans/2026-04-08-cs6.5-structured-output-protocol-plan.md`
+
+### Tasks
+
+1. **Schema-flattening helper** — `to_claude_code_schema(model)` inlines `$defs`/`$ref` and strips OpenAPI `discriminator` keyword. Claude Code silently disables on `discriminator`; fails retries on `$ref`.
+   - Create: `agent-foundry/src/agent_foundry/acp/schema_tools.py`
+   - Create: `agent-foundry/tests/agent_foundry/acp/test_schema_tools.py`
+
+2. **StructuredOutputMessage protocol type** — carries the raw dict payload from Claude Code's synthetic `StructuredOutput` tool call. Distinct from `AgentEventMessage` (mid-stream signals from free text).
+   - Modify: `agent-foundry/src/agent_foundry/acp/protocol.py`
+
+3. **TurnResult.structured_output field** — optional `dict[str, Any] | None` on the adapter's return value.
+   - Modify: `agent-foundry/src/agent_foundry/acp/adapter.py`
+
+4. **Adapter integration** (five sub-steps):
+   - 4a: `_build_claude_cmd` accepts optional `json_schema` param, emits `--json-schema` flag
+   - 4b: `_map_event_to_protocol` detects `tool_use` with `name == "StructuredOutput"`, emits typed message, sets `task_complete`, skips generic tool summary
+   - 4c: `run_turn` plumbs `json_schema` to the CLI command and populates `TurnResult.structured_output`
+   - 4d: Hybrid stderr-on-error — fold stderr into existing `turn_complete` on `is_error=True`; synthetic `error` status only when process crashes before `result` event. One terminal status per turn.
+   - 4e: Local retry on missing structured output — if `--json-schema` set but no `StructuredOutput` tool call captured, retry once via `--resume` with correction prompt. Domain-agnostic (checks tool-call presence, not payload shape), local to container (no orchestrator round-trip), bounded (one retry). Skips retry on non-recoverable `stop_reason` values (`refusal`, `max_tokens`).
+   - Modify: `agent-foundry/src/agent_foundry/acp/adapters/claude_code.py`
+
+5. **AgentTurnEnvelope[T]** — generic Pydantic envelope wrapping a discriminated union of four outcome kinds. Lives in Agent Foundry because the four outcomes are properties of Claude Code headless execution, not any domain. Generic `T` lets consumers bring their own payload type.
+   - Create: `agent-foundry/src/agent_foundry/acp/turn_outcome.py`
+   - Create: `agent-foundry/tests/agent_foundry/acp/test_turn_outcome.py`
+
+### Key Decisions
+- **Envelope in Agent Foundry, not Archipelago** — the four outcomes are execution-mode properties. A second product imports from the platform, not from a peer.
+- **No `build_outcome_schema` wrapper** — consumers call `to_claude_code_schema(AgentTurnEnvelope[PayloadType])` directly; they import the envelope for validation anyway.
+- **`FailureOutcome` uses `reason: str`** — no `FailureCategory` enum. Let field data inform future categorization.
+- **Text-marker protocol untouched** — CS6.5 is strictly additive. `marker-config.json` and `_match_marker` stay intact. CS11 deletes them.
+- **`Literal[TurnOutcomeKind.VARIANT]` required** — Pydantic 2.12 rejects bare StrEnum discriminator fields. Fallback clause per project convention.
+
+### Anticipated Challenges
+- **Claude Code `--json-schema` quirks**: silently disables on OpenAPI `discriminator` keyword; fails retries on `$defs`/`$ref`. Both handled by `to_claude_code_schema` flattener. Empirically verified during planning.
+- **Cold-start pattern** (anthropics/claude-code#23265): first `--json-schema` invocation sometimes fails, retry succeeds. Handled by Task 4e local retry.
 
 ---
 
