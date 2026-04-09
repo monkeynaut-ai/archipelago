@@ -317,6 +317,22 @@ CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (th
    - `test_runner.py` — remove tests for old `load_archipelago_plan()` JSON path (updated in CS10)
    - `test_archipelago_role_specs.py` — remove tests for deleted role specs
 
+9. **Delete `marker-config.json` and the text-marker protocol** — the `ARCHIPELAGO_TASK_COMPLETE`, `ARCHIPELAGO_NEED_CLARIFICATION`, `ARCHIPELAGO_NEED_PERMISSION` markers are fully replaced by the `AgentTurnEnvelope` structured-output protocol (CS6.5). Remove `marker-config.json` from `archipelago/src/archipelago/docker/`. Remove the marker instructions from the agent's `docker/CLAUDE.md`. In agent-foundry, the `_match_marker` method and `_compiled_markers` field on `ClaudeCodeAdapter` can be deleted, along with the `MarkerMapping` class in `acp/protocol.py` and all marker-related tests — but only after confirming no agent handler still references them.
+
+10. **Sunset `ARCHIPELAGO_UPDATE_AVAILABLE` marker and replace with CI pipeline** — the `ARCHIPELAGO_UPDATE_AVAILABLE` marker (defined in `marker-config.json` but never referenced in the agent's CLAUDE.md) was a container-internal signal for detecting Claude Code updates at startup. This approach is wrong: it checks for updates inside a container that can't act on them, and it relies on the text-marker protocol being deleted in this same change set.
+
+    **Replacement: a CI pipeline that runs outside the container.**
+
+    The pipeline:
+    1. **Detect** — scheduled job (daily or on Anthropic release webhook) compares `claude --version` on the host against the version pinned in the Dockerfile.
+    2. **Verify** — if a newer version exists, run `test_claude_code_stream_shape.py` (the integration test from CS6.5 that asserts every event type, field name, and structure the adapter depends on) against the new binary. If the parsing contract holds, the update is safe.
+    3. **Rebuild** — if the contract passes, rebuild the Docker image with the new Claude Code version and open a PR that bumps the pinned version.
+    4. **Block** — if the contract fails, file an issue with the specific assertion that broke (e.g., "StructuredOutput tool renamed to JsonOutput") and do NOT rebuild. A human updates `claude_code_events.py` in agent-foundry, the integration test passes, and the pipeline re-runs.
+
+    This makes the update decision automated and contract-gated. The container never needs to know whether it's outdated. The typed event models (`claude_code_events.py`) are the lock; the integration test is the gate; the CI pipeline is the guard.
+
+    **Implementation**: ~30 lines of shell in a GitHub Action. The integration test and typed models already exist. The only new artifact is the workflow file.
+
 ---
 
 ## Change Set 12 (Archipelago): Integration Tests
