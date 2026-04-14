@@ -186,6 +186,35 @@ No explicit platforming effort was made during CS6/CS6.5. But the generic pieces
 
 The adapter pattern-matches on Claude Code's stream-json event shape — `event.type == "assistant"`, `block.name == "StructuredOutput"`, `result.stop_reason`, `result.structured_output`. All unencoded assumptions about an external system's output format. If Anthropic changes any of these, the adapter breaks silently — it stops capturing structured output and falls into the retry path, which also fails, producing a confusing "no structured output" error that looks like a schema problem rather than an interface change. The fix: an integration test (`test_claude_code_stream_shape.py`) that runs the real `claude` CLI with `--json-schema` and asserts every shape the adapter depends on. The test runs on every `pdm run test-integration` and fails loudly with a specific message about which field or event type changed. General lesson: when your code pattern-matches on an external system's output, that's an assumption about the external interface. Unit tests with synthetic fixtures verify your logic but not the assumption. Only an integration test against the real system encodes the assumption as a constraint.
 
+### Security-relevant config: doing nothing must never reduce safety
+**Principle:** Discipline, Empathy
+
+When a configuration field governs access, permissions, visibility, or any security-relevant behavior, the absence of configuration must never increase risk. If missing config could mean "unrestricted access" OR "no access," default to no access. The user must explicitly opt IN to each grant.
+
+Emerged during CS7 Plan 1 design of `AgentAction`'s filesystem lockdown. The initial design had `hidden_dirs: list[str]` and `readonly_dirs: list[str]`, both defaulting to empty. Empty meant "hide nothing, make nothing read-only" — an agent with no lockdown configured had full access to everything in `/workspace`. The inversion: rename to `visible_dirs` and `writable_dirs`, both defaulting to empty, now meaning "see nothing, modify nothing" under `/workspace`. Forgetting to configure no longer grants access — it denies it.
+
+This is distinct from "fail-fast." Fail-fast surfaces errors loudly when they happen. Safe-by-default prevents the error from being a silent grant of authority in the first place. Misconfiguration produces visible failures (e.g., the agent reports "permission denied") rather than invisible exposure. General rule: for any field where one end of the range is "grant" and the other is "deny," default to deny — force the authorizing choice to be explicit.
+
+### TDD difficulty is a design signal, not a testing problem
+**Principle:** Clarity, Discipline
+
+When tests require elaborate setup — monkeypatching, fixture gymnastics, mocking internal implementation details, setting up global state — the friction is the design telling you the code has a hidden coupling or wrong dependency shape. The test's difficulty is not a quality bar to clear; it's diagnostic feedback about the code under test.
+
+Emerged during CS7 Plan 1 review of the `AgentAction` compiler. Tests required `monkeypatch.setattr(agent_runner, "run_agent_in_container", stub)` because the compiler imported the runner as a module-level global. The monkeypatch was a red flag — the compiler had an implicit dependency on a specific module, not an explicit collaborator. The fix was architectural: make the executor an explicit field on `AgentAction` (`executor: Callable[...]`). Tests then construct the primitive with their stub; no patching needed. This also solved the strategy-extensibility question (container vs. SDK vs. API) — different executors are just different callables.
+
+General rule: treat test friction as a first-class design signal. When a test needs patching to set up, ask "what implicit dependency is forcing this?" The answer is usually a missing constructor argument, a missing interface, or an unstated coupling. Fix the design; the test simplifies as a side effect. Conversely, tests that set up naturally with explicit construction are evidence that dependencies are visible and collaborators are injectable — the design is honest about what it needs.
+
+### Product declares behavior; platform provides mechanism
+**Principle:** Coherence
+
+Agent Foundry is a declarative platform. The product's declaration of an agent (or any primitive) should be the *complete* specification of what that agent is and how it runs — prompt logic, instructions, response channel, and execution strategy. The platform provides mechanism — compilation, lifecycle, execution strategies as library capabilities — but does not bake in defaults that the product hasn't chosen. Nothing load-bearing about an agent's behavior should live implicitly in platform code.
+
+Emerged during CS7 Plan 1 design of `AgentAction`. The initial design had the compiler call `agent_runner.run_agent_in_container` as a hardcoded module-level dependency — the platform was silently deciding "this agent runs in a container." Moving execution strategy onto `AgentAction` as `executor: Callable[["AgentAction", str], BaseModel]` made it a product decision. The compiler calls `action.executor(...)` — it runs what the primitive says to run. The platform ships container, SDK, and (future) API executors as callable capabilities; each product picks per agent.
+
+This pattern generalizes beyond execution strategy. Response channel, prompt construction, instruction assembly, filesystem access — all are product concerns. The platform's job is to run a declarative specification, not to enforce policy through defaults. A product reading an `AgentAction` should be able to answer "what does this agent do and how does it run?" purely from the declaration, without needing to know what the platform does by default.
+
+General rule: when the platform appears to be making a decision on the product's behalf ("this will run in a container," "this will use JSON schema output," "this will have these dirs visible"), ask whether that decision belongs on the primitive. If two agents in the same system might legitimately choose differently, the decision is a product concern and must be declared. If the platform offers multiple ways to accomplish a thing, every way is a library capability — none of them should be "the default."
+
 ### Parse external output into typed models at the boundary
 **Principle:** Clarity, Surface/verify/encode
 
