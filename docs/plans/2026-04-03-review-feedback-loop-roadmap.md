@@ -10,21 +10,24 @@
 - **CS6 shipped as "Option A"** — radically trimmed from the original plan. Only `ReviewerPayload` (a thin wrapper around `list[ReviewFinding]`) was added to `models.py`. The originally planned agent wrapper types (`PlannerOutput`, `NewDispatcherOutput`, `IntegratorAgentOutput`, `CommitActionOutput`, `SubmitPRActionOutput`) were intentionally not built — the `--json-schema` structured-output design (CS6.5) requires LLM-facing types to contain only fields the LLM can populate. Execution metadata (`worker_result`, `workspace_volume`) is adapter/runner concern, not in the schema. CS7 will call `to_claude_code_schema(AgentTurnEnvelope[ImplementationTask])` etc. on the CS5 domain types directly. See `docs/plans/2026-04-08-cs6-agent-output-models-plan.md`.
 - **CS6.5 was inserted between CS6 and CS7** — a new cross-repo change set for structured-output protocol extension in Agent Foundry. Motivated by the discovery that Claude Code's `--json-schema` works on Pro subscriptions. CS6.5 adds: schema flattener (`to_claude_code_schema`), `StructuredOutputMessage` protocol type, adapter integration (`--json-schema` plumbing, `StructuredOutput` tool-use detection, hybrid stderr-on-error, local retry on missing structured output with stop-reason-aware skip for refusals/max_tokens), and `AgentTurnEnvelope[T]` generic discriminated-union envelope with four outcome kinds. All work in Agent Foundry — Archipelago gains no new files. See `docs/plans/2026-04-08-cs6.5-structured-output-protocol-plan.md`.
 
+- **CS7 scope expanded** to span both repos. Design work uncovered that `AgentAction` — a new primitive for running LLM agents in containers — belongs in Agent Foundry, not Archipelago. CS7 now includes: (1) Agent Foundry: `AgentAction[I, O]` primitive with a composition-based two-sided interface (platform side handles execution, product side declares agent configuration via collaborator callables), lifecycle orchestration (re-implemented from Archipelago's `DockerLifecycle`), progress tracking, recovery, and the `lessons-learned` skill (moved from Archipelago). (2) Archipelago: four agent implementations (Planner, Reviewer, Dispatcher, Integrator) and two `FunctionAction`s (CommitAction, SubmitPRAction) built on `AgentAction`. The Archipelago Docker image is eliminated — all agents use the base ACP image with instructions injected at runtime via `write_file_to_container`. Key design decisions: structured output via `AgentTurnEnvelope[T]` as default response channel with file collection as fallback; container reuse across loop iterations with resume-or-new-session policy; prompt construction via `prompt_builder: Callable[[I], str]`; independently testable collaborators (prompt builder, instructions provider, response handler) replace monolithic agent classes.
+- **CS10.5 inserted between CS10 and CS11** — a cross-repo change set for execution strategy abstraction and ACP rename. Motivated by the observation that three of four CS7 agents (Planner, Dispatcher, Integrator) are pure reasoning over data and don't need container sandboxing — a direct API/SDK call would be faster and simpler. CS10.5 adds: alternative execution strategies for `AgentAction` (API/SDK alongside container), model parameter configuration (model selection, effort levels), and renames the "ACP" concept and all associated folder names, image names, and references to a more descriptive name. Deferred to CS10.5 because by then the full pipeline is working in containers, providing real experience to inform the design.
+
 ## Overview
 
-13 change sets across two repos. Agent Foundry (CS1-4, CS6.5) comes first — Archipelago (CS5-12) depends on the new primitives and protocol. TDD throughout: tests before implementation in every task.
+14 change sets across two repos. Agent Foundry (CS1-4, CS6.5, CS7-AF) comes first — Archipelago (CS5-12) depends on the new primitives and protocol. TDD throughout: tests before implementation in every task.
 
 ## Dependency Graph
 
 ```
 CS1 (Primitives) → CS2 (Validators) → CS3 (Compiler) ──┐
-                                                         ├→ CS9 (System Def) → CS10 (Runner/CLI) → CS11 (Cleanup) → CS12 (Integration)
+                                                         ├→ CS9 (System Def) → CS10 (Runner/CLI) → CS10.5 (Exec Strategy + ACP Rename) → CS11 (Cleanup) → CS12 (Integration)
 CS4 (MockAdapter) ───────────────────────────────────────┤
-CS5 (Data Models) → CS6 (Payload + Roles) → CS6.5 (Structured Output Protocol) → CS7 (New Agents) ──┤
-CS5 (Data Models) → CS8 (Evolve Agents) ─────────────────────────────────────────────────────────────┘
+CS5 (Data Models) → CS6 (Payload + Roles) → CS6.5 (Structured Output Protocol) → CS7 (AgentAction + New Agents) ──┤
+CS5 (Data Models) → CS8 (Evolve Agents) ───────────────────────────────────────────────────────────────────────────┘
 ```
 
-CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (they don't need the compiler yet). CS6.5 is in Agent Foundry (not Archipelago) and must complete before CS7 — it provides the `AgentTurnEnvelope[T]` and `to_claude_code_schema` that every CS7 agent handler uses. CS9 needs CS3 + CS7 + CS8. CS12 needs CS10 + CS4.
+CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (they don't need the compiler yet). CS6.5 is in Agent Foundry (not Archipelago) and must complete before CS7 — it provides the `AgentTurnEnvelope[T]` and `to_claude_code_schema` that every CS7 agent handler uses. CS7 spans both repos: Agent Foundry gets `AgentAction` primitive and execution infrastructure; Archipelago gets the agent implementations built on top. CS9 needs CS3 + CS7 + CS8. CS10.5 needs CS10. CS12 needs CS10 + CS4.
 
 ---
 
@@ -202,31 +205,70 @@ CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (th
 
 ---
 
-## Change Set 7 (Archipelago): New Agent Implementations
+## Change Set 7 (Agent Foundry + Archipelago): AgentAction Primitive and New Agent Implementations
 
-**Goal**: Planner, Reviewer, Dispatcher (new), Integrator agents + Commit and SubmitPR actions. Each follows `TypedAgent` pattern.
+**Goal**: Introduce `AgentAction[I, O]` as a new Agent Foundry primitive for running LLM agents in containers, then build four Archipelago agents and two function actions on top.
 
-### Tasks (each agent: tests first, then implementation)
+### Design Decisions
 
-1. **Planner** — handles ChangeSetStep and ReviewFinding origins, produces ImplementationTask with interface specs
+- **`AgentAction` is a two-sided interface** — platform side (Agent Foundry) handles container lifecycle, instruction injection, prompt delivery, structured output handling, progress tracking, recovery, and container reuse. Product side (Archipelago) declares agent configuration via composable collaborators: `prompt_builder`, instructions provider, response handler.
+- **Composition over inheritance** — product-side logic (prompt building, instruction assembly, response handling) is provided as collaborator callables, not subclass overrides. Each collaborator is independently unit-testable without Docker or Claude Code.
+- **Structured output by default** — agents return `AgentTurnEnvelope[T]` via `--json-schema`. File collection available as fallback (configured per agent or as runtime fallback on structured output failure).
+- **Container reuse** — product declares reuse policy per agent. Platform manages container pool with two modes: resume (same Claude Code session/context) or new session (fresh session, filesystem state persists). Containers stay alive across loop iterations.
+- **Instructions injected at runtime** — handwritten instruction files read from host filesystem and written into container via `write_file_to_container` before startup. No Archipelago Docker image; all agents use the base ACP image. Base `CLAUDE.md` updated for structured output protocol (no text markers).
+- **Archipelago `docker_worker` package superseded** — lifecycle orchestration, progress tracking, and recovery re-implemented in Agent Foundry. Archipelago's `docker_worker/lifecycle.py`, `progress.py`, `recovery.py`, `interrupts.py`, and `protocol.py` become dead code (cleaned up in CS11).
+- **`lessons-learned` skill moved to Agent Foundry** — generally useful for any product's agents, not Archipelago-specific.
+
+### Agent Foundry Tasks
+
+1. **`AgentAction[I, O]` primitive** — new primitive type alongside `FunctionAction` and `GateAction`. Fields: `prompt_builder`, instructions path/provider, output schema, container config (with platform defaults), reuse policy, file collection paths.
+   - Create: `agent-foundry/src/agent_foundry/primitives/models.py` (extend)
+   - Create: `agent-foundry/tests/agent_foundry/primitives/test_agent_action.py`
+
+2. **`AgentAction` compiler** — compiles `AgentAction` into a LangGraph node that executes the container lifecycle: inject instructions, build prompt from input state, start container, send prompt, receive and validate response, handle all four envelope outcomes.
+   - Modify: `agent-foundry/src/agent_foundry/compiler/primitive_compiler.py`
+   - Create: `agent-foundry/tests/agent_foundry/test_agent_action_compiler.py`
+
+3. **Lifecycle orchestration** — re-implement orchestrator-side container lifecycle (from Archipelago's `DockerLifecycle`): WebSocket server, prompt delivery, message processing, file collection, container reuse with resume/new-session modes.
+   - Create: `agent-foundry/src/agent_foundry/acp/lifecycle.py` (or equivalent)
+   - Create: `agent-foundry/tests/agent_foundry/acp/test_lifecycle.py`
+
+4. **Basic lifecycle tracking** — started/completed/failed status for agent invocations. Full commit-aware progress tracking (progress.jsonl parsing, resume points, PatchInfo/CommitEvidence) deferred to CS8 alongside the code-writing agents that need it.
+
+5. **`lessons-learned` skill** — move from Archipelago Docker image to Agent Foundry base image.
+   - Move: `archipelago/src/archipelago/docker/skills/lessons-learned/SKILL.md` → `agent-foundry/src/agent_foundry/acp/docker/skills/lessons-learned/SKILL.md`
+   - Modify: Agent Foundry base Dockerfile
+
+6. **Update base `CLAUDE.md`** — remove text-marker communication protocol, add structured output protocol via `AgentTurnEnvelope`.
+   - Modify: `archipelago/src/archipelago/docker/CLAUDE.md` (until Archipelago image is eliminated; then this lives in Agent Foundry base image only)
+
+### Archipelago Tasks (each agent: tests first, then implementation)
+
+7. **Planner** — handles ChangeSetStep and ReviewFinding origins, produces ImplementationTask with interface specs. Provides `prompt_builder` and instruction file.
    - Create: `archipelago/src/archipelago/agents/planner.py`
    - Create: `archipelago/tests/archipelago/unit/test_planner.py`
 
-2. **Reviewer** — reviews commit hashes, categorizes findings into must_fix/can_defer
+8. **Reviewer** — reviews commit hashes, categorizes findings into must_fix/can_defer. Provides `prompt_builder` and instruction file.
    - Create: `archipelago/src/archipelago/agents/reviewer.py`
    - Create: `archipelago/tests/archipelago/unit/test_reviewer.py`
 
-3. **Dispatcher** (new) — routes deferred findings per routing rules
-   - Create: `archipelago/src/archipelago/agents/finding_dispatcher.py`
-   - Create: `archipelago/tests/archipelago/unit/test_finding_dispatcher.py`
+9. **Dispatcher** (new) — routes deferred findings per routing rules. Provides `prompt_builder` and instruction file.
+    - Create: `archipelago/src/archipelago/agents/finding_dispatcher.py`
+    - Create: `archipelago/tests/archipelago/unit/test_finding_dispatcher.py`
 
-4. **Integrator** — revises change set step sequences to incorporate routed findings
-   - Create: `archipelago/src/archipelago/agents/integrator.py`
-   - Create: `archipelago/tests/archipelago/unit/test_integrator.py`
+10. **Integrator** — revises change set step sequences to incorporate routed findings. Provides `prompt_builder` and instruction file.
+    - Create: `archipelago/src/archipelago/agents/integrator.py`
+    - Create: `archipelago/tests/archipelago/unit/test_integrator.py`
 
-5. **Actions** — CommitAction (git add/commit), SubmitPRAction (git push, gh pr create)
-   - Create: `archipelago/src/archipelago/actions.py`
-   - Create: `archipelago/tests/archipelago/unit/test_actions.py`
+11. **Actions** — CommitAction (git add/commit), SubmitPRAction (git push, gh pr create). These are `FunctionAction`s, not `AgentAction`s — deterministic, no LLM.
+    - Create: `archipelago/src/archipelago/actions.py`
+    - Create: `archipelago/tests/archipelago/unit/test_actions.py`
+
+12. **Agent instruction files** — handwritten role instructions for each of the four agents.
+    - Create: `archipelago/src/archipelago/instructions/planner.md`
+    - Create: `archipelago/src/archipelago/instructions/reviewer.md`
+    - Create: `archipelago/src/archipelago/instructions/dispatcher.md`
+    - Create: `archipelago/src/archipelago/instructions/integrator.md`
 
 ---
 
@@ -288,6 +330,31 @@ CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (th
 5. **[Deferred from CS5] Recreate the config-to-env pipeline tests** — the original `tests/archipelago/integration/test_config_to_lockdown.py` exercised the full plan → `compile_plan` → node config → env builder pipeline. Its `TestConfigToEnvPipeline` class was deleted during CS5 because `compile_plan`/`GraphWiringPlan` no longer exist. The lockdown enforcement half (env → container) was already recreated in CS5 at `tests/archipelago/integration/test_docker_worker_lockdown.py` by constructing `WorkerInput` directly. CS10 must complete the coverage by adding new integration tests that verify a `PrimitivePlan` node config with `acp_hidden_dirs`/`acp_readonly_dirs` propagates correctly through the new runner into `build_container_env` (or its CS10 successor) and then through the env → container lockdown path. This closes the security regression gap introduced by CS5's deletion of the old pipeline tests.
    - Create: `archipelago/tests/archipelago/integration/test_plan_to_lockdown.py` (or equivalent)
    - Cross-reference: `tests/archipelago/integration/test_docker_worker_lockdown.py` (CS5 follow-up) for the env → container half that is already covered.
+
+---
+
+## Change Set 10.5 (Agent Foundry + Archipelago): Execution Strategy Abstraction and ACP Rename
+
+**Goal**: Add alternative execution strategies to `AgentAction` (API/SDK alongside container), model parameter configuration, and rename the "ACP" concept throughout both repos.
+
+### Motivation
+
+Three of four CS7 agents (Planner, Dispatcher, Integrator) are pure reasoning over data — they don't touch repos, write files, or execute code. Running them in Docker containers is overhead for no safety benefit. A direct API/SDK call to Claude with structured output would be faster, cheaper, and simpler. By CS10, the full pipeline is working in containers, providing real experience to inform this design.
+
+### Tasks
+
+1. **Alternative execution strategies** — `AgentAction` gains the ability to execute via API/SDK call instead of container. Product declares which strategy per agent. Platform provides both execution paths. Container strategy for agents that touch code (Reviewer, TestAgent, Implementer); API strategy for reasoning-only agents (Planner, Dispatcher, Integrator).
+   - Modify: `agent-foundry/src/agent_foundry/primitives/models.py`
+   - Create: `agent-foundry/src/agent_foundry/acp/api_executor.py` (or equivalent)
+
+2. **Model parameter configuration** — `AgentAction` accepts model selection (e.g., Opus, Sonnet), effort levels, and other LLM parameters. Product declares per agent.
+   - Modify: `agent-foundry/src/agent_foundry/primitives/models.py`
+
+3. **Rename ACP** — replace the "ACP" name with a descriptive name throughout both repos: folder names, image names, class names, comments, documentation. Scope: `agent-foundry/src/agent_foundry/acp/` folder, `acp-cc-worker` image name, all `ACP_*` environment variable prefixes, all code references.
+
+4. **Update Archipelago references** — rename all Archipelago references to the old ACP name.
+   - Modify: `archipelago/src/archipelago/docker_worker/` (references to agent_foundry.acp)
+   - Modify: `archipelago/src/archipelago/docker/Dockerfile` (base image name)
 
 ---
 
