@@ -209,6 +209,17 @@ CS1-3 are sequential. CS4 is independent of CS1-3. CS5-8 can start after CS1 (th
 
 **Goal**: Introduce `AgentAction[I, O]` as a new Agent Foundry primitive for running LLM agents in containers, then build four Archipelago agents and two function actions on top.
 
+### Plan Structure
+
+CS7 is broken into four plans, drafted just-in-time after the prior plan lands so implementation learnings shape the next plan. Task numbers below refer to the task list in this roadmap section.
+
+- **Plan 1** — Tasks 1–2 (primitive + compiler) plus a validator registry refactor that emerged during planning. Compiler delegates to a stub `run_agent_in_container` that raises `NotImplementedError`. Path: `docs/plans/2026-04-13-cs7-plan1-agent-action-primitive-plan.md`.
+- **Plan 2** — Task 3 (lifecycle orchestration, replaces the stub) and Task 4 (basic lifecycle tracking). Container reuse is part of Task 3's scope. Also defines the contract for non-success envelope outcomes (Plan 1 deferred this decision).
+- **Plan 3** — Task 5 (`lessons-learned` skill move) and Task 6 (base `CLAUDE.md` update). Independent of Plans 1 and 2; can ship any time.
+- **Plan 4** — Tasks 7–12 (four agents, two function actions, four instruction files). First real product consumer. Depends on Plans 1 and 2.
+
+Dependency shape: Plan 1 → Plan 2 → Plan 4; Plan 3 is independent.
+
 ### Design Decisions
 
 - **`AgentAction` is a two-sided interface** — platform side (Agent Foundry) handles container lifecycle, instruction injection, prompt delivery, structured output handling, progress tracking, recovery, and container reuse. Product side (Archipelago) declares agent configuration via composable collaborators: `prompt_builder`, instructions provider, response handler.

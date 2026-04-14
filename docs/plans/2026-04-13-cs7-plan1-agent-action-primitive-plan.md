@@ -3,6 +3,17 @@
 > **Roadmap:** docs/plans/2026-04-03-review-feedback-loop-roadmap.md (Change Set 7)
 > **For agents:** Use team-dev (parallel) or sdd (sequential) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Where this plan fits in CS7
+
+CS7 is split into four plans. This is Plan 1.
+
+- **Plan 1 (this document)** — roadmap Tasks 1–2 (`AgentAction` primitive + compiler) plus a validator registry refactor that emerged during planning. Compiler delegates to a stub `run_agent_in_container`.
+- **Plan 2** — roadmap Tasks 3–4 (lifecycle orchestration replaces the stub; basic lifecycle tracking). Container reuse is part of Task 3's scope.
+- **Plan 3** — roadmap Tasks 5–6 (`lessons-learned` skill move; base `CLAUDE.md` update). Independent of Plans 1 and 2.
+- **Plan 4** — roadmap Tasks 7–12 (four Archipelago agents, two function actions, four instruction files).
+
+Dependency shape: Plan 1 → Plan 2 → Plan 4; Plan 3 is independent. Each subsequent plan is drafted just-in-time after the prior plan lands.
+
 **Goal:** Introduce `AgentAction[I, O]` as a new Agent Foundry primitive — define the model, validate it in the type graph, and compile it to a LangGraph node that delegates to a stub execution function.
 
 **Architecture:** `AgentAction` is a leaf primitive (like `FunctionAction`, `GateAction`) with product-side collaborator callables (`prompt_builder`, `instructions_provider`), a required response channel (`StructuredOutputChannel` or `FileCollectionChannel`), and a required `executor` callable that actually runs the agent. The compiler produces a LangGraph node structurally parallel to `FunctionAction`'s: validate input state against `I`, build the prompt via `prompt_builder`, call `action.executor(primitive=action, prompt=prompt)`, verify the returned model is an instance of `O`, merge into state. The executor owns envelope unwrapping, schema validation, and channel branching — the compiler does not, and the compiler has no knowledge of whether the agent runs in a container, via SDK, or via API. Plan 1 ships `run_agent_in_container` as the container executor; CS10.5 adds SDK and API executors. Validator dispatch is refactored to a registry; unknown primitive types raise `UnregisteredPrimitiveError`, and applications can register validators for their own `Primitive` subclasses.
@@ -17,17 +28,17 @@
 
 | File | Action | Responsibility |
 |------|--------|---------------|
-| `agent-foundry/src/agent_foundry/primitives/models.py` | Modify | Add `ContainerReusePolicy` enum and `AgentAction[I, O]` primitive class |
-| `agent-foundry/src/agent_foundry/primitives/__init__.py` | Modify | Export `AgentAction`, `ContainerReusePolicy`, `register_validator`, `UnregisteredPrimitiveError` |
+| `agent-foundry/src/agent_foundry/primitives/models.py` | Modify | Add `ContainerReusePolicy` enum, `StructuredOutputChannel`/`FileCollectionChannel` response channels, and `AgentAction[I, O]` primitive class |
+| `agent-foundry/src/agent_foundry/primitives/__init__.py` | Modify | Export `AgentAction`, `ContainerReusePolicy`, `StructuredOutputChannel`, `FileCollectionChannel`, `register_validator`, `UnregisteredPrimitiveError` |
 | `agent-foundry/src/agent_foundry/primitives/validators.py` | Modify | Refactor dispatch to a registry; register validators for all built-in primitives including `AgentAction` |
 | `agent-foundry/src/agent_foundry/primitives/errors.py` | Modify | Add `UnregisteredPrimitiveError` for primitive types with no registered validator |
-| `agent-foundry/src/agent_foundry/acp/agent_runner.py` | Create | Module holding the `AgentRunResult` model and stub `run_agent_in_container` function |
-| `agent-foundry/src/agent_foundry/compiler/primitive_compiler.py` | Modify | Register `_compile_agent_action` |
-| `agent-foundry/tests/agent_foundry/primitives/test_agent_action_model.py` | Create | Unit tests for `AgentAction` primitive model |
-| `agent-foundry/tests/agent_foundry/primitives/test_primitive_models.py` | Modify | Add `AgentAction` to public API import test |
-| `agent-foundry/tests/agent_foundry/primitives/test_primitive_validators.py` | Modify | Add `AgentAction` validator tests |
-| `agent-foundry/tests/agent_foundry/acp/test_agent_runner_stub.py` | Create | Unit tests for stub `run_agent_in_container` and `AgentRunResult` |
-| `agent-foundry/tests/agent_foundry/compiler/test_agent_action_compiler.py` | Create | Unit tests for compiled `AgentAction` node behavior |
+| `agent-foundry/src/agent_foundry/acp/agent_runner.py` | Create | Module holding the stub `run_agent_in_container` executor (container strategy) |
+| `agent-foundry/src/agent_foundry/compiler/primitive_compiler.py` | Modify | Register `_compile_agent_action` (calls `action.executor`; no `agent_runner` import in compiler) |
+| `agent-foundry/tests/agent_foundry/primitives/test_agent_action_model.py` | Create | Unit tests for `AgentAction` primitive model (fields, response channels, executor, config defaults) |
+| `agent-foundry/tests/agent_foundry/primitives/test_primitive_models.py` | Modify | Add `AgentAction`, `ContainerReusePolicy`, response channel types to public API import test |
+| `agent-foundry/tests/agent_foundry/primitives/test_primitive_validators.py` | Modify | Add validator registry tests and `AgentAction` composition tests; update existing tests to use `FunctionAction` as leaf stand-in (replaces bare `Primitive[...]`) |
+| `agent-foundry/tests/agent_foundry/acp/test_agent_runner_stub.py` | Create | Unit tests for the stub `run_agent_in_container` (raises `NotImplementedError` for every `ContainerReusePolicy`) |
+| `agent-foundry/tests/agent_foundry/compiler/test_agent_action_compiler.py` | Create | Unit tests for compiled `AgentAction` node (executor invocation, state merge, exception propagation, channel-agnostic, empty-dirs valid, Sequence composition) |
 
 ---
 
@@ -694,6 +705,8 @@ git commit -m "feat(primitives): export AgentAction and ContainerReusePolicy fro
 
 Unknown primitive types (no registered validator) raise `UnregisteredPrimitiveError`. Silent no-op fallback is rejected — it hides misconfiguration.
 
+**Sequential-execution constraint with Task 4**: Both Task 4 and Task 5 (Step 5) perform wholesale replacement of `primitives/__init__.py`. If these tasks are parallelized (e.g., via `team-dev`), only one write lands — losing `register_validator`/`UnregisteredPrimitiveError` exports or the `AgentAction` export, silently. Task 5 must run sequentially after Task 4 completes. If using `team-dev`, serialize these two tasks explicitly.
+
 - [ ] **Step 1: Add the new error class**
 
 In `agent-foundry/src/agent_foundry/primitives/errors.py`, append:
@@ -790,12 +803,33 @@ class TestValidatorRegistry:
         child = ChildPrim[_RegInput, _RegOutput]()
         validate_primitive(child)
         assert calls == ["parent"]
+
+    def test_reregistering_overwrites_previous(self):
+        """Last-write-wins is intentional — products may override built-in validators."""
+
+        class OverridePrim[I: BaseModel, O: BaseModel](Primitive[I, O]):
+            pass
+
+        calls: list[str] = []
+
+        def _first(prim):
+            calls.append("first")
+
+        def _second(prim):
+            calls.append("second")
+
+        register_validator(OverridePrim, _first)
+        register_validator(OverridePrim, _second)
+
+        prim = OverridePrim[_RegInput, _RegOutput]()
+        validate_primitive(prim)
+        assert calls == ["second"]
 ```
 
 - [ ] **Step 3: Run tests to verify they fail**
 
 Run: `cd /home/markn/engineering/jig-archipelago/agent-foundry && pdm test-unit tests/agent_foundry/primitives/test_primitive_validators.py::TestValidatorRegistry`
-Expected: FAIL — `register_validator` not importable, `UnregisteredPrimitiveError` not raised.
+Expected: FAIL — `register_validator` not importable, `UnregisteredPrimitiveError` not raised. (4 tests total: unknown raises, register allows, MRO walk, re-registration overwrites.)
 
 - [ ] **Step 4: Refactor `validators.py` to use a registry**
 
@@ -1137,12 +1171,58 @@ __all__ = [
 ]
 ```
 
-- [ ] **Step 6: Run all validator tests and full primitives suite**
+- [ ] **Step 6: Update existing validator tests — replace bare `Primitive[...]` leaves with `FunctionAction`**
+
+**Why:** The existing `test_primitive_validators.py` uses `Primitive[StateA, StateB]()` as a stand-in leaf in ~37 places (nested inside Sequence, Loop, Retry, Conditional tests). The old if/elif dispatch silently no-opped for bare `Primitive`. The new registry raises `UnregisteredPrimitiveError` for any type with no registered validator — and `Primitive` itself has none (by design — see the lesson "unknown types raise, don't silently no-op"). Registering a no-op for `Primitive` would also apply to any user-defined subclass via MRO, defeating the safety guarantee. Instead, rewrite the tests to use `FunctionAction` (which has a registered no-op validator) as the leaf stand-in.
+
+**Mechanical transformation:** every occurrence of
+```python
+Primitive[X, Y]()
+```
+becomes
+```python
+FunctionAction[X, Y](function=lambda s: Y(...))
+```
+where the lambda returns a `Y` instance. For type-mismatch test fixtures, the lambda body doesn't matter — the validator runs on types alone, never calls the function. Use `Y.model_construct()` (bypasses Pydantic validation) or a minimal valid instance — whatever is simplest per fixture.
+
+**How:** In `agent-foundry/tests/agent_foundry/primitives/test_primitive_validators.py`:
+
+1. Update imports to replace `Primitive` with `FunctionAction`:
+   ```python
+   from agent_foundry.primitives.models import (
+       Conditional,
+       FunctionAction,
+       GateAction,
+       Loop,
+       Retry,
+       Sequence,
+   )
+   ```
+   (Remove `Primitive` from this import if it's no longer used; keep it if any other test still references it.)
+
+2. Grep for every `Primitive[` in this file and replace with `FunctionAction[`, adding `function=lambda s: <OutputType>.model_construct()` to each construction. Example:
+   ```python
+   # Before:
+   step = Primitive[StateA, StateB]()
+   # After:
+   step = FunctionAction[StateA, StateB](function=lambda s: StateB.model_construct())
+   ```
+
+3. For `Primitive[StateX, StateX]()` (same type in and out), use:
+   ```python
+   step = FunctionAction[StateX, StateX](function=lambda s: s)
+   ```
+
+4. Affected test classes (per earlier grep — confirm with the actual file): `TestValidateSequence`, `TestValidateLoop`, `TestValidateRetry`, `TestValidateConditional`, and any tests using `Primitive[...]()` as a body/step/branch.
+
+- [ ] **Step 7: Run all validator tests and full primitives suite**
 
 Run: `cd /home/markn/engineering/jig-archipelago/agent-foundry && pdm test-unit tests/agent_foundry/primitives/`
-Expected: PASS — all existing validator tests still pass (behavior preserved), plus the 3 new registry tests.
+Expected: PASS — all existing validator tests still pass (behavior preserved via `FunctionAction` leaves), plus the 3 new registry tests from Step 2.
 
-- [ ] **Step 7: Commit**
+If tests fail with `UnregisteredPrimitiveError`, a `Primitive[...]` construction was missed — grep again and update.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 cd /home/markn/engineering/jig-archipelago/agent-foundry
@@ -1163,16 +1243,22 @@ git commit -m "refactor(primitives): open validator dispatch via registry; regis
 
 - [ ] **Step 1: Add failing tests for `AgentAction` composition**
 
+Add the `StructuredOutputChannel` import to the top of `test_primitive_validators.py` if not already present:
+
+```python
+from agent_foundry.primitives.models import (
+    AgentAction,
+    StructuredOutputChannel,
+    # ... other imports that already exist
+)
+```
+
 Append to `agent-foundry/tests/agent_foundry/primitives/test_primitive_validators.py`:
 
 ```python
 # ======================================================================
 # AgentAction composition validation
 # ======================================================================
-
-
-def _stub_prompt_builder_for_validator(state):
-    return "prompt"
 
 
 class _AgentValInput(BaseModel):
@@ -1184,21 +1270,37 @@ class _AgentValOutput(BaseModel):
     result: str
 
 
+def _stub_prompt_builder_for_validator(state):
+    return "prompt"
+
+
+def _stub_instructions_for_validator() -> str:
+    return "# instructions"
+
+
+def _stub_executor_for_validator(*, primitive, prompt) -> _AgentValOutput:
+    return _AgentValOutput(value="v", result="r")
+
+
+def _make_agent_action(input_type, output_type):
+    """Build an AgentAction with all required fields populated."""
+    return AgentAction[input_type, output_type](
+        prompt_builder=_stub_prompt_builder_for_validator,
+        instructions_provider=_stub_instructions_for_validator,
+        response_channel=StructuredOutputChannel(),
+        executor=_stub_executor_for_validator,
+    )
+
+
 class TestAgentActionCompositionValidation:
     """AgentAction composes correctly inside parent primitives."""
 
     def test_standalone_agent_action_validates(self):
-        action = AgentAction[_AgentValInput, _AgentValOutput](
-            prompt_builder=_stub_prompt_builder_for_validator,
-            instructions_path="/tmp/x.md",
-        )
+        action = _make_agent_action(_AgentValInput, _AgentValOutput)
         validate_primitive(action)  # should not raise
 
     def test_agent_action_in_sequence_validates_types(self):
-        action = AgentAction[_AgentValInput, _AgentValOutput](
-            prompt_builder=_stub_prompt_builder_for_validator,
-            instructions_path="/tmp/x.md",
-        )
+        action = _make_agent_action(_AgentValInput, _AgentValOutput)
         seq = Sequence[_AgentValInput, _AgentValOutput](steps=[action])
         validate_primitive(seq)  # should not raise
 
@@ -1206,10 +1308,7 @@ class TestAgentActionCompositionValidation:
         class _OtherInput(BaseModel):
             other: str
 
-        action = AgentAction[_OtherInput, _AgentValOutput](
-            prompt_builder=lambda s: "x",
-            instructions_path="/tmp/x.md",
-        )
+        action = _make_agent_action(_OtherInput, _AgentValOutput)
         seq = Sequence[_AgentValInput, _AgentValOutput](steps=[action])
         with pytest.raises(TypeMismatchError):
             validate_primitive(seq)
@@ -1265,6 +1364,7 @@ from pydantic import BaseModel
 from agent_foundry.acp.agent_runner import run_agent_in_container
 from agent_foundry.primitives.models import (
     AgentAction,
+    ContainerReusePolicy,
     StructuredOutputChannel,
 )
 
@@ -1278,15 +1378,17 @@ class _StubOutput(BaseModel):
 
 
 class TestRunAgentInContainerStub:
-    def test_raises_not_implemented_error(self):
-        # An AgentAction that wires ``run_agent_in_container`` as its executor.
-        # The stub body raises — verifying the real executor is not silently
-        # invoked before Plan 2 lands.
+    @pytest.mark.parametrize("policy", list(ContainerReusePolicy))
+    def test_raises_not_implemented_error_for_every_reuse_policy(self, policy):
+        # The stub ignores reuse_policy; all values raise NotImplementedError.
+        # Plan 2 will implement policy-specific behavior — this test pins
+        # the stub's policy-agnostic contract until then.
         action = AgentAction[_StubInput, _StubOutput](
             prompt_builder=lambda s: "prompt",
             instructions_provider=lambda: "instructions",
             response_channel=StructuredOutputChannel(),
             executor=run_agent_in_container,
+            reuse_policy=policy,
         )
         with pytest.raises(NotImplementedError, match="Plan 2"):
             run_agent_in_container(primitive=action, prompt="hi")
@@ -1361,7 +1463,7 @@ def run_agent_in_container(
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd /home/markn/engineering/jig-archipelago/agent-foundry && pdm test-unit tests/agent_foundry/acp/test_agent_runner_stub.py`
-Expected: PASS (1 test)
+Expected: PASS (3 tests — one per `ContainerReusePolicy` value)
 
 - [ ] **Step 5: Commit**
 
@@ -1529,6 +1631,62 @@ class TestAgentActionCompiler:
 
         with pytest.raises(PrimitiveCompilationError, match="AgentOutput"):
             graph.invoke({"query": "hello"})
+
+    def test_compiler_is_agnostic_to_response_channel(self):
+        """The compiler must not branch on response_channel — that's executor-internal.
+
+        Confirm by compiling an AgentAction that uses FileCollectionChannel
+        and verifying it behaves identically to the StructuredOutputChannel
+        cases above: executor is called, result is merged into state.
+        """
+        from agent_foundry.primitives.models import FileCollectionChannel
+
+        def _executor(*, primitive, prompt):
+            return AgentOutput(answer="42")
+
+        def _builder(files: dict[str, str]) -> AgentOutput:
+            return AgentOutput(answer=files.get("/workspace/out.md", ""))
+
+        action = AgentAction[AgentInput, AgentOutput](
+            prompt_builder=_record_prompt_builder,
+            instructions_provider=_stub_instructions,
+            response_channel=FileCollectionChannel(
+                files=["/workspace/out.md"],
+                builder=_builder,
+            ),
+            executor=_executor,
+        )
+        plan = PrimitivePlan(root=action)
+        graph = compile_primitive(plan)
+
+        result = graph.invoke({"query": "hello"})
+
+        assert result["answer"] == "42"
+
+    def test_compiles_with_empty_lockdown_dirs(self):
+        """Empty visible_dirs/writable_dirs are a valid configuration.
+
+        Safe-by-default invariant: empty dirs means no access, not
+        no-compilation. Plan 2 implementers must not add a guard that
+        rejects empty dirs.
+        """
+
+        def _executor(*, primitive, prompt):
+            return AgentOutput(answer="42")
+
+        action = AgentAction[AgentInput, AgentOutput](
+            prompt_builder=_record_prompt_builder,
+            instructions_provider=_stub_instructions,
+            response_channel=StructuredOutputChannel(),
+            executor=_executor,
+            # visible_dirs and writable_dirs default to empty.
+        )
+        plan = PrimitivePlan(root=action)
+        graph = compile_primitive(plan)
+
+        result = graph.invoke({"query": "hello"})
+
+        assert result["answer"] == "42"
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1596,7 +1754,7 @@ No import of `agent_runner` is needed — the compiler doesn't know or care whic
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd /home/markn/engineering/jig-archipelago/agent-foundry && pdm test-unit tests/agent_foundry/compiler/test_agent_action_compiler.py`
-Expected: PASS (4 tests)
+Expected: PASS (6 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -1785,7 +1943,7 @@ After completing all tasks, re-read this plan and verify:
 1. **Spec coverage** — Every requirement from CS7 Agent Foundry Tasks AF-1 (primitive model), AF-2 (validator), AF-3 (compiler) in the roadmap is covered by a task here. AF-4, AF-5, AF-6, AF-7, AF-8 are deferred to later plans.
 2. **Placeholder scan** — No TBD, TODO, or "figure it out later" in any step.
 3. **Type consistency** — `AgentAction`, `ContainerReusePolicy`, `StructuredOutputChannel`, `FileCollectionChannel`, `run_agent_in_container` names used identically across tasks. Field names (`prompt_builder`, `instructions_provider`, `response_channel`, `executor`, `timeout_seconds`, `skip_permissions`, `visible_dirs`, `writable_dirs`, `reuse_policy`) consistent. No references to `AgentRunResult`, `instructions_path`, `output_schema`, `collect_files`, `acp_hidden_dirs`, `acp_readonly_dirs`, `_patch_runner` (all deleted). The compiler does not import `agent_runner` — it calls `action.executor` directly.
-4. **Dependency ordering** — Task 1 → 2 → 3 → 4 → 5 → 5b → 6 → 7 → 8 → 9 → 10. Task 6 is independent of Task 5/5b and can be done in parallel. Each task's dependencies declared.
+4. **Dependency ordering** — Task 1 → 2 → 3 → 4 → 5 → 5b → 7 → 8 → 9 → 10, with Task 6 parallel to Tasks 5/5b (Task 6 depends only on Task 4). Tasks 4 and 5 both write `primitives/__init__.py` — they must be serialized (not parallelized) since later writes overwrite earlier ones. Each task's dependencies are declared in its header.
 5. **Command accuracy** — `pdm test-unit` is the test runner per `CLAUDE.md`. Repo is at `/home/markn/engineering/jig-archipelago/agent-foundry`.
 
 ---
@@ -1793,9 +1951,9 @@ After completing all tasks, re-read this plan and verify:
 ## Notes for Implementers
 
 - **TDD discipline**: Every task has a "write failing test → run to confirm fail → implement → confirm pass → commit" cycle. Do not skip the red step.
-- **Monkeypatching**: Tests from Task 7 onward monkeypatch `agent_runner.run_agent_in_container`. The compiler accesses the function via `agent_runner.run_agent_in_container` (module attribute), so patching the module works.
-- **No real Docker in tests**: Plan 1 does not require Docker to be running. The stub runner raises `NotImplementedError`; tests override it.
-- **Envelope shape**: The test fixtures hand-craft the envelope dict. This matches the shape produced by `AgentTurnEnvelope[T].model_dump()`. See `agent-foundry/src/agent_foundry/acp/agent_turn_envelope.py`.
+- **No monkeypatching**: Tests from Task 7 onward supply the executor directly on `AgentAction` via the `executor` field. The compiler calls `action.executor(...)` — there is no module-level `run_agent_in_container` import to patch. If you find yourself reaching for `monkeypatch.setattr`, stop and construct the primitive with your stub executor instead.
+- **No real Docker in tests**: Plan 1 does not require Docker to be running. The stub `run_agent_in_container` raises `NotImplementedError`; tests that exercise the compiler never call it — they supply their own executor callable.
+- **No AgentTurnEnvelope unwrapping in Plan 1**: The compiler does not inspect envelopes — it calls `executor(primitive=action, prompt=prompt)` and expects an instance of `O` back. Envelope unwrapping, schema validation, and response-channel branching live inside the executor (Plan 2's `run_agent_in_container` implementation). Test executors return plain `O` instances directly.
 
 ---
 
@@ -1806,7 +1964,7 @@ The following are deferred to later plans in CS7:
 - **Real Docker orchestration** — `run_agent_in_container` body (Plan 2: AF-5). Includes envelope unwrapping, schema validation, response-channel branching, structured-output vs. file-collection handling.
 - **Container reuse** — `reuse_policy` field is defined and accepted but the stub ignores it (Plan 2: AF-6).
 - **Lifecycle tracking** — no tracker in this plan. Diagnostic output (exit codes, stdout lines) is not returned from the runner and will flow to the tracker in Plan 2 (AF-4).
-- **Non-success envelope outcomes** — in Plan 1, any runner failure (including non-success outcomes) propagates as an exception. Plan 2 defines whether clarification/permission map to LangGraph interrupts or some other mechanism.
+- **Non-success envelope outcomes** — in Plan 1, all non-success outcome kinds (`clarification_needed`, `permission_needed`, `failed`) propagate as untyped exceptions from the executor. The compiler does not distinguish between them. Plan 2 will define whether each outcome maps to a typed exception class, a LangGraph interrupt, or some other mechanism — Plan 1's contract is deliberately minimal to avoid committing Plan 2 to a specific shape.
 - **`lessons-learned` skill move** — (Plan 3: AF-7).
 - **Base `CLAUDE.md` update** — (Plan 3: AF-8).
 - **Archipelago agent implementations** — (Plan 4: AR-1..6).
