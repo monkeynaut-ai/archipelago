@@ -219,3 +219,48 @@ General rule: when the platform appears to be making a decision on the product's
 **Principle:** Clarity, Surface/verify/encode
 
 The adapter scattered `event.get("type")`, `block.get("name")`, `msg.get("content")` throughout its code — each access an implicit dependency on Claude Code's wire shape. Adding a new field access meant adding another untracked assumption. The fix: parse raw JSON into typed Pydantic models (`SystemInitEvent`, `AssistantEvent`, `ResultEvent`, `ErrorEvent`) at the first moment the data enters our code — the `for line in proc.stdout` loop. Everything downstream works with typed objects; no more dict access. If the wire shape changes, the parse fails at ONE point with a clear Pydantic validation error, instead of propagating as `None` or `KeyError` deep in the event loop. To adapt to upstream changes: update the model, Pydantic tells you everywhere downstream that breaks via type errors. Constants the adapter depends on (`STRUCTURED_OUTPUT_TOOL_NAME`, `NON_RECOVERABLE_STOP_REASONS`) live in the same module as the single source of truth. General lesson: when your code consumes an external system's output, parse it into typed models at the entry point. Every subsequent line of code gets type safety for free, and the adaptation surface for upstream changes shrinks to one file. `cli.py` had broken runner imports at the top but contained a standalone `configure_logging()` function with no dead dependencies — extraction would have preserved it. `test_config_to_lockdown.py` had broken compiler imports but contained lockdown enforcement tests whose value was OS-level behavior verification — the compiler step was ceremonial; the security properties were the real test. Both were caught in PR #2 review and fixed in follow-up commits (`160c8ba`, `63ea6d0`, `740936f`). The lesson: when deleting a file, the unit of analysis is the individual definition, not the file as a whole. Broken imports at the top of a file do not imply broken content inside it. For any non-trivial file, audit each top-level definition: is it standalone? Is what it provides still needed? Where does the behavior it implements live after deletion? Only delete whole files when every top-level definition is genuinely dead. For test files specifically, classify by what's being tested before deleting: correctness tests are replaceable; security/safety tests must be preserved, migrated to a new test that exercises the same property, or explicitly deferred with a tracked requirement in a roadmap or plan document. Losing coverage of a security property silently is a regression even when the production code didn't change.
+
+### Fixed time-based waits are silent correctness bugs
+**Principle:** Discipline, Surface/verify/encode
+
+**Description:** Using `sleep(N)` to wait for an operation that initiates work elsewhere — a container starting up, a subprocess initializing, an async task completing — masks a race. The call returns quickly, but the real work happens after the return. When that work takes longer than N, the next operation proceeds against incomplete state with no loud failure.
+
+**How to apply:** Any time you reach for `sleep(N)` after starting an operation whose result you depend on, stop. Identify the invariant the sleep is trying to guarantee ("role instructions are on disk," "service is accepting traffic"). Replace the sleep with a direct probe of that invariant — HEALTHCHECK, marker file, readiness endpoint, state poll with bounded timeout. If no probe exists, build one. Treat every unbounded-duration sleep in production as a bug report.
+
+**Benefit:** Failures become loud (explicit readiness timeout with a clear diagnostic) instead of silent (downstream operation succeeds against stale state, producing plausible-but-wrong behavior). Silent correctness failures are the worst failure mode; this lesson prevents one common path to them.
+
+### Subagent reports describe authored intent, not observed behavior
+**Principle:** Discipline, Surface/verify/encode
+
+**Description:** Subagents write reports from memory of what they meant to do, not from fresh observation of the repo state. Their claims ("tests pass," "baseline unchanged," "nothing committed") are hypotheses, not facts. Treating them as facts lets false-green reports become the foundation for the next task.
+
+**How to apply:** After every subagent completion, independently verify the claims before closing the task: run `git status`, rerun the exact test/typecheck/lint command the report cites, inspect diffs on claimed-modified files, look for stray artifacts in the working tree. Never let a subagent's own report close a task — only the orchestrator's observed output does.
+
+**Benefit:** Catches false-green reports at the handoff boundary, where they are cheapest to fix. Prevents cascading failures across multi-agent work where task N+1 builds on a lie from task N. Cost of verification is ~10 seconds; payoff is every compound error avoided.
+
+### Plan file-layout declarations are contracts, not task lists
+**Principle:** Discipline
+
+**Description:** Aspirational plan sections — file trees, event enums, API surfaces, artifact layouts — describe desired state without automatically generating work items. An item in a layout diagram is not a task that creates it.
+
+**How to apply:** During plan review (before approval, not during execution), walk each aspirational section and identify the specific task that produces each declared item. If a file, event, or field has no owning task, add one or remove the declaration. Make this audit explicit in the plan-review workflow.
+
+**Benefit:** Prevents late-phase verification failures where a declared artifact exists on paper but no task wired its creation. Avoids scope creep when missing pieces get fixed ad-hoc during integration testing, which in turn causes secondary bugs in code that was written assuming the artifacts existed.
+
+### Backward-compat defaults are silent couplings that outlive their purpose
+**Principle:** Coherence, Discipline
+
+**Description:** Adding a field default during a migration to avoid updating existing callers creates an invisible dependency between the refactored code and the un-migrated callers. The "temporary" default persists past the migration, carrying stale assumptions into every new caller that adopts it.
+
+**How to apply:** When tempted to add a default to avoid migrating callers, take one of two actions: (a) migrate every caller now and keep the field required; (b) explicitly reclassify the field as not-required with a written rationale for why "missing" is legitimate. Never add a default solely to keep existing tests passing.
+
+**Benefit:** Keeps "required" declarations honest — if the plan says required, the code enforces required. Prevents transition scaffolding from becoming permanent coupling. Stops silent propagation of stale assumptions into future code that has no reason to know the default was ever transitional.
+
+### Clarifying questions are not approvals
+**Principle:** Empathy, Discipline
+
+**Description:** When a user asks a clarifying question ("serial, correct?") or confirms a detail ("yes, exactly"), they are gathering information or acknowledging a point. They are not granting permission to proceed with the broader action under discussion.
+
+**How to apply:** Before taking any action that was under discussion, require an explicit go-ahead — "proceed," "go," "do it," "yes, implement." If the most recent user message was a question or a detail-level confirmation, treat the conversation as still in discussion until the user says otherwise. When in doubt, ask for explicit permission rather than inferring it.
+
+**Benefit:** Preserves user trust and prevents unwanted actions. Trust is expensive to rebuild once an agent acts without authorization; this lesson costs a single extra clarifying exchange and prevents that damage.
