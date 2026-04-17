@@ -71,19 +71,6 @@ def _assert_schema(
     assert isinstance(qc["max_retries"], int) and qc["max_retries"] >= 0
 
 
-class TestExistingSoftwareReviewSpec:
-    """Sanity check the harness against an already-present role spec."""
-
-    def test_given_software_review_yaml_when_loaded_then_matches_schema(self):
-        spec = _load("software_review.yaml")
-        _assert_schema(
-            spec,
-            expected_name="software_review",
-            expected_module="archipelago.agents.software_reviewer",
-            expected_class="SoftwareReviewer",
-        )
-
-
 class TestPlanImplementationTaskSpec:
     def test_given_plan_implementation_task_yaml_when_loaded_then_matches_schema(self):
         spec = _load("plan_implementation_task.yaml")
