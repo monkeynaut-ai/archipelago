@@ -2,7 +2,7 @@
 
 These tests require:
 - Docker daemon available on the host
-- acp-cc-worker:latest image built (pdm docker-base)
+- agent-worker:latest image built (pdm docker-base)
 """
 
 import contextlib
@@ -10,9 +10,9 @@ import contextlib
 import docker
 import pytest
 
-WORKER_IMAGE = "acp-cc-worker:latest"
+WORKER_IMAGE = "agent-worker:latest"
 
-# Same safety baseline as ContainerManager in src/agent_foundry/acp/container.py
+# Same safety baseline as ContainerManager in src/agent_foundry/agents/container.py
 _CAP_DROP = ["ALL"]
 _CAP_ADD = ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID"]
 

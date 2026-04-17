@@ -1,10 +1,10 @@
-"""Integration tests for ACP permissions enforcement.
+"""Integration tests for Agent Container permissions enforcement.
 
-These tests exercise the real acp-cc-worker:latest Docker image to verify
+These tests exercise the real agent-worker:latest Docker image to verify
 that each permission enforcement layer works at runtime — not just that
 configuration is passed correctly (which unit tests cover).
 
-Requires: Docker daemon + acp-cc-worker:latest image (pdm docker-base).
+Requires: Docker daemon + agent-worker:latest image (pdm docker-base).
 """
 
 import json
@@ -29,7 +29,7 @@ class TestFilesystemLockdownHiddenDirs:
         script = """
             mkdir -p /workspace/secrets
             echo "top-secret" > /workspace/secrets/key.txt
-            export ACP_HIDDEN_DIRS=/workspace/secrets
+            export WORKSPACE_HIDDEN_DIRS=/workspace/secrets
             . /home/claude/lockdown.sh
             gosu claude sh -c 'ls /workspace/secrets 2>&1'
         """
@@ -45,7 +45,7 @@ class TestFilesystemLockdownHiddenDirs:
         script = """
             mkdir -p /workspace/secrets
             echo "api-key-12345" > /workspace/secrets/key.txt
-            export ACP_HIDDEN_DIRS=/workspace/secrets
+            export WORKSPACE_HIDDEN_DIRS=/workspace/secrets
             . /home/claude/lockdown.sh
             gosu claude sh -c 'cat /workspace/secrets/key.txt 2>&1'
         """
@@ -62,7 +62,7 @@ class TestFilesystemLockdownHiddenDirs:
             mkdir -p /workspace/secrets /workspace/.keys
             echo "s1" > /workspace/secrets/a.txt
             echo "s2" > /workspace/.keys/b.txt
-            export ACP_HIDDEN_DIRS=/workspace/secrets,/workspace/.keys
+            export WORKSPACE_HIDDEN_DIRS=/workspace/secrets,/workspace/.keys
             . /home/claude/lockdown.sh
             FAIL=0
             gosu claude sh -c 'ls /workspace/secrets' 2>/dev/null && FAIL=1
@@ -78,7 +78,7 @@ class TestFilesystemLockdownHiddenDirs:
         self, docker_client, worker_image, container_cleanup
     ):
         script = """
-            export ACP_HIDDEN_DIRS=/workspace/does-not-exist
+            export WORKSPACE_HIDDEN_DIRS=/workspace/does-not-exist
             . /home/claude/lockdown.sh
             echo "OK"
         """
@@ -95,7 +95,7 @@ class TestFilesystemLockdownHiddenDirs:
             mkdir -p /workspace/secrets /workspace/open
             echo "visible" > /workspace/open/data.txt
             chown -R claude:claude /workspace/open
-            export ACP_HIDDEN_DIRS=/workspace/secrets
+            export WORKSPACE_HIDDEN_DIRS=/workspace/secrets
             . /home/claude/lockdown.sh
             gosu claude sh -c 'cat /workspace/open/data.txt && touch /workspace/open/new.txt && echo "OK"'
         """
@@ -118,7 +118,7 @@ class TestFilesystemLockdownReadonlyDirs:
             mkdir -p /workspace/config
             echo "setting: true" > /workspace/config/app.yaml
             chown -R claude:claude /workspace/config
-            export ACP_READONLY_DIRS=/workspace/config
+            export WORKSPACE_READONLY_DIRS=/workspace/config
             . /home/claude/lockdown.sh
             gosu claude sh -c 'touch /workspace/config/new.txt 2>&1'
         """
@@ -135,7 +135,7 @@ class TestFilesystemLockdownReadonlyDirs:
             mkdir -p /workspace/config
             echo "setting: true" > /workspace/config/app.yaml
             chown -R claude:claude /workspace/config
-            export ACP_READONLY_DIRS=/workspace/config
+            export WORKSPACE_READONLY_DIRS=/workspace/config
             . /home/claude/lockdown.sh
             gosu claude sh -c 'cat /workspace/config/app.yaml'
         """
@@ -152,7 +152,7 @@ class TestFilesystemLockdownReadonlyDirs:
             mkdir -p /workspace/config /workspace/writable
             echo "data" > /workspace/writable/file.txt
             chown -R claude:claude /workspace/writable
-            export ACP_READONLY_DIRS=/workspace/config
+            export WORKSPACE_READONLY_DIRS=/workspace/config
             . /home/claude/lockdown.sh
             gosu claude sh -c 'cat /workspace/writable/file.txt && touch /workspace/writable/new.txt && echo "OK"'
         """
@@ -183,7 +183,7 @@ class TestUserDrop:
     ):
         script = """
             mkdir -p /workspace/secrets
-            export ACP_HIDDEN_DIRS=/workspace/secrets
+            export WORKSPACE_HIDDEN_DIRS=/workspace/secrets
             . /home/claude/lockdown.sh
             stat -c '%U' /workspace/secrets
         """
@@ -236,7 +236,7 @@ class TestSettingsPermissions:
 class TestEnvVarFiltering:
     def _create_container_via_manager(self, docker_client, worker_image, container_cleanup, env):
         """Create a container using ContainerManager's env filtering, then exec commands."""
-        from agent_foundry.acp.container import ContainerManager
+        from agent_foundry.agents.lifecycle import ContainerManager
 
         mgr = ContainerManager(docker_client, default_image=worker_image)
         filtered_env = {k: v for k, v in env.items() if k in mgr._env_allowlist}

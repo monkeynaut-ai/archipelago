@@ -14,7 +14,6 @@ dependencies = [
     "jsonschema>=4.26.0",
     "docker>=7.1.0",
     "pexpect>=4.9.0",
-    "websockets>=16.0",
 ]
 requires-python = "==3.14.*"
 readme = "README.md"
@@ -37,10 +36,6 @@ distribution = false
 
 [tool.pdm.scripts]
 post_install.cmd = "pre-commit install"
-generate-review-schema.cmd = "python -m archipelago.docker.generate_review_schema"
-generate-review-schema.env = {PYTHONPATH = "src"}
-docker-archipelago.composite = ["generate-review-schema", "_docker-build-archipelago"]
-"_docker-build-archipelago".cmd = "docker build -t archipelago-cc-worker:latest -f src/archipelago/docker/Dockerfile ."
 test-unit.cmd = "pytest tests/ -m 'not integration and not benchmark'"
 test-unit.env = {PYTHONPATH = "src"}
 test-integration.cmd = "pytest tests/ -m 'integration'"

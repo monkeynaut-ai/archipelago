@@ -1,7 +1,7 @@
 """Canonical artifact models for the Archipelago pipeline."""
 
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -291,22 +291,6 @@ class TestResults(BaseModel):
     tests_failed: int
     test_output: str
     all_green: bool
-
-
-# ── Agent output models ──
-
-
-class AgentWorkerResult(BaseModel):
-    """Structured output from any docker-worker agent execution."""
-
-    result_summary: str = Field(description="Human-readable summary of agent execution")
-    status: Literal["completed", "failed"] = Field(description="Terminal status of the agent run")
-    output_lines: list[str] = Field(
-        default_factory=list, description="Raw output lines captured from the agent"
-    )
-    review: dict[str, Any] | None = Field(
-        default=None, description="Parsed CodeReview data (present only for software_reviewer)"
-    )
 
 
 # ── Code Review models ──
