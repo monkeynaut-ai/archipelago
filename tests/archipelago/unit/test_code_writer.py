@@ -119,13 +119,13 @@ class TestCodeWriter:
         lifecycle = _mock_lifecycle()
         agent = CodeWriter(
             lifecycle=lifecycle,
-            acp_readonly_dirs=["/workspace/tests"],
+            workspace_readonly_dirs=["/workspace/tests"],
         )
 
         agent(current_task=_valid_task(), workspace_volume="archipelago-123")
 
         extra_env = lifecycle.execute.call_args[1]["extra_env"]
-        assert extra_env["ACP_READONLY_DIRS"] == "/workspace/tests"
+        assert extra_env["WORKSPACE_READONLY_DIRS"] == "/workspace/tests"
 
     def test_given_output_when_model_dumped_then_matches_state_shape(self):
         lifecycle = _mock_lifecycle()

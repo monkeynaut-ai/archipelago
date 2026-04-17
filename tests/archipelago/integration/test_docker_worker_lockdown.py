@@ -1,7 +1,7 @@
 """Integration tests: WorkerInput → env builder → container lockdown enforcement.
 
-Verifies that when a WorkerInput is configured with acp_hidden_dirs or
-acp_readonly_dirs, the resulting environment variables cause the in-container
+Verifies that when a WorkerInput is configured with workspace_hidden_dirs or
+workspace_readonly_dirs, the resulting environment variables cause the in-container
 lockdown script to actually prevent filesystem access at the OS level.
 
 Originally in tests/archipelago/integration/test_config_to_lockdown.py as
@@ -12,7 +12,7 @@ security-critical half (env → container lockdown) here, constructing
 WorkerInput directly. The pipeline-to-env half is deferred to CS10's
 runner rewrite — tracked in the CS5 plan's deferred requirements.
 
-Requires: Docker daemon + acp-cc-worker:latest image (pdm docker-base).
+Requires: Docker daemon + agent-worker:latest image (pdm docker-base).
 """
 
 import pytest
@@ -31,8 +31,8 @@ def _worker_input(
         commit_spec=WorkerCommitSpec(title="test"),
         repo_ref="main",
         constraints=WorkerConstraints(),
-        acp_hidden_dirs=hidden_dirs or [],
-        acp_readonly_dirs=readonly_dirs or [],
+        workspace_hidden_dirs=hidden_dirs or [],
+        workspace_readonly_dirs=readonly_dirs or [],
     )
 
 
@@ -42,19 +42,19 @@ def _worker_input(
 class TestWorkerInputToEnv:
     """build_container_env emits the right ACP_* env vars for lockdown config."""
 
-    def test_given_hidden_dirs_when_env_built_then_acp_hidden_dirs_set(self):
+    def test_given_hidden_dirs_when_env_built_then_workspace_hidden_dirs_set(self):
         env = build_container_env(
             _worker_input(hidden_dirs=["/workspace/secrets"]),
             ws_url="ws://host:1234/test",
         )
-        assert env["ACP_HIDDEN_DIRS"] == "/workspace/secrets"
+        assert env["WORKSPACE_HIDDEN_DIRS"] == "/workspace/secrets"
 
-    def test_given_readonly_dirs_when_env_built_then_acp_readonly_dirs_set(self):
+    def test_given_readonly_dirs_when_env_built_then_workspace_readonly_dirs_set(self):
         env = build_container_env(
             _worker_input(readonly_dirs=["/workspace/tests"]),
             ws_url="ws://host:1234/test",
         )
-        assert env["ACP_READONLY_DIRS"] == "/workspace/tests"
+        assert env["WORKSPACE_READONLY_DIRS"] == "/workspace/tests"
 
     def test_given_multiple_hidden_dirs_when_env_built_then_comma_separated(self):
         env = build_container_env(
@@ -62,8 +62,8 @@ class TestWorkerInputToEnv:
             ws_url="ws://host:1234/test",
         )
         # Value should include both paths (exact separator is build_lockdown_env's concern)
-        assert "/workspace/secrets" in env["ACP_HIDDEN_DIRS"]
-        assert "/workspace/keys" in env["ACP_HIDDEN_DIRS"]
+        assert "/workspace/secrets" in env["WORKSPACE_HIDDEN_DIRS"]
+        assert "/workspace/keys" in env["WORKSPACE_HIDDEN_DIRS"]
 
     def test_given_no_lockdown_config_when_env_built_then_keys_absent_or_empty(self):
         env = build_container_env(
@@ -73,8 +73,8 @@ class TestWorkerInputToEnv:
         # build_lockdown_env should omit or leave empty the ACP_*_DIRS keys when
         # nothing is configured. Either absence or empty string is acceptable —
         # the lockdown script treats both the same.
-        assert env.get("ACP_HIDDEN_DIRS", "") == ""
-        assert env.get("ACP_READONLY_DIRS", "") == ""
+        assert env.get("WORKSPACE_HIDDEN_DIRS", "") == ""
+        assert env.get("WORKSPACE_READONLY_DIRS", "") == ""
 
 
 # ── Integration tests: env vars → real container lockdown enforcement ──

@@ -3,4 +3,4 @@
 Re-exports from Agent Container Protocol.
 """
 
-from agent_foundry.acp.session import SessionHandle, SessionManager  # noqa: F401
+from agent_foundry.agents.session import SessionHandle, SessionManager  # noqa: F401

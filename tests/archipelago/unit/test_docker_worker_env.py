@@ -48,12 +48,12 @@ class TestBuildContainerEnv:
         assert "REPO_URL" not in env
 
     def test_given_hidden_dirs_when_built_then_delegates_to_build_lockdown_env(self):
-        wi = _make_worker_input(acp_hidden_dirs=["/workspace/src"])
+        wi = _make_worker_input(workspace_hidden_dirs=["/workspace/src"])
         env = build_container_env(wi, ws_url="ws://host:1234/abc")
-        assert env["ACP_HIDDEN_DIRS"] == "/workspace/src"
+        assert env["WORKSPACE_HIDDEN_DIRS"] == "/workspace/src"
 
     def test_given_no_lockdown_config_when_built_then_no_lockdown_keys(self):
         env = build_container_env(_make_worker_input(), ws_url="ws://host:1234/abc")
-        assert "ACP_HIDDEN_DIRS" not in env
-        assert "ACP_READONLY_DIRS" not in env
-        assert "ACP_ROLE_INSTRUCTIONS_PATH" not in env
+        assert "WORKSPACE_HIDDEN_DIRS" not in env
+        assert "WORKSPACE_READONLY_DIRS" not in env
+        assert "AGENT_ROLE_INSTRUCTIONS_PATH" not in env

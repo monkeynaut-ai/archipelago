@@ -83,16 +83,16 @@ class SoftwareReviewer:
         lifecycle: DockerLifecycleProtocol | None = None,
         prompt_preamble: list[str] | None = None,
         role_instructions_path: str | None = None,
-        acp_readonly_dirs: list[str] | None = None,
-        acp_hidden_dirs: list[str] | None = None,
+        workspace_readonly_dirs: list[str] | None = None,
+        workspace_hidden_dirs: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
         self.spec = spec
         self.lifecycle = lifecycle or DockerLifecycle()
         self.prompt_preamble = prompt_preamble or []
         self.role_instructions_path = role_instructions_path
-        self.acp_readonly_dirs = acp_readonly_dirs or []
-        self.acp_hidden_dirs = acp_hidden_dirs or []
+        self.workspace_readonly_dirs = workspace_readonly_dirs or []
+        self.workspace_hidden_dirs = workspace_hidden_dirs or []
 
     def __call__(
         self,
@@ -110,8 +110,8 @@ class SoftwareReviewer:
         constraints = WorkerConstraints(**(worker_constraints or {}))
 
         config = {
-            "acp_readonly_dirs": self.acp_readonly_dirs,
-            "acp_hidden_dirs": self.acp_hidden_dirs,
+            "workspace_readonly_dirs": self.workspace_readonly_dirs,
+            "workspace_hidden_dirs": self.workspace_hidden_dirs,
             "role_instructions_path": self.role_instructions_path,
         }
         extra_env = build_agent_env(current_task, config, existing_volume)

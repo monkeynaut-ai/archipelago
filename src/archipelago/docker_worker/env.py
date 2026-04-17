@@ -1,12 +1,12 @@
 """Archipelago container environment variable builder.
 
-Composes ACP-level lockdown env vars with Archipelago-specific
+Composes Agent Container-level lockdown env vars with Archipelago-specific
 protocol and repository env vars into a single dict for container creation.
 """
 
 from typing import Any
 
-from agent_foundry.acp.env import build_lockdown_env
+from agent_foundry.agents.env import build_lockdown_env
 
 from archipelago.docker_worker.models import WorkerInput
 from archipelago.models import CurrentTask
@@ -27,8 +27,8 @@ def build_container_env(worker_input: WorkerInput, ws_url: str) -> dict[str, str
         repo_env["REPO_URL"] = worker_input.repo_url
 
     lockdown_env = build_lockdown_env(
-        hidden_dirs=worker_input.acp_hidden_dirs or None,
-        readonly_dirs=worker_input.acp_readonly_dirs or None,
+        hidden_dirs=worker_input.workspace_hidden_dirs or None,
+        readonly_dirs=worker_input.workspace_readonly_dirs or None,
         role_instructions_path=worker_input.role_instructions_path,
     )
 
@@ -60,8 +60,8 @@ def build_agent_env(
         repo_env["REPO_URL"] = task.repo_url
 
     lockdown_env = build_lockdown_env(
-        hidden_dirs=node_config.get("acp_hidden_dirs") or None,
-        readonly_dirs=node_config.get("acp_readonly_dirs") or None,
+        hidden_dirs=node_config.get("workspace_hidden_dirs") or None,
+        readonly_dirs=node_config.get("workspace_readonly_dirs") or None,
         role_instructions_path=node_config.get("role_instructions_path"),
     )
 

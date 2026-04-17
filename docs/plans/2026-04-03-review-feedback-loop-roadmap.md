@@ -215,7 +215,7 @@ CS7 is broken into four plans, drafted just-in-time after the prior plan lands s
 
 - **Plan 1** — Tasks 1–2 (primitive + compiler) plus a validator registry refactor that emerged during planning. Compiler delegates to a stub `run_agent_in_container` that raises `NotImplementedError`. Path: `docs/plans/2026-04-13-cs7-plan1-agent-action-primitive-plan.md`.
 - **Plan 2** — Task 3 (lifecycle orchestration, replaces the stub) and Task 4 (basic lifecycle tracking). Container reuse is part of Task 3's scope. Also defines the contract for non-success envelope outcomes (Plan 1 deferred this decision).
-- **Plan 3** — Task 5 (`lessons-learned` skill move) and Task 6 (base `CLAUDE.md` update). Independent of Plans 1 and 2; can ship any time.
+- **Plan 3** — **Complete** (2026-04-17). Task 5 (`lessons-learned` skill move) and Task 6 (base `CLAUDE.md` added). Widened to include: `acp` → `agents` rename across agent-foundry (package, image `agent-worker`, env vars `WORKSPACE_*` / `AGENT_*`), `container.py` → `lifecycle.py`, end-to-end deletion of the text-marker protocol (`MarkerMapping`, `_match_marker`, `marker-config.json`, `AgentEventMessage`), and full removal of the Archipelago Docker image. Plan: `docs/plans/2026-04-17-cs7-plan3-base-image-plan.md`. PRs: agent-foundry `feat/cs7-plan3-base-image`, archipelago `feat/cs7-plan3-drop-archipelago-image`. CS11 scope reduced accordingly: steps 9 (marker deletion), 10 (update-available marker sunset), and the Archipelago-image removal are now done; CI pipeline for Claude Code version gating still pending.
 - **Plan 4** — Tasks 7–12 (four agents, two function actions, four instruction files). First real product consumer. Depends on Plans 1 and 2.
 
 Dependency shape: Plan 1 → Plan 2 → Plan 4; Plan 3 is independent.
@@ -316,6 +316,11 @@ Dependency shape: Plan 1 → Plan 2 → Plan 4; Plan 3 is independent.
 
 3. **System definition** — Python primitives encoding the full control flow: change set loop → step loop → review-fix retry → gate → submit PR → post-PR dispatch → integrator loop → post-job report
    - Create: `archipelago/src/archipelago/system.py`
+
+4. **Domain-level run summary** — Archipelago-specific `summary.txt` renderer that groups run events by change set, step, and review cycle. Builds on the generic per-agent summary shipped in CS7 Plan 2 (Agent Foundry writes `lifecycle.jsonl` and a generic `summary.txt`). Archipelago emits its own domain events (`change_set_started`, `step_completed`, `review_cycle_finished`, etc.) via the `append_run_event(event: dict)` helper exposed by Agent Foundry, then ships a renderer that produces a domain-aware summary at run teardown. Invoke the renderer from the runner's `finally` block so partial runs still produce a readable summary.
+   - Create: `archipelago/src/archipelago/run_summary.py`
+   - Create: `archipelago/tests/archipelago/unit/test_run_summary.py`
+   - Modify: `archipelago/src/archipelago/system.py` (wrap primitives that mark domain boundaries with `append_run_event` calls)
 
 ---
 

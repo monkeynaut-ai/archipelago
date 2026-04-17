@@ -218,6 +218,6 @@ class TestSoftwareReviewer:
 
         extra_env = lifecycle.execute.call_args[1]["extra_env"]
         assert (
-            extra_env["ACP_ROLE_INSTRUCTIONS_PATH"]
+            extra_env["AGENT_ROLE_INSTRUCTIONS_PATH"]
             == "/home/claude/.claude/CLAUDE-software-review.md"
         )

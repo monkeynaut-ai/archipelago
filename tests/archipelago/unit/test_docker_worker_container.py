@@ -28,7 +28,7 @@ def mock_client():
 
 @pytest.fixture
 def manager(mock_client):
-    return ContainerManager(mock_client, default_image="archipelago-cc-worker:latest")
+    return ContainerManager(mock_client, default_image="agent-worker:latest")
 
 
 # ── Commit 1: create_container with safety baseline ──
@@ -135,7 +135,7 @@ class TestCreateContainer:
 
         mgr = ContainerManager(
             client,
-            default_image="archipelago-cc-worker:latest",
+            default_image="agent-worker:latest",
             env_allowlist=DEFAULT_ENV_ALLOWLIST,
         )
         mgr.create_container()
@@ -157,7 +157,7 @@ class TestCreateContainer:
 
         mgr = ContainerManager(
             client,
-            default_image="archipelago-cc-worker:latest",
+            default_image="agent-worker:latest",
             env_allowlist=DEFAULT_ENV_ALLOWLIST,
         )
         mgr.create_container()
@@ -245,7 +245,7 @@ class TestCleanupAll:
             return c
 
         client.containers.create.side_effect = _create_side_effect
-        return ContainerManager(client, default_image="archipelago-cc-worker:latest")
+        return ContainerManager(client, default_image="agent-worker:latest")
 
     def test_given_two_created_containers_when_cleanup_all_called_then_both_removed(self):
         manager = self._make_multi_container_manager()

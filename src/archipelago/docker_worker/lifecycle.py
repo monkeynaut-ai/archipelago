@@ -13,21 +13,20 @@ from typing import Any, Literal, Protocol
 
 import docker
 import structlog
+from agent_foundry.agents.errors import ProtocolError
+from agent_foundry.agents.protocol import (
+    ControlMessage,
+    InputMessage,
+    OutputMessage,
+    StatusMessage,
+    parse_protocol_message,
+)
 from pydantic import BaseModel, Field
 from websockets.sync.server import ServerConnection, serve
 
 from archipelago.docker_worker.container import create_archipelago_container_manager
 from archipelago.docker_worker.models import WorkerConstraints
 from archipelago.docker_worker.progress import parse_progress, transform_progress_events
-from archipelago.docker_worker.protocol import (
-    AgentEventMessage,
-    ControlMessage,
-    InputMessage,
-    OutputMessage,
-    ProtocolError,
-    StatusMessage,
-    parse_protocol_message,
-)
 from archipelago.docker_worker.recovery import persist_workspace_state
 
 logger = structlog.get_logger(__name__)
@@ -178,36 +177,6 @@ def _process_messages(
             output_lines.append(msg.text)
             logger.info("cc_output", text=msg.text)
 
-        elif isinstance(msg, AgentEventMessage):
-            logger.info(
-                "agent_event",
-                event_type=msg.event_type,
-                payload=msg.payload,
-            )
-            if msg.event_type == "clarification_requested":
-                payload = msg.payload
-                blocking = payload.get("blocking", True)
-                if blocking:
-                    if hitl_callback is not None:
-                        response = hitl_callback("clarification", payload)
-                        _send_input(ws_server, session_id, response)
-                        continue
-                    logger.info("clarification_unhandled", payload=payload)
-                    return LifecycleResult(output_lines=output_lines, exit_code=1)
-            elif msg.event_type == "permission_requested":
-                payload = msg.payload
-                risk_level = payload.get("risk_level", "medium")
-                if risk_level == "low" and auto_approve_low_risk:
-                    if not _send_input(ws_server, session_id, "yes\n"):
-                        return LifecycleResult(output_lines=output_lines, exit_code=1)
-                else:
-                    if hitl_callback is not None:
-                        response = hitl_callback("permission", payload)
-                        _send_input(ws_server, session_id, response)
-                        continue
-                    logger.info("permission_unhandled", payload=payload)
-                    return LifecycleResult(output_lines=output_lines, exit_code=1)
-
         elif isinstance(msg, StatusMessage):
             logger.info(
                 "status_message",
@@ -263,9 +232,9 @@ class DockerLifecycle:
         try:
             ws_url = f"ws://host.docker.internal:{port}/{session_id}"
             env: dict[str, str] = {
-                "ARCHIPELAGO_WS_URL": ws_url,
-                "ARCHIPELAGO_TURN_TIMEOUT": str(constraints.turn_timeout_seconds),
-                "ARCHIPELAGO_SKIP_PERMISSIONS": ("1" if constraints.skip_permissions else "0"),
+                "AGENT_WS_URL": ws_url,
+                "AGENT_TURN_TIMEOUT": str(constraints.turn_timeout_seconds),
+                "AGENT_SKIP_PERMISSIONS": ("1" if constraints.skip_permissions else "0"),
             }
             if extra_env:
                 env.update(extra_env)

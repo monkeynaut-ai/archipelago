@@ -68,10 +68,10 @@ class WorkerInput(BaseModel):
     )
 
     # Node config — static per-node settings
-    acp_hidden_dirs: list[str] = Field(
+    workspace_hidden_dirs: list[str] = Field(
         default_factory=list, description="Directories hidden from the agent"
     )
-    acp_readonly_dirs: list[str] = Field(
+    workspace_readonly_dirs: list[str] = Field(
         default_factory=list, description="Directories the agent cannot modify"
     )
     role_instructions_path: str | None = Field(
