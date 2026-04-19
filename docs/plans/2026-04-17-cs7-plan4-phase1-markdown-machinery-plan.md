@@ -1,7 +1,7 @@
 # CS7 Plan 4 — Phase 1: Declarative Markdown-Document Machinery (Agent Foundry) — Implementation Plan
 
-> **Status:** Design draft. Pending review before Phase-1 implementation begins.
-> **Date:** 2026-04-17
+> **Status:** Design draft, second iteration. Survived two sanity-check passes against the change-set Reviewer model. Pending final review before Phase-1 implementation begins.
+> **Date:** 2026-04-17 (initial draft); revised same day after design sharpening
 > **Roadmap:** `docs/plans/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
 > **Parent plan:** `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
 > **Architectural ADR:** `agent-foundry/docs/architecture/adr_markdown_template_model_shape.md`
@@ -27,21 +27,33 @@ Phase 1 is **agent-foundry-only**. Nothing in archipelago is modified in this ph
 After Phase 1, an application can:
 
 ```python
-from agent_foundry.markdown import MarkdownDocument, AsHeading, AsList, render_template, validate_markdown, extract_subtree
+from typing import Annotated
+from pydantic import BaseModel
+from agent_foundry.markdown import (
+    MarkdownDocument, MarkdownHeader,
+    AsHeading, TextTemplate,
+    render_template, validate_markdown, extract_subtree,
+)
 
-class Finding(MarkdownDocument):
-    title: Annotated[str, AsHeading(text_template="Finding {ordinal} - {value}")]
+class ReviewMetadata(BaseModel):
+    change_set_name: str
+    commit_range: str
+
+class Finding(MarkdownHeader):
+    title: Annotated[str, TextTemplate("Finding {ordinal} - {value}")]
+    description: Annotated[str, AsHeading()]
     rationale: Annotated[str, AsHeading()]
     suggested_fix: Annotated[str, AsHeading()]
 
 class Review(MarkdownDocument):
-    title: Annotated[str, AsHeading()]
+    frontmatter: ReviewMetadata | None = None
+    title: Annotated[str, TextTemplate("{value}")]
     summary: Annotated[str, AsHeading()]
-    findings: Annotated[list[Finding], AsList()]
+    findings: list[Finding]
 
 template_md = render_template(Review)              # generates the annotated skeleton
 review = validate_markdown(produced_md, Review)    # parses + validates → Review instance
-fragment = extract_subtree(produced_md, heading_level=3, title_match="Finding 1")
+fragment = extract_subtree(produced_md, heading_level=3, title_match="Finding 1 - missing tests")
 parsed_finding = validate_markdown(fragment, Finding)
 ```
 
@@ -54,7 +66,7 @@ Zero validation code is written by the application.
 The machinery is organized as a small package, `agent_foundry.markdown`, with three layers:
 
 1. **Element model layer** — typed Pydantic classes for the markdown elements we care about (`MarkdownHeading`, `MarkdownCodeBlock`, `MarkdownTable`, `MarkdownBulletList`, `MarkdownNumberedList`, `MarkdownFrontmatter`), unified by a `kind`-discriminated union. These are the runtime intermediate representation between the markdown AST and the application's domain model.
-2. **Annotation + base-class layer** — annotation classes (`AsHeading`, `AsList`, `AsCodeBlock`, `AsTable`, `AsBulletList`, `AsNumberedList`, `AsFrontmatter`) carried on domain fields via `Annotated[T, ...]`. A base class `MarkdownDocument(BaseModel)` triggers structural meta-validation at class-definition time.
+2. **Annotation + base-class layer** — two base classes (`MarkdownHeader` and `MarkdownDocument(MarkdownHeader)`) and a small annotation library (`AsHeading`, `AsCodeBlock`, `AsTable`, `AsBulletList`, `AsNumberedList`, `TextTemplate`) carried on domain fields via `Annotated[T, ...]`. The base classes trigger structural meta-validation at class-definition time via `__pydantic_init_subclass__`.
 3. **Engine layer** — three engines that operate on the above: `render_template`, `validate_markdown` (parse + validate → instance), and `extract_subtree` (AST-level lookup primitive). All three are stateless functions; no global state.
 
 The pipeline for parsing/validation:
@@ -102,31 +114,51 @@ No new runtime dependencies beyond `markdown-it-py`. No LLM calls, no I/O, no Do
 
 **Annotation layer**
 
-- Annotation classes:
-  - `AsHeading(text_template: str | None = None)` — the **only constraint annotation in Phase 1**. The `text_template` may use `{value}` (the field's stringified value) and `{ordinal}` (1-based index when used inside an `AsList`). When `text_template` is `None`, the heading text is derived from the field name (snake_case → Title Case). No `level` parameter — level is always inferred from nesting depth at render time.
-  - `AsList()` — for `list[BaseModel]` fields. The wrapper heading text is derived from the field name (or supplied via `text="..."`); each item is rendered as a sub-document under its own heading at the next level. Item-heading text and constraints come from the `AsHeading` annotation on the item-model's first field.
-  - `AsCodeBlock(language: str | None = None)` — for `str` fields. Field value becomes the code-block content; `language` becomes the fence language tag.
-  - `AsTable()` — for `list[BaseModel]` fields where the inner model has only scalar fields. Columns are derived from the inner model's field names; each list item becomes one row.
-  - `AsBulletList()` — for `list[str]` fields.
-  - `AsNumberedList()` — for `list[str]` fields.
-  - `AsFrontmatter()` — for a single `BaseModel` field that is the **first field** of the top-level `MarkdownDocument` subclass. The field type is the typed schema for the YAML body.
+Six annotations. `AsList` and `AsFrontmatter` from the original draft are gone — list semantics are inferred from the field type, and frontmatter is a fixed-name field on `MarkdownDocument`.
 
-**Base class + meta-validation**
+- `AsHeading()` — for a `str` body field. Renders as a heading; field value becomes the heading body (free markdown text). Heading text is the field name (snake_case → Title Case). No parameters.
+- `AsCodeBlock(language: str | None = None)` — for a `str` body field. Field value becomes the code-block content; `language` becomes the fence language tag.
+- `AsTable()` — for a `list[BaseModel]` body field where the inner model has only scalar fields. Columns are derived from the inner model's field names; each list item becomes one row.
+- `AsBulletList()` — for a `list[str]` body field.
+- `AsNumberedList()` — for a `list[str]` body field.
+- `TextTemplate("...")` — for heading-text fields. Two contexts:
+  - On a `MarkdownHeader.title` field (str), the template formats the heading text. Placeholders: `{value}` (the field's value) and `{ordinal}` (1-based index when the parent is a list).
+  - On a heading-introducing list-wrapper field (`list[MarkdownHeader-subclass]`), the template is a literal that overrides the default field-name-derived wrapper text. Placeholders do not apply (the field value is a list, not a formattable string).
 
-- `MarkdownDocument(BaseModel)` — base class for top-level document templates.
-- A `__pydantic_init_subclass__` hook that runs the structural meta-validator on the subclass at definition time.
-- Meta-validation rules enforced (errors raised at class definition):
-  1. **Order rule** — within any container model (the document itself or a nested `BaseModel`), no scope-absorbed element field may follow a heading-introducing element field. Heading-introducing = `AsHeading` (when the field type is `BaseModel` or `list[BaseModel]`) and `AsList`. Scope-absorbed = `AsCodeBlock`, `AsTable`, `AsBulletList`, `AsNumberedList`, and `AsHeading` on a leaf string field where the body is plain text. The validator distinguishes leaf vs. container by inspecting the annotated type.
-  2. **Frontmatter rule** — `AsFrontmatter` may appear only as the first field of a top-level `MarkdownDocument` subclass; never on a nested model, never on a non-first field.
-  3. **Type-annotation compatibility rule** — every annotation has an allowed set of underlying types (e.g., `AsCodeBlock` only on `str`, `AsTable` only on `list[BaseModel]` with scalar inner fields, `AsBulletList` only on `list[str]`). Mismatches raise at class definition.
-- The meta-validator never runs on plain `BaseModel` subclasses (only on `MarkdownDocument` and its descendants), so the rest of Agent Foundry / Archipelago is unaffected.
+**Base classes + meta-validation**
+
+Two base classes, both inheriting from `pydantic.BaseModel`:
+
+- `MarkdownHeader(BaseModel)` — base class for any heading-shaped sub-document. Declares a required `title: str` field. The `title` is structurally distinct: it carries the container's heading text. Body fields are everything else.
+- `MarkdownDocument(MarkdownHeader)` — base class for top-level documents. Adds an optional `frontmatter: BaseModel | None = None` field that subclasses override with their specific frontmatter schema. Subclasses must declare `frontmatter` (if at all) as the first field. The renderer always emits frontmatter at the very top of the document, before the title heading.
+
+Both base classes register a `__pydantic_init_subclass__` hook that runs the structural meta-validator on the subclass at definition time.
+
+Meta-validation rules (errors raised at class definition):
+
+1. **Title rule** — every `MarkdownHeader` subclass must have `title: str` as a field. (Inherited automatically; this rule catches accidental override-to-non-string-type.)
+2. **Body order rule** — within a `MarkdownHeader` subclass's body (every field except `title`, plus on `MarkdownDocument` except `frontmatter`), all non-heading fields must precede all heading-introducing fields. Heading-introducing body fields: `Annotated[str, AsHeading()]`, fields typed as a `MarkdownHeader` subclass, fields typed `list[MarkdownHeader-subclass]`. Non-heading body fields: `AsCodeBlock`, `AsTable`, `AsBulletList`, `AsNumberedList`.
+3. **Frontmatter rule** — only `MarkdownDocument` subclasses may declare a `frontmatter` field. If declared, it must be the first field of the subclass and its type must be `BaseModel | None` (a concrete `BaseModel` subclass union with `None`).
+4. **Type-annotation compatibility rule** — every annotation has an allowed set of underlying types: `AsHeading` on `str`; `AsCodeBlock` on `str`; `AsTable` on `list[BaseModel]` with scalar inner fields; `AsBulletList`/`AsNumberedList` on `list[str]`; `TextTemplate` on `str` (title field) or any heading-introducing list wrapper. Mismatches raise at class definition.
+
+The meta-validator never runs on plain `BaseModel` subclasses (only on `MarkdownHeader` and its descendants), so the rest of Agent Foundry / Archipelago is unaffected.
 
 **Engines**
 
-- `render_template(model_class: type[MarkdownDocument]) -> str` — renders the **annotated skeleton** the agent will mimic: every heading is emitted with its derived text, every body region is filled with placeholder text that includes the field's `Field(description=...)` as a comment.
-- `render_instance(instance: MarkdownDocument) -> str` — renders a populated model instance to markdown text. Used by tests and (later) by upstream agents producing inputs for downstream agents.
-- `validate_markdown(markdown: str, model_class: type[MarkdownDocument]) -> MarkdownDocument` — parses the markdown, validates against the model, and returns a populated instance. Raises a `MarkdownValidationError` with field-localized diagnostics on failure.
+- `render_template(model_class: type[MarkdownHeader]) -> str` — renders the **annotated skeleton** the agent will mimic: every heading is emitted with its derived text, every body region is filled with placeholder text that includes the field's `Field(description=...)` as a comment. Accepts any `MarkdownHeader` subclass (including `MarkdownDocument` subclasses).
+- `render_instance(instance: MarkdownHeader) -> str` — renders a populated model instance to markdown text. Used by tests and (later) by upstream agents producing inputs for downstream agents.
+- `validate_markdown(markdown: str, model_class: type[MarkdownHeader]) -> MarkdownHeader` — parses the markdown, validates against the model, and returns a populated instance. Raises a `MarkdownValidationError` with field-localized diagnostics on failure.
 - `extract_subtree(markdown: str, *, heading_level: int, title_match: str) -> str` — returns the subtree (as a markdown string) under the heading at the given level whose title matches `title_match`. The matching rule for `title_match` is **exact string equality** in Phase 1 (regex/template support deferred). Returns the heading and its scoped body, with heading levels rebased so the matched heading becomes level 1 in the returned text — making the result directly validatable against a model whose top-level field is at level 1.
+
+**Heading-level inference (the rule that drives rendering)**
+
+Each rendering context has a **current level**.
+
+- The top-level model passed to `render_*` has current level = 1.
+- A `MarkdownHeader.title` renders at the current level. The header's body has current level = title's level + 1.
+- A heading-introducing body field (`AsHeading`-on-str, a nested `MarkdownHeader`, or a list of `MarkdownHeader`) renders its heading at the parent's body level.
+- A `list[MarkdownHeader-subclass]` renders a wrapper heading at the body level; each item has current level = wrapper level + 1.
+- **Render-time guard**: if any heading would emit at level > 6 (markdown maximum), the renderer raises a clear error naming the model and field path. This check cannot be done at class-definition time because depth depends on usage context.
 
 **Behaviors**
 
@@ -156,13 +188,17 @@ These are non-negotiable for Phase 1; revising any of them requires re-entering 
 
 1. **Element classes use a `kind` discriminator** (per project convention; required because the AST → normalized JSON → Pydantic chain passes through JSON).
 2. **Annotated domain models, not pure-structure models** (Option iii from the ADR). Application authors write domain Pydantic types and annotate fields; they do not reference `MarkdownHeading` or other element classes directly.
-3. **Heading level is inferred from nesting depth** at render time. No `level` parameter on `AsHeading`. No `level` field on `MarkdownHeading` (the element class) — level is an AST concern, used only by `extract_subtree`, and disappears once an element instance is constructed.
-4. **Strongly typed everywhere unless utterly impossible.** Frontmatter content is a typed `BaseModel`, not `dict[str, Any]`. Table rows are typed `BaseModel`s, not `list[Any]`. List items are typed.
-5. **Meta-validation runs at class-definition time** via `MarkdownDocument.__pydantic_init_subclass__`. No user invocation; no opt-in beyond inheriting from `MarkdownDocument`.
-6. **Strict order matching.** Model field order = document order. Reordered documents fail validation.
-7. **Unmodeled content passes through** the validator without error.
-8. **Validation returns a populated model instance** (option (b) from the brainstorm), not just a pass/fail.
-9. **Subtree extractor is a Phase 1 deliverable** so function actions consuming markdown documents have the full toolkit on day one.
+3. **Two base classes: `MarkdownHeader` (with required `title: str`) and `MarkdownDocument(MarkdownHeader)` (with overridable `frontmatter` field).** The `title` field is a structural slot, not an annotated body field — its role as the container's heading is declared by the base class, not by an annotation. The two-class split serves one concrete purpose: only `MarkdownDocument` subclasses may declare frontmatter, enforced at class-definition time by the meta-validator.
+4. **`AsList` does not exist** (and is not needed). A field typed `list[MarkdownHeader-subclass]` is self-declarative — the platform infers "wrapper heading + per-item sub-headings + ordinal counter" from the type alone. Only `list[str]` and `list[BaseModel-with-scalars]` need an annotation to disambiguate (`AsBulletList`/`AsNumberedList` vs. `AsTable`).
+5. **`AsFrontmatter` does not exist.** The `frontmatter` field on `MarkdownDocument` is special by name (fixed) and by base-class declaration; no annotation needed.
+6. **`TextTemplate("...")` is the single annotation for heading-text formatting.** Two contexts: on a `MarkdownHeader.title` field (placeholders `{value}` and `{ordinal}` apply), and on a heading-introducing list-wrapper field (literal-only override of the default field-name-derived wrapper text).
+7. **Heading level is inferred from rendering context** (see "Heading-level inference" subsection). No `level` parameter on any annotation. No `level` field on `MarkdownHeading` (the element class) — level is an AST concern, used only by `extract_subtree`, and disappears once an element instance is constructed.
+8. **Strongly typed everywhere unless utterly impossible.** Frontmatter content is a typed `BaseModel`, not `dict[str, Any]`. Table rows are typed `BaseModel`s, not `list[Any]`. List items are typed.
+9. **Meta-validation runs at class-definition time** via `MarkdownHeader.__pydantic_init_subclass__`. No user invocation; no opt-in beyond inheriting from `MarkdownHeader` or `MarkdownDocument`.
+10. **Strict order matching.** Model field order = document order. Reordered documents fail validation.
+11. **Unmodeled content passes through** the validator without error. Inside an `Annotated[str, AsHeading()]` body, *all* content is unmodeled — the value is captured as raw markdown text within the heading's scope.
+12. **Validation returns a populated model instance** (option (b) from the brainstorm), not just a pass/fail.
+13. **Subtree extractor is a Phase 1 deliverable** so function actions consuming markdown documents have the full toolkit on day one.
 
 ---
 
@@ -213,7 +249,8 @@ class MarkdownNumberedList(BaseModel):
 
 class MarkdownFrontmatter(BaseModel):
     kind: Literal[MarkdownKind.FRONTMATTER] = MarkdownKind.FRONTMATTER
-    data: BaseModel  # the typed schema for the YAML body; concrete type set per use site
+    raw_yaml: str   # the raw YAML text inside the --- fences
+    parsed: dict   # the YAML parsed into a dict; the projector validates this against the model's frontmatter field type
 
 BlockElement = Annotated[
     MarkdownHeading
@@ -231,94 +268,127 @@ MarkdownHeading.model_rebuild()
 Notes:
 - `MarkdownFrontmatter` is excluded from `BlockElement` because it can only appear at the document root.
 - `MarkdownHeading.body` is `list[BlockElement]` — recursive nesting via `BlockElement` (which itself includes `MarkdownHeading`).
-- Element classes are mostly internal — application authors generally do not import them directly.
+- Element classes are mostly internal — application authors generally do not import them directly. They interact with the platform through `MarkdownHeader`, `MarkdownDocument`, and the annotation library.
 
 ### 2. Annotation classes
 
-Annotations are plain Python objects (not Pydantic models). They carry per-field configuration that the engine layer reads at runtime via `model_fields[name].metadata`.
+Annotations are plain Python objects (not Pydantic models). They carry per-field configuration that the engine layer reads at runtime via `model_fields[name].metadata`. Six annotations total.
 
 ```python
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class AsHeading:
-    """Render the field as a heading; field value is the heading's body."""
-    text_template: str | None = None
-    # text_template placeholders: {value}, {ordinal}
-    # When None, heading text derives from the field name (snake_case → Title Case)
-
-@dataclass(frozen=True)
-class AsList:
-    """Render a list[BaseModel] field as a wrapper heading + per-item sub-headings."""
-    text: str | None = None
-    # When None, wrapper heading text derives from the field name
+    """Render a str body field as a heading whose body is the field value (raw markdown text).
+    Heading text is derived from the field name (snake_case → Title Case)."""
+    pass  # no parameters; field name determines heading text
 
 @dataclass(frozen=True)
 class AsCodeBlock:
-    """Render a str field as a fenced code block."""
+    """Render a str body field as a fenced code block."""
     language: str | None = None
 
 @dataclass(frozen=True)
 class AsTable:
-    """Render a list[BaseModel] field as a table; columns derived from inner model fields."""
+    """Render a list[BaseModel] body field as a table; columns derived from inner model fields."""
     pass
 
 @dataclass(frozen=True)
 class AsBulletList:
-    """Render a list[str] field as a bullet list."""
+    """Render a list[str] body field as a bullet list."""
     pass
 
 @dataclass(frozen=True)
 class AsNumberedList:
-    """Render a list[str] field as a numbered list."""
+    """Render a list[str] body field as a numbered list."""
     pass
 
 @dataclass(frozen=True)
-class AsFrontmatter:
-    """Render a single BaseModel field as YAML frontmatter. Document-root-only, first-field-only."""
-    pass
+class TextTemplate:
+    """Format a heading-text field using a template.
+
+    Two contexts:
+      - On a MarkdownHeader.title field (str): {value} substitutes the field value;
+        {ordinal} substitutes the 1-based list index when the parent is a list.
+      - On a heading-introducing list-wrapper field (list[MarkdownHeader-subclass]):
+        the template is a literal that overrides the default field-name-derived
+        wrapper text. Placeholders do not apply (field value is a list).
+    """
+    template: str
 ```
 
 These are deliberately small. Each is a marker that pairs an underlying Pydantic field type with a rendering / parsing rule. Future phases will add fields to existing annotations and introduce new ones.
 
-### 3. Annotation ↔ field-type compatibility matrix
+### 3. Field shapes and what each declares
 
-Enforced by the meta-validator at class definition time:
+Authors mostly declare body fields using one of these shapes. The meta-validator enforces the type constraints at class-definition time.
 
-| Annotation | Allowed field type | Notes |
+| Field shape | Renders as | Where it can appear |
 |---|---|---|
-| `AsHeading` | `str` | Body is one plain-text paragraph (may contain `\n\n` for multi-paragraph). Heading text from template/field name. |
-| `AsHeading` | `BaseModel` (subclass of `MarkdownDocument`) | Body is the rendered sub-model. Heading text from field name. |
-| `AsList` | `list[BaseModel]` (item is a `MarkdownDocument` subclass) | Item-heading text from `AsHeading` annotation on item model's first field. |
-| `AsCodeBlock` | `str` | Content is the field value. |
-| `AsTable` | `list[BaseModel]` (item has only scalar fields) | Columns from item model's field names. |
-| `AsBulletList` | `list[str]` | |
-| `AsNumberedList` | `list[str]` | |
-| `AsFrontmatter` | `BaseModel` | Must be first field of a top-level `MarkdownDocument`. |
+| `Annotated[str, AsHeading()]` | `## <field name>` heading + the str value as raw markdown body | Body field of any `MarkdownHeader` |
+| `Annotated[str, AsCodeBlock(language=...)]` | Fenced code block with the str value as content | Non-heading body field |
+| `Annotated[list[BaseModel-with-scalars], AsTable()]` | Markdown table; columns from inner model field names | Non-heading body field |
+| `Annotated[list[str], AsBulletList()]` | Bullet list | Non-heading body field |
+| `Annotated[list[str], AsNumberedList()]` | Numbered list | Non-heading body field |
+| `<SomeMarkdownHeaderSubclass>` (no annotation) | The instance's title becomes the heading; its body renders below | Heading-introducing body field |
+| `list[<SomeMarkdownHeaderSubclass>]` (no annotation) | Wrapper heading (text from field name) + each item rendered as a sub-heading at wrapper level + 1; ordinal counter available to item title templates | Heading-introducing body field |
 
-### 4. `MarkdownDocument` base class + meta-validation
+**Special structural fields (declared by base classes, not by annotations):**
+
+| Field | Declared by | Renders as |
+|---|---|---|
+| `title: str` | `MarkdownHeader` | The container's heading text (level inferred from context). Required on every `MarkdownHeader` subclass. May be overridden in a subclass with `Annotated[str, TextTemplate("...")]` to apply a template. |
+| `frontmatter: BaseModel \| None = None` | `MarkdownDocument` | YAML frontmatter at the very top of the document. Optional — defaults to `None`, in which case nothing is rendered. Subclasses may override the type with a more specific `BaseModel` schema. Must be the first declared field on subclasses that override it. |
+
+### 4. `MarkdownHeader` and `MarkdownDocument` base classes + meta-validation
 
 ```python
-class MarkdownDocument(BaseModel):
-    """Base class for any Pydantic model that represents a markdown document template
-    or a sub-document used inside one. Triggers structural meta-validation at class
-    definition time."""
+class MarkdownHeader(BaseModel):
+    """Base class for any heading-shaped sub-document.
+
+    Declares a required `title: str` field that carries the container's heading text.
+    Body fields are everything else. Body field order is constrained:
+    non-heading fields must precede heading-introducing fields.
+    """
+
+    title: str  # required; the container's heading text
 
     def __pydantic_init_subclass__(cls, **kwargs):
         super().__pydantic_init_subclass__(**kwargs)
         from agent_foundry.markdown.meta_validation import validate_template_class
         validate_template_class(cls)
+
+
+class MarkdownDocument(MarkdownHeader):
+    """Base class for top-level markdown documents.
+
+    Adds an optional `frontmatter: BaseModel | None = None` field. Subclasses
+    may override this with a more specific BaseModel schema. The renderer
+    always emits frontmatter at the top of the document, before the title heading.
+    """
+
+    frontmatter: BaseModel | None = None  # subclasses override the BaseModel type
 ```
 
 `validate_template_class(cls)` walks `cls.model_fields` and enforces the meta-validation rules. It raises `MarkdownTemplateError` (a subclass of `TypeError`) at definition time if any rule is violated. Errors include the offending field name, the rule violated, and a concrete fix suggestion.
 
-Example error message for the order rule:
+Example error message for the body order rule:
 
 ```
-MarkdownTemplateError: in Review.findings, field type list[Finding] with AsList annotation
-is heading-introducing, but Review.summary_table (AsTable) is scope-absorbed and follows it.
-Reorder Review's fields so all scope-absorbed fields (table/list/code-block/scalar-heading)
-precede heading-introducing fields (AsList, AsHeading on a BaseModel/list[BaseModel]).
+MarkdownTemplateError: in Finding, field 'code_snippet' (Annotated[str, AsCodeBlock])
+is non-heading and follows field 'description' (Annotated[str, AsHeading()]) which is
+heading-introducing. Within a MarkdownHeader subclass's body, all non-heading fields
+must precede all heading-introducing fields. Reorder so 'code_snippet' comes before
+'description', or move it into 'description''s body.
+```
+
+Example error message for the frontmatter rule:
+
+```
+MarkdownTemplateError: in NestedFinding, field 'frontmatter' is declared, but
+NestedFinding inherits from MarkdownHeader (not MarkdownDocument). Frontmatter
+is allowed only on MarkdownDocument subclasses. Either change the base class to
+MarkdownDocument, or remove the frontmatter field.
 ```
 
 ### 5. Renderer
@@ -327,21 +397,34 @@ precede heading-introducing fields (AsList, AsHeading on a BaseModel/list[BaseMo
 
 `render_instance(instance)` produces a populated document.
 
-Both walk the model's fields in declaration order, dispatch on each field's annotation, and emit the corresponding markdown. The current heading depth is tracked as a parameter; nested `BaseModel` fields recurse with depth + 1.
+Both walk the model's fields in declaration order, dispatch on each field's role (structural — `title`, `frontmatter` — or annotation-driven), and emit the corresponding markdown. The current heading level is tracked as a parameter; nested `MarkdownHeader` subclasses recurse with the appropriate level shift (see "Heading-level inference" subsection above).
 
 Implementation sketch:
 
 ```python
-def render_instance(instance: MarkdownDocument, *, heading_level: int = 1) -> str:
+def render_instance(instance: MarkdownHeader, *, current_level: int = 1) -> str:
     parts: list[str] = []
+
+    # 1. Frontmatter (only on MarkdownDocument subclasses with frontmatter set)
+    if isinstance(instance, MarkdownDocument) and instance.frontmatter is not None:
+        parts.append(_render_frontmatter(instance.frontmatter))
+
+    # 2. Title heading at current_level
+    parts.append(_render_title(instance, current_level))
+
+    # 3. Body fields in declaration order, at current_level + 1
     for name, field in type(instance).model_fields.items():
-        ann = _get_annotation(field)
+        if name in ("title", "frontmatter"):
+            continue
         value = getattr(instance, name)
-        parts.append(_render_field(name, field, ann, value, heading_level))
-    return "\n\n".join(parts).rstrip() + "\n"
+        parts.append(_render_body_field(name, field, value, current_level + 1))
+
+    return "\n\n".join(p for p in parts if p).rstrip() + "\n"
 ```
 
-Each annotation has a corresponding `_render_field_*` handler in the engine. The renderer is **deterministic**: the same instance always produces the same markdown bytes. This is useful for tests and for the round-trip property check.
+Each field shape (annotated body field, structural title, structural frontmatter) has its own handler. The renderer is **deterministic**: the same instance always produces the same markdown bytes. This is useful for tests and for the round-trip property check.
+
+**Heading-depth guard.** Before emitting any heading, the renderer checks that the level is ≤ 6. If a level-7+ heading would be emitted, it raises with the model class and field path so the author can shorten the nesting.
 
 ### 6. Parser / validator
 
@@ -391,11 +474,11 @@ If no matching heading is found, raises `MarkdownExtractionError`. If multiple m
 ```
 agent-foundry/src/agent_foundry/markdown/
 ├── __init__.py             # public API exports
-├── annotations.py          # AsHeading, AsList, AsCodeBlock, AsTable, AsBulletList, AsNumberedList, AsFrontmatter
+├── annotations.py          # AsHeading, AsCodeBlock, AsTable, AsBulletList, AsNumberedList, TextTemplate
 ├── elements.py             # MarkdownKind, element classes, BlockElement
-├── template_model.py       # MarkdownDocument base class
+├── template_model.py       # MarkdownHeader and MarkdownDocument base classes
 ├── meta_validation.py      # validate_template_class + meta-validation rules
-├── renderer.py             # render_template, render_instance, per-annotation handlers
+├── renderer.py             # render_template, render_instance, per-field-shape handlers
 ├── parser.py               # validate_markdown, AST normalizer, projector
 ├── extractor.py            # extract_subtree
 └── errors.py               # MarkdownTemplateError, MarkdownValidationError, MarkdownExtractionError
@@ -405,9 +488,9 @@ Public API surface (everything reachable from `agent_foundry.markdown`):
 
 ```python
 from agent_foundry.markdown import (
-    # Base class + annotations
-    MarkdownDocument,
-    AsHeading, AsList, AsCodeBlock, AsTable, AsBulletList, AsNumberedList, AsFrontmatter,
+    # Base classes + annotations
+    MarkdownHeader, MarkdownDocument,
+    AsHeading, AsCodeBlock, AsTable, AsBulletList, AsNumberedList, TextTemplate,
     # Engines
     render_template, render_instance, validate_markdown, extract_subtree,
     # Errors
@@ -425,9 +508,9 @@ TDD per project convention. Test layout mirrors source layout.
 agent-foundry/tests/agent_foundry/markdown/
 ├── test_elements.py         # construction + serialization of element classes
 ├── test_annotations.py      # annotation construction + introspection
-├── test_template_model.py   # MarkdownDocument inheritance behavior
+├── test_template_model.py   # MarkdownHeader and MarkdownDocument inheritance behavior
 ├── test_meta_validation.py  # all meta-rule violations + valid templates
-├── test_renderer.py         # render_template and render_instance behavior per annotation
+├── test_renderer.py         # render_template and render_instance behavior per field shape
 ├── test_parser.py           # validate_markdown happy paths + each error class
 ├── test_extractor.py        # extract_subtree happy paths + edge cases (no match, multi match)
 ├── test_round_trip.py       # property tests: parse(render(instance)) == instance
@@ -450,25 +533,28 @@ Each task: tests first, then implementation. Mark `- [x]` as completed.
 - [ ] **1.1.1** Tests for element classes (`test_elements.py`) — construction, serialization, deserialization, discriminator round-trip.
 - [ ] **1.1.2** `agent_foundry/markdown/elements.py` — `MarkdownKind` enum, all six element classes, `BlockElement` discriminated union, `MarkdownHeading.model_rebuild()`.
 - [ ] **1.1.3** Tests for annotation classes (`test_annotations.py`) — construction, equality, frozen-dataclass behavior.
-- [ ] **1.1.4** `agent_foundry/markdown/annotations.py` — all seven annotation dataclasses.
+- [ ] **1.1.4** `agent_foundry/markdown/annotations.py` — six annotation dataclasses (`AsHeading`, `AsCodeBlock`, `AsTable`, `AsBulletList`, `AsNumberedList`, `TextTemplate`).
 - [ ] **1.1.5** Tests for error types (in `test_meta_validation.py`, `test_parser.py`, `test_extractor.py` headers).
 - [ ] **1.1.6** `agent_foundry/markdown/errors.py` — `MarkdownTemplateError`, `MarkdownValidationError`, `MarkdownExtractionError`.
 
-### Phase 1.2 — `MarkdownDocument` + meta-validation
+### Phase 1.2 — `MarkdownHeader`, `MarkdownDocument`, meta-validation
 
-- [ ] **1.2.1** Tests for `MarkdownDocument` inheritance (`test_template_model.py`) — confirms `__pydantic_init_subclass__` fires.
-- [ ] **1.2.2** `agent_foundry/markdown/template_model.py` — `MarkdownDocument` base class with `__pydantic_init_subclass__` hook.
-- [ ] **1.2.3** Tests for meta-validation (`test_meta_validation.py`) — every rule, valid and invalid examples for each, error messages asserted to contain the offending field name and rule.
+- [ ] **1.2.1** Tests for `MarkdownHeader` and `MarkdownDocument` inheritance (`test_template_model.py`) — `title` is required on `MarkdownHeader` subclasses; `frontmatter` field is overridable on `MarkdownDocument` subclasses; `__pydantic_init_subclass__` fires on both.
+- [ ] **1.2.2** `agent_foundry/markdown/template_model.py` — `MarkdownHeader` base class (with required `title: str` and the meta-validation hook); `MarkdownDocument(MarkdownHeader)` adding `frontmatter: BaseModel | None = None`.
+- [ ] **1.2.3** Tests for meta-validation (`test_meta_validation.py`) — every rule with valid and invalid examples; error messages asserted to contain the offending field name and rule.
 - [ ] **1.2.4** `agent_foundry/markdown/meta_validation.py` — `validate_template_class(cls)` implementing:
-  - [ ] Order rule
-  - [ ] Frontmatter rule
-  - [ ] Type-annotation compatibility rule
+  - [ ] Title rule (`title: str` required on every `MarkdownHeader` subclass; not overridden to a non-string type)
+  - [ ] Body order rule (non-heading body fields must precede heading-introducing body fields; `title` and `frontmatter` are exempt structural fields)
+  - [ ] Frontmatter rule (only `MarkdownDocument` subclasses; first declared field; type is `BaseModel | None`)
+  - [ ] Type-annotation compatibility rule (every annotation has an allowed underlying type; mismatches raise)
 
 ### Phase 1.3 — Renderer
 
-- [ ] **1.3.1** Tests for `render_template` skeleton output (`test_renderer.py`) — one test per annotation type, asserting the skeleton structure.
-- [ ] **1.3.2** Tests for `render_instance` populated output — one per annotation, plus a multi-field composite.
-- [ ] **1.3.3** `agent_foundry/markdown/renderer.py` — `render_template`, `render_instance`, per-annotation handlers, heading-level inference.
+- [ ] **1.3.1** Tests for `render_template` skeleton output (`test_renderer.py`) — one test per field shape, asserting the skeleton structure.
+- [ ] **1.3.2** Tests for `render_instance` populated output — one per field shape, plus a multi-field composite (the change-set Reviewer model from the sanity-check is a good fixture).
+- [ ] **1.3.3** Tests for `TextTemplate` substitution — `{value}` and `{ordinal}` on a `MarkdownHeader.title`; literal-only on a list-wrapper.
+- [ ] **1.3.4** Tests for the heading-depth-6 render-time guard.
+- [ ] **1.3.5** `agent_foundry/markdown/renderer.py` — `render_template`, `render_instance`, per-field-shape handlers, heading-level inference, depth-6 guard.
 
 ### Phase 1.4 — Parser / validator
 
@@ -504,10 +590,11 @@ Each task: tests first, then implementation. Mark `- [x]` as completed.
 These do not block writing this plan but will surface during implementation. Resolve at the relevant task; document the resolution in the source.
 
 - **AST → element-tree fidelity for tables.** GFM tables in `markdown-it-py` produce nested inline content per cell; we need to flatten to plain `str` for `MarkdownTableRow.cells` (Phase 1 doesn't support rich cell content). Document the flattening rule in `parser.py` docstring.
-- **Heading-text matching when `text_template` contains a placeholder.** For `AsHeading(text_template="Finding {ordinal} - {value}")`, the parser must reverse the template: locate headings matching the literal portions, extract `{value}` and `{ordinal}` (and verify ordinal correctness). Implementation will likely use a simple state-machine or a regex compiled from the template.
-- **Disambiguating `AsHeading` on a `str` field with multi-paragraph body.** A heading body for a `str` field can contain blank lines, which represent paragraph breaks. The parser concatenates paragraphs with `\n\n` to reconstitute the field value. Confirm this is the intended round-trip semantics.
-- **Recursive class definitions and `model_rebuild()`.** When a `MarkdownDocument` subclass nests another `MarkdownDocument` subclass, the meta-validator must run after Pydantic resolves forward references. May require deferring meta-validation to the first time the class is "ready," not strictly at `__pydantic_init_subclass__`. Confirm during implementation.
+- **Heading-text matching when `TextTemplate` contains a placeholder.** For `TextTemplate("Finding {ordinal} - {value}")`, the parser must reverse the template: locate headings matching the literal portions, extract `{value}` and `{ordinal}` (and verify ordinal correctness). Implementation will likely use a simple state-machine or a regex compiled from the template.
+- **`AsHeading` on a `str` body with rich content.** The body of a `str` field annotated `AsHeading()` is captured as raw markdown text within the heading's scope (paragraphs, lists, code blocks, even sub-headings — anything goes). Confirm the parser preserves whitespace/formatting cleanly enough that round-trip equivalence holds for typical agent output.
+- **Recursive class definitions and `model_rebuild()`.** When a `MarkdownHeader` subclass nests another `MarkdownHeader` subclass, the meta-validator must run after Pydantic resolves forward references. May require deferring meta-validation to the first time the class is "ready," not strictly at `__pydantic_init_subclass__`. Confirm during implementation.
 - **`extract_subtree` and frontmatter.** If a document has frontmatter and the extracted subtree starts deeper, the extracted text won't include the frontmatter. Document this behavior; if a use case demands extracted-with-frontmatter, add a parameter later.
+- **Single `MarkdownHeader`-typed body field heading text.** For a body field whose type is a single `MarkdownHeader` subclass (no list), the heading text comes from the *instance's* `title` value, not the field name. Document this behavior so authors don't expect field-name-derived text in this case. (Cleanest workaround when field-name semantics are wanted: use `Annotated[str, AsHeading()]` instead of a sub-`MarkdownHeader`.)
 
 ---
 
@@ -523,3 +610,4 @@ These do not block writing this plan but will surface during implementation. Res
 ## Change log
 
 - **2026-04-17** — Plan drafted, captures the brainstorm decisions from CS7 Plan 4 design session and the architectural ADR.
+- **2026-04-17** — **Major design revision** following sanity-check #2. Replaces `MarkdownDocument`-only base with two base classes (`MarkdownHeader` and `MarkdownDocument(MarkdownHeader)`). Removes `AsList` (list semantics inferred from type) and `AsFrontmatter` (`frontmatter` is a fixed-name field on `MarkdownDocument`). Adds `TextTemplate` annotation for heading-text formatting (replaces `AsHeading(text_template=...)`). Sharpens body-order rule (applies only within body fields, not relative to title or frontmatter). Documents heading-level inference rule explicitly. Adds render-time guard for heading depth > 6.
