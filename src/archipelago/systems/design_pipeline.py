@@ -10,10 +10,11 @@ from __future__ import annotations
 import re
 import time
 
+from agent_foundry.primitives.models import Sequence
 from pydantic import BaseModel
 
-from archipelago.actions import WorkspaceHandle
-from archipelago.agents.designer import DesignerOutput
+from archipelago.actions import WorkspaceHandle, workspace_bootstrap
+from archipelago.agents.designer import DesignerOutput, designer
 from archipelago.models import CodebaseSource, FeatureDefinition
 
 # Base image for AgentAction containers. Hardcoded for Phase 2; sourced
@@ -51,3 +52,8 @@ class DesignPipelineState(BaseModel):
     volume_name: str
     workspace_handle: WorkspaceHandle | None = None
     designer_output: DesignerOutput | None = None
+
+
+design_pipeline = Sequence[DesignPipelineState, DesignPipelineState](
+    steps=[workspace_bootstrap, designer],
+)
