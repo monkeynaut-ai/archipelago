@@ -14,10 +14,11 @@ sentence case or Title Case for H2/H3 headings.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Annotated
 
 from archetype.markdown import AsBulletList, AsHeading, MarkdownDocument, MarkdownHeader
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class UserOutcomes(MarkdownHeader):
@@ -63,7 +64,20 @@ class AcceptanceCriteria(MarkdownHeader):
 
 class FeatureDefinitionFrontmatter(BaseModel):
     feature_slug: str
-    created_at: str  # ISO timestamp; string-typed on v1
+    created_at: str | date  # ISO timestamp; string-typed on v1, but YAML may parse as date
+
+    @field_validator("created_at", mode="after")
+    @classmethod
+    def coerce_created_at_to_string(cls, v):
+        """YAML parser converts date strings to date objects; convert back to ISO string.
+
+        This happens when YAML sees `created_at: 2026-04-20` (no quotes) and
+        converts it to a Python date object. We need to convert it back to
+        the ISO string format for storage.
+        """
+        if isinstance(v, date):
+            return v.isoformat()
+        return v
 
 
 class FeatureDefinition(MarkdownDocument):

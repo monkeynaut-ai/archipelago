@@ -7,10 +7,11 @@ disambiguate from the FeatureDefinition's H1.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Annotated
 
 from archetype.markdown import AsHeading, MarkdownDocument, TextTemplate
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class DesignDocumentFrontmatter(BaseModel):
@@ -19,7 +20,21 @@ class DesignDocumentFrontmatter(BaseModel):
     feature_definition_path: str
     codebase_ref: str
     codebase_resolved_sha: str
-    generated_at: str  # ISO timestamp
+    generated_at: str | date  # ISO timestamp; string-typed on v1, but YAML may parse as date
+
+    @field_validator("generated_at", mode="after")
+    @classmethod
+    def coerce_generated_at_to_string(cls, v):
+        """YAML parser converts date/datetime strings to objects; convert back to ISO string.
+
+        This handles both date and datetime objects that YAML's parser may create
+        when it sees unquoted date-like values.
+        """
+        if isinstance(v, date):
+            # If it's a date (not datetime), convert to ISO string
+            return v.isoformat()
+        # If it's already a string, return as-is
+        return v
 
 
 class DesignDocument(MarkdownDocument):
