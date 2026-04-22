@@ -110,3 +110,72 @@ class TestCloneAndResolveRef:
             )
         assert "https://example.com/x.git" in str(exc.value)
         assert "main" in str(exc.value)
+
+
+class TestChmodTreeExcludingGit:
+    def test_given_path_when_chmod_tree_excluding_git_then_find_excludes_dot_git(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.chmod_tree_excluding_git(
+            client, volume_name="ws", path="/workspace/codebase", mode="555"
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        # Implementation uses `find ... -path */.git -prune` so .git/ stays writable.
+        assert "/workspace/codebase" in rendered
+        assert ".git" in rendered
+        assert "555" in rendered
+        assert call.kwargs["volumes"]["ws"]["bind"] == "/workspace"
+        assert call.kwargs.get("remove") is True
+
+    def test_given_container_error_when_chmod_tree_then_runtime_error_raised(self):
+        import docker.errors
+
+        client = MagicMock()
+        client.containers.run.side_effect = docker.errors.ContainerError(
+            container=MagicMock(),
+            exit_status=1,
+            command="find ...",
+            image="alpine",
+            stderr=b"find: cannot access /workspace/nowhere",
+        )
+        with pytest.raises(RuntimeError) as exc:
+            ops.chmod_tree_excluding_git(
+                client, volume_name="ws", path="/workspace/nowhere", mode="555"
+            )
+        assert "/workspace/nowhere" in str(exc.value)
+
+    def test_given_trailing_slash_path_when_chmod_tree_then_no_double_slash_in_command(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.chmod_tree_excluding_git(
+            client, volume_name="ws", path="/workspace/codebase/", mode="555"
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        # Defensive rstrip means no `//` sequence appears in the script.
+        assert "//" not in rendered, rendered
+
+
+class TestChmodPath:
+    def test_given_mode_when_chmod_path_then_chmod_command_runs(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.chmod_path(
+            client,
+            volume_name="ws",
+            path="/workspace/documents/feature_definition.md",
+            mode="444",
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert "chmod 444 /workspace/documents/feature_definition.md" in rendered

@@ -66,3 +66,51 @@ def clone_and_resolve_ref(
     output = raw.decode("utf-8", errors="replace").strip()
     last_line = next(line.strip() for line in reversed(output.splitlines()) if line.strip())
     return last_line
+
+
+def chmod_tree_excluding_git(
+    client: DockerClient,
+    *,
+    volume_name: str,
+    path: str,
+    mode: str,
+) -> None:
+    """Apply chmod `mode` recursively to `path`, pruning .git/ so git
+    tooling keeps its write access to index and pack locks."""
+    # Strip trailing slash so `{path}/.git` renders without a double
+    # slash; find's -path comparison is byte-exact and a double slash
+    # would silently fail to match real .git/ and wipe its perms.
+    path = path.rstrip("/")
+    # `find` with -prune excludes .git/ from the traversal; the
+    # alternation runs chmod on everything else.
+    script = f"find {path} -path '{path}/.git' -prune -o -exec chmod {mode} {{}} +"
+    try:
+        client.containers.run(
+            ALPINE_IMAGE,
+            command=["sh", "-c", script],
+            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
+        raise RuntimeError(f"chmod -R {mode} {path!r} (excluding .git) failed: {stderr}") from exc
+
+
+def chmod_path(
+    client: DockerClient,
+    *,
+    volume_name: str,
+    path: str,
+    mode: str,
+) -> None:
+    """chmod `path` to `mode` (non-recursive)."""
+    try:
+        client.containers.run(
+            ALPINE_IMAGE,
+            command=["sh", "-c", f"chmod {mode} {path}"],
+            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
+        raise RuntimeError(f"chmod {mode} {path!r} failed: {stderr}") from exc
