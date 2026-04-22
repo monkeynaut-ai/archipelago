@@ -7,10 +7,16 @@ document.
 
 from __future__ import annotations
 
+import datetime
 import re
 import time
+from pathlib import Path
 
+from agent_foundry.orchestration import run_primitive_plan
 from agent_foundry.primitives.models import Sequence
+from agent_foundry.primitives.plan import PrimitivePlan
+from agent_foundry.responders.protocol import static_provider
+from agent_foundry.responders.stdin import StdinResponder
 from pydantic import BaseModel
 
 from archipelago.actions import WorkspaceHandle, workspace_bootstrap
@@ -57,3 +63,40 @@ class DesignPipelineState(BaseModel):
 design_pipeline = Sequence[DesignPipelineState, DesignPipelineState](
     steps=[workspace_bootstrap, designer],
 )
+
+
+def _artifacts_dir_for_run() -> Path:
+    """`cwd/runs/<YYYY-MM-DD-HH-MM-SS>/` — second-resolution timestamp
+    makes per-run directories sortable and human-readable without the
+    visual noise of nanoseconds."""
+    ts = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    return Path.cwd() / "runs" / ts
+
+
+async def run_design_pipeline(
+    *,
+    feature_definition: FeatureDefinition,
+    codebase_source: CodebaseSource,
+) -> DesignPipelineState:
+    """Run the design pipeline and return the final state.
+
+    Generates the workspace-volume name once and threads it into both
+    the initial state (for bootstrap_fn) and the run_primitive_plan
+    workspace_volume kwarg (for the container registry), so both sides
+    agree on the name of the Docker volume the designer container will
+    mount.
+    """
+    volume_name = generate_volume_name(feature_definition.frontmatter.feature_slug)
+    initial_state = DesignPipelineState(
+        feature_definition=feature_definition,
+        codebase_source=codebase_source,
+        volume_name=volume_name,
+    )
+    return await run_primitive_plan(
+        PrimitivePlan(root=design_pipeline),
+        initial_state=initial_state,
+        artifacts_dir=_artifacts_dir_for_run(),
+        workspace_volume=volume_name,
+        base_image_tag=BASE_IMAGE_TAG,
+        responder_provider=static_provider(StdinResponder()),
+    )
