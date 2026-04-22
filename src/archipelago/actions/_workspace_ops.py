@@ -22,6 +22,17 @@ ALPINE_IMAGE = "alpine:3.20"
 _GITHUB_HTTPS_PREFIX = "https://github.com/"
 
 
+def _decode_container_stderr(exc: docker.errors.ContainerError) -> str:
+    """docker-py types ContainerError.stderr as str | None but populates
+    it with bytes at runtime. Normalize to str for error messages."""
+    stderr = exc.stderr
+    if stderr is None:
+        return str(exc)
+    if isinstance(stderr, bytes):
+        return stderr.decode("utf-8", errors="replace")
+    return stderr
+
+
 def _with_github_token(repo_url: str, github_token: str | None) -> str:
     """Inject x-access-token auth into an HTTPS GitHub URL. No-op for
     other URL shapes (SSH, non-github hosts, tokenless case)."""
@@ -82,7 +93,7 @@ def clone_and_resolve_ref(
             stderr=False,
         )
     except docker.errors.ContainerError as exc:
-        stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
+        stderr = _decode_container_stderr(exc)
         raise RuntimeError(f"git clone failed for repo={repo_url!r} ref={ref!r}: {stderr}") from exc
 
     output = raw.decode("utf-8", errors="replace").strip()
@@ -114,7 +125,7 @@ def chmod_tree_excluding_git(
             remove=True,
         )
     except docker.errors.ContainerError as exc:
-        stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
+        stderr = _decode_container_stderr(exc)
         raise RuntimeError(f"chmod -R {mode} {path!r} (excluding .git) failed: {stderr}") from exc
 
 
@@ -134,7 +145,7 @@ def chmod_path(
             remove=True,
         )
     except docker.errors.ContainerError as exc:
-        stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
+        stderr = _decode_container_stderr(exc)
         raise RuntimeError(f"chmod {mode} {path!r} failed: {stderr}") from exc
 
 
@@ -159,7 +170,7 @@ def prepare_documents_dir(client: DockerClient, *, volume_name: str) -> None:
             remove=True,
         )
     except docker.errors.ContainerError as exc:
-        stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
+        stderr = _decode_container_stderr(exc)
         raise RuntimeError(f"prepare_documents_dir failed: {stderr}") from exc
 
 

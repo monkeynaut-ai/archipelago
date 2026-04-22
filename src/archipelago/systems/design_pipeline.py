@@ -86,13 +86,18 @@ async def run_design_pipeline(
     agree on the name of the Docker volume the designer container will
     mount.
     """
-    volume_name = generate_volume_name(feature_definition.frontmatter.feature_slug)
+    slug = (
+        feature_definition.frontmatter.feature_slug
+        if feature_definition.frontmatter is not None
+        else "unnamed"
+    )
+    volume_name = generate_volume_name(slug)
     initial_state = DesignPipelineState(
         feature_definition=feature_definition,
         codebase_source=codebase_source,
         volume_name=volume_name,
     )
-    return await run_primitive_plan(
+    final = await run_primitive_plan(
         PrimitivePlan(root=design_pipeline),
         initial_state=initial_state,
         artifacts_dir=_artifacts_dir_for_run(),
@@ -100,3 +105,7 @@ async def run_design_pipeline(
         base_image_tag=BASE_IMAGE_TAG,
         responder_provider=static_provider(StdinResponder()),
     )
+    assert isinstance(final, DesignPipelineState), (
+        f"run_primitive_plan returned {type(final).__name__}, expected DesignPipelineState"
+    )
+    return final
