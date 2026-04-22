@@ -16,7 +16,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from archetype.markdown import AsBulletList, MarkdownHeader
+from archetype.markdown import AsBulletList, AsHeading, MarkdownDocument, MarkdownHeader
+from pydantic import BaseModel, Field
 
 
 class UserOutcomes(MarkdownHeader):
@@ -58,3 +59,69 @@ class Constraints(MarkdownHeader):
 class AcceptanceCriteria(MarkdownHeader):
     title: str = "Acceptance Criteria"
     items: Annotated[list[str], AsBulletList()]
+
+
+class FeatureDefinitionFrontmatter(BaseModel):
+    feature_slug: str
+    created_at: str  # ISO timestamp; string-typed on v1
+
+
+class FeatureDefinition(MarkdownDocument):
+    frontmatter: FeatureDefinitionFrontmatter | None = None
+    title: str = Field(description=("Feature name. Renders as the document's top-level heading."))
+
+    problem_statement: Annotated[str, AsHeading()] = Field(
+        description=(
+            "The current pain or gap this feature addresses. What's "
+            "broken or missing today, before this feature exists?"
+        )
+    )
+
+    feature_intent: Annotated[str, AsHeading()] = Field(
+        description=(
+            "Why this feature is the chosen answer to the problem — what "
+            "makes this the right solution versus other solutions to the "
+            "same problem."
+        )
+    )
+
+    desired_outcomes: DesiredOutcomes = Field(
+        description=(
+            "What good looks like after the feature ships, split into "
+            "outcomes for users and outcomes for the business."
+        )
+    )
+
+    scope_boundaries: ScopeBoundaries = Field(
+        description=(
+            "Explicit statements of what is out of scope — what this feature does NOT try to do."
+        )
+    )
+
+    assumptions: Assumptions = Field(
+        description=(
+            "Truth-claims about the world the design will rest on — "
+            "beliefs we're betting on without having verified."
+        )
+    )
+
+    dependencies: Dependencies = Field(
+        description=(
+            "External things this feature relies on — services, prior "
+            "changes, deployed infrastructure."
+        )
+    )
+
+    constraints: Constraints = Field(
+        description=(
+            "Hard limits the solution must respect: must-do's, "
+            "must-not-do's, non-functional requirements."
+        )
+    )
+
+    acceptance_criteria: AcceptanceCriteria = Field(
+        description=(
+            "Concrete, testable statements of 'done' — what must be true "
+            "when this feature is complete."
+        )
+    )
