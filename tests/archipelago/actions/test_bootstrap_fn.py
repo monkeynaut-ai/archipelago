@@ -60,6 +60,7 @@ class TestBootstrapFn:
             volume_name="archipelago-ws-demo-1",
             repo_url="https://example.com/repo.git",
             ref="main",
+            github_token=None,
         )
 
         # 4. chmod_tree_excluding_git on the codebase path, mode 555.
@@ -143,3 +144,33 @@ class TestBootstrapFn:
         # Volume removed via client.volumes.get(name).remove(force=True).
         client.volumes.get.assert_called_with("archipelago-ws-demo-cleanup")
         client.volumes.get.return_value.remove.assert_called_with(force=True)
+
+    def test_given_gh_token_env_when_bootstrap_then_token_passed_to_clone(
+        self, patched_ops, minimal_feature_definition, monkeypatch
+    ):
+        monkeypatch.setenv("GH_TOKEN", "env-token")
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        ops_mod, _ = patched_ops
+        bootstrap_fn(_input(minimal_feature_definition))
+        call = ops_mod.clone_and_resolve_ref.call_args
+        assert call.kwargs["github_token"] == "env-token"
+
+    def test_given_github_token_env_when_bootstrap_then_token_passed_to_clone(
+        self, patched_ops, minimal_feature_definition, monkeypatch
+    ):
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+        monkeypatch.setenv("GITHUB_TOKEN", "fallback-token")
+        ops_mod, _ = patched_ops
+        bootstrap_fn(_input(minimal_feature_definition))
+        call = ops_mod.clone_and_resolve_ref.call_args
+        assert call.kwargs["github_token"] == "fallback-token"
+
+    def test_given_no_token_env_when_bootstrap_then_token_is_none(
+        self, patched_ops, minimal_feature_definition, monkeypatch
+    ):
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        ops_mod, _ = patched_ops
+        bootstrap_fn(_input(minimal_feature_definition))
+        call = ops_mod.clone_and_resolve_ref.call_args
+        assert call.kwargs["github_token"] is None

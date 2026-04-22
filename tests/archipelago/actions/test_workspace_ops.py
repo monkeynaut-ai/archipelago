@@ -124,6 +124,80 @@ class TestCloneAndResolveRef:
         call = client.containers.run.call_args
         assert call.kwargs.get("entrypoint") == ""
 
+    def test_given_github_token_and_github_url_when_clone_then_url_rewritten_with_auth(self):
+        client = MagicMock()
+        client.containers.run.return_value = b"a" * 40 + b"\n"
+
+        ops.clone_and_resolve_ref(
+            client,
+            volume_name="ws",
+            repo_url="https://github.com/owner/repo.git",
+            ref="main",
+            github_token="secret-token",
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert "x-access-token:secret-token@github.com/owner/repo.git" in rendered
+
+    def test_given_github_token_and_non_github_url_when_clone_then_url_unchanged(self):
+        client = MagicMock()
+        client.containers.run.return_value = b"a" * 40 + b"\n"
+
+        ops.clone_and_resolve_ref(
+            client,
+            volume_name="ws",
+            repo_url="https://gitlab.com/owner/repo.git",
+            ref="main",
+            github_token="secret-token",
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert "secret-token" not in rendered
+        assert "https://gitlab.com/owner/repo.git" in rendered
+
+    def test_given_no_token_when_clone_then_url_unchanged(self):
+        client = MagicMock()
+        client.containers.run.return_value = b"a" * 40 + b"\n"
+
+        ops.clone_and_resolve_ref(
+            client,
+            volume_name="ws",
+            repo_url="https://github.com/owner/repo.git",
+            ref="main",
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert "x-access-token" not in rendered
+
+    def test_given_container_error_when_clone_then_original_url_in_message_not_token(self):
+        import docker.errors
+
+        client = MagicMock()
+        client.containers.run.side_effect = docker.errors.ContainerError(
+            container=MagicMock(),
+            exit_status=128,
+            command="git clone ...",
+            image="alpine/git",
+            stderr=b"fatal: auth failed",
+        )
+        with pytest.raises(RuntimeError) as exc:
+            ops.clone_and_resolve_ref(
+                client,
+                volume_name="ws",
+                repo_url="https://github.com/owner/repo.git",
+                ref="main",
+                github_token="secret-token",
+            )
+        # The original URL appears; the token does not leak into error logs.
+        assert "https://github.com/owner/repo.git" in str(exc.value)
+        assert "secret-token" not in str(exc.value)
+
 
 class TestChmodTreeExcludingGit:
     def test_given_path_when_chmod_tree_excluding_git_then_find_excludes_dot_git(self):

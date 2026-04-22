@@ -19,6 +19,17 @@ from docker.models.volumes import Volume
 GIT_IMAGE = "alpine/git:v2.47.2"
 ALPINE_IMAGE = "alpine:3.20"
 
+_GITHUB_HTTPS_PREFIX = "https://github.com/"
+
+
+def _with_github_token(repo_url: str, github_token: str | None) -> str:
+    """Inject x-access-token auth into an HTTPS GitHub URL. No-op for
+    other URL shapes (SSH, non-github hosts, tokenless case)."""
+    if not github_token or not repo_url.startswith(_GITHUB_HTTPS_PREFIX):
+        return repo_url
+    tail = repo_url[len(_GITHUB_HTTPS_PREFIX) :]
+    return f"https://x-access-token:{github_token}@github.com/{tail}"
+
 
 def pull_image(client: DockerClient, tag: str) -> None:
     """Pull `tag` so that subsequent `containers.run(tag, ...)` calls
@@ -41,16 +52,22 @@ def clone_and_resolve_ref(
     volume_name: str,
     repo_url: str,
     ref: str,
+    github_token: str | None = None,
 ) -> str:
     """Clone repo_url into /workspace/codebase inside volume_name, check
     out ref, and return the resolved commit SHA.
 
     Uses a throwaway alpine/git container mounting the volume at
     /workspace. .git/ is preserved for Designer's git log / git blame.
+
+    If github_token is provided and repo_url is an HTTPS GitHub URL, the
+    URL is rewritten to use x-access-token auth for private-repo cloning.
+    The original repo_url (without token) is used in error messages.
     """
+    effective_url = _with_github_token(repo_url, github_token)
     script = (
         f"set -e && "
-        f"git clone {repo_url} /workspace/codebase && "
+        f"git clone {effective_url} /workspace/codebase && "
         f"git -C /workspace/codebase checkout {ref} && "
         f"git -C /workspace/codebase rev-parse HEAD"
     )

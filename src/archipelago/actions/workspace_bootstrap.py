@@ -14,6 +14,7 @@ generate names itself.
 from __future__ import annotations
 
 import contextlib
+import os
 
 import docker
 from agent_foundry.primitives.models import FunctionAction
@@ -60,6 +61,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
     bootstrap_fn never generates names.
     """
     client = docker.from_env()
+    github_token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
 
     # 1. Pre-pull images. Fail fast before creating any state.
     _ops.pull_image(client, _ops.GIT_IMAGE)
@@ -78,6 +80,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
             volume_name=state.volume_name,
             repo_url=state.codebase_source.repo_url,
             ref=state.codebase_source.ref,
+            github_token=github_token,
         )
 
         # 4. Lock working tree, preserve .git/ writable.
