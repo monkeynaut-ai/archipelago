@@ -1,4 +1,12 @@
-"""End-to-end bootstrap against a real Docker daemon."""
+"""End-to-end bootstrap against a real Docker daemon.
+
+These tests require Docker (skipped if unreachable) and a GitHub token
+with read access to the pinned private repo. Set GH_TOKEN or
+GITHUB_TOKEN in the environment before running:
+
+    GH_TOKEN=$(gh auth token) pdm test-integration \\
+        tests/archipelago/actions/test_bootstrap_integration.py
+"""
 
 from __future__ import annotations
 
@@ -26,24 +34,6 @@ def _docker_available() -> bool:
         return False
 
 
-def _can_clone_from_github() -> bool:
-    """Check if we can clone from GitHub (requires network + auth)."""
-    try:
-        import subprocess
-
-        result = subprocess.run(
-            ["git", "clone", "--depth", "1", PINNED_REPO, "/tmp/gh-test"],
-            capture_output=True,
-            timeout=10,
-        )
-        import shutil
-
-        shutil.rmtree("/tmp/gh-test", ignore_errors=True)
-        return result.returncode == 0
-    except Exception:
-        return False
-
-
 @pytest.fixture
 def docker_client():
     if not _docker_available():
@@ -64,10 +54,6 @@ def cleanup_volumes(docker_client, archipelago_volume_registry):
 
 
 class TestBootstrapIntegration:
-    @pytest.mark.skipif(
-        not _can_clone_from_github(),
-        reason="Cannot clone from GitHub (no network or auth)",
-    )
     def test_given_real_repo_when_bootstrap_then_volume_populated_correctly(
         self, docker_client, cleanup_volumes, minimal_feature_definition
     ):
@@ -106,10 +92,6 @@ class TestBootstrapIntegration:
         assert "775 /workspace/documents" in output
         assert "555 /workspace/codebase/" in output
 
-    @pytest.mark.skipif(
-        not _can_clone_from_github(),
-        reason="Cannot clone from GitHub (no network or auth)",
-    )
     def test_given_real_repo_when_bootstrap_then_git_log_still_works(
         self, docker_client, cleanup_volumes, minimal_feature_definition
     ):
@@ -126,6 +108,8 @@ class TestBootstrapIntegration:
         cleanup_volumes.append(result.workspace_handle.volume_name)
 
         # Run a git command that writes to .git (commit-graph, reachability cache).
+        # entrypoint="" is required: alpine/git:v2.47.2 has `git` as its ENTRYPOINT,
+        # so we must override it to use a shell script.
         output = docker_client.containers.run(
             "alpine/git:v2.47.2",
             command=[
@@ -133,16 +117,13 @@ class TestBootstrapIntegration:
                 "-c",
                 "cd /workspace/codebase && git log -1 --oneline",
             ],
+            entrypoint="",
             volumes={result.workspace_handle.volume_name: {"bind": "/workspace", "mode": "rw"}},
             remove=True,
         ).decode("utf-8", errors="replace")
 
         assert output.strip(), "git log produced no output"
 
-    @pytest.mark.skipif(
-        not _can_clone_from_github(),
-        reason="Cannot clone from GitHub (no network or auth)",
-    )
     def test_given_real_repo_when_bootstrap_then_resolved_sha_is_40_hex(
         self, docker_client, cleanup_volumes, minimal_feature_definition
     ):
