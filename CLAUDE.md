@@ -5,6 +5,10 @@ See `jig.config.md` for pipeline configuration.
 
 An system of agents (AI, human, services, programs) for autonomous software engineering.
 
+## Core documents
+
+- **`docs/archipelago-vision.md`** — the canonical frame for the project: vision, north stars, operating philosophy (including the "harness competing tensions" design method), current shape, open threads. Read this first when orienting to the project or making architectural choices. Living document; evolves as understanding deepens.
+
 ## Development Practices
 
 - **Test-Driven Development (TDD)**: Write tests before implementation. Red-green-refactor cycle. All code changes must be covered by tests.
