@@ -64,7 +64,9 @@ The target codebase is mounted read-only at `/workspace/codebase/`.
 Write the design document at `/workspace/documents/design.md`. It must
 match this structure exactly:
 
+````markdown
 {{ render_template(DesignDocument) }}
+````
 
 The placeholder comments describe what each section is for.
 

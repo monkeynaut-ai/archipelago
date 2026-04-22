@@ -69,6 +69,30 @@ class TestTemplateResolution:
                 f"missing DesignDocument section '## {field.heading}'"
             )
 
+    def test_given_resolved_when_checked_then_skeleton_is_fenced(self, minimal_feature_definition):
+        """The DesignDocument skeleton renders as H1/H2 markdown; if it's
+        inlined as prose, its headings get mixed into the instructions'
+        own heading hierarchy. Wrapping in a ```` fenced block keeps it
+        visually distinct as an example."""
+        resolved = resolve(
+            _template_text(),
+            feature=minimal_feature_definition,
+            FeatureDefinition=FeatureDefinition,
+            DesignDocument=DesignDocument,
+        )
+        # Find the block that contains the skeleton's H1 ("# Design for ...")
+        # and confirm it sits inside a code fence opened before and closed
+        # after.
+        summary_idx = resolved.index("## Summary")
+        before = resolved[:summary_idx]
+        after = resolved[summary_idx:]
+        # A fence (``` or longer) appears somewhere between the "Your output"
+        # section heading and the skeleton's first ##.
+        assert "```" in before.split("## Your output")[-1], (
+            "skeleton is not inside a fenced code block"
+        )
+        assert "```" in after, "skeleton's closing fence is missing"
+
     def test_given_resolved_when_checked_then_inlines_feature_prose(
         self, minimal_feature_definition
     ):
