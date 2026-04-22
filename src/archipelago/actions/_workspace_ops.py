@@ -8,6 +8,10 @@ fast on network issues before creating a volume.
 
 from __future__ import annotations
 
+import io
+import posixpath
+import tarfile
+
 import docker.errors
 from docker.client import DockerClient
 from docker.models.volumes import Volume
@@ -114,3 +118,67 @@ def chmod_path(
     except docker.errors.ContainerError as exc:
         stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
         raise RuntimeError(f"chmod {mode} {path!r} failed: {stderr}") from exc
+
+
+DOCUMENTS_DIR_MODE = "775"
+
+
+def prepare_documents_dir(client: DockerClient, *, volume_name: str) -> None:
+    """mkdir -p /workspace/documents and chmod it 0775 so a non-root
+    designer container can create design.md there.
+
+    Ownership UID is whatever the throwaway container's default is
+    (root in alpine), matched by the agent-worker base image running
+    with a matching UID. If a future base image uses a different UID,
+    add a chown step here.
+    """
+    script = "mkdir -p /workspace/documents && chmod 775 /workspace/documents"
+    try:
+        client.containers.run(
+            ALPINE_IMAGE,
+            command=["sh", "-c", script],
+            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = exc.stderr.decode("utf-8", errors="replace") if exc.stderr else str(exc)
+        raise RuntimeError(f"prepare_documents_dir failed: {stderr}") from exc
+
+
+def write_file(
+    client: DockerClient,
+    *,
+    volume_name: str,
+    path: str,
+    content: str,
+    mode: str | None = None,
+) -> None:
+    """Write content to path inside volume_name.
+
+    Streams a tar archive into the target directory via put_archive on a
+    helper container — atomic, avoids shell-quoting hazards for UTF-8.
+    If `mode` is supplied, chmods the file after writing.
+    """
+    directory, filename = posixpath.split(path)
+
+    tar_buf = io.BytesIO()
+    encoded = content.encode("utf-8")
+    with tarfile.open(fileobj=tar_buf, mode="w") as tar:
+        info = tarfile.TarInfo(name=filename)
+        info.size = len(encoded)
+        info.mode = 0o644
+        tar.addfile(info, io.BytesIO(encoded))
+    tar_bytes = tar_buf.getvalue()
+
+    helper = client.containers.create(
+        ALPINE_IMAGE,
+        command=["true"],
+        volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+    )
+    try:
+        helper.put_archive(directory, tar_bytes)
+    finally:
+        helper.remove()
+
+    if mode is not None:
+        chmod_path(client, volume_name=volume_name, path=path, mode=mode)

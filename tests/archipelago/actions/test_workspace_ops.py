@@ -6,6 +6,8 @@ real daemon lives in test_bootstrap_integration.py.
 
 from __future__ import annotations
 
+import io
+import tarfile
 from unittest.mock import MagicMock
 
 import pytest
@@ -179,3 +181,82 @@ class TestChmodPath:
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
         assert "chmod 444 /workspace/documents/feature_definition.md" in rendered
+
+
+class TestPrepareDocumentsDir:
+    def test_given_volume_when_prepare_documents_then_mkdir_and_chmod_called(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.prepare_documents_dir(client, volume_name="ws")
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert "mkdir -p /workspace/documents" in rendered
+        assert "chmod 775 /workspace/documents" in rendered
+
+
+class TestWriteFile:
+    def test_given_content_when_write_file_then_put_archive_called(self):
+        client = MagicMock()
+        helper = MagicMock()
+        client.containers.create.return_value = helper
+
+        ops.write_file(
+            client,
+            volume_name="ws",
+            path="/workspace/documents/feature_definition.md",
+            content="# hello\n",
+        )
+
+        assert client.containers.create.called
+        assert helper.put_archive.called
+        call = helper.put_archive.call_args
+        assert call.args[0] == "/workspace/documents"
+        tar_bytes = call.args[1]
+        with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r") as tar:
+            members = tar.getmembers()
+            assert len(members) == 1
+            assert members[0].name == "feature_definition.md"
+            extracted = tar.extractfile(members[0])
+            assert extracted is not None
+            assert extracted.read() == b"# hello\n"
+
+    def test_given_mode_when_write_file_then_chmod_path_invoked_after_write(self):
+        client = MagicMock()
+        helper = MagicMock()
+        client.containers.create.return_value = helper
+
+        ops.write_file(
+            client,
+            volume_name="ws",
+            path="/workspace/documents/feature_definition.md",
+            content="content",
+            mode="444",
+        )
+        # chmod_path dispatches through containers.run with a chmod command.
+        chmod_calls = [
+            c
+            for c in client.containers.run.call_args_list
+            if "chmod"
+            in (
+                " ".join(c.kwargs.get("command", []))
+                if isinstance(c.kwargs.get("command"), list)
+                else str(c.kwargs.get("command", ""))
+            )
+        ]
+        assert chmod_calls, "chmod container call was not made"
+
+    def test_given_helper_container_when_write_file_then_helper_removed(self):
+        client = MagicMock()
+        helper = MagicMock()
+        client.containers.create.return_value = helper
+
+        ops.write_file(
+            client,
+            volume_name="ws",
+            path="/workspace/documents/feature_definition.md",
+            content="content",
+        )
+        assert helper.remove.called
