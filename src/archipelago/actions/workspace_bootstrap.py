@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 
 import docker
+from agent_foundry.primitives.models import FunctionAction
 from archetype.markdown import render_instance
 from pydantic import BaseModel, ConfigDict
 
@@ -116,3 +117,8 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
         codebase_resolved_sha=resolved_sha,
     )
     return BootstrapOutput(workspace_handle=handle)
+
+
+workspace_bootstrap = FunctionAction[BootstrapInput, BootstrapOutput](
+    function=bootstrap_fn,
+)

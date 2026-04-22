@@ -1,12 +1,17 @@
-"""Archipelago function-action primitives.
-
-A function action executes deterministic Python — no LLM, no container.
-`workspace_bootstrap` provisions the shared Docker volume that every
-Archipelago run operates on.
-"""
+"""Archipelago function-action primitives."""
 
 from __future__ import annotations
 
-from archipelago.actions.workspace_bootstrap import WorkspaceHandle
+from archipelago.actions.workspace_bootstrap import (
+    BootstrapInput,
+    BootstrapOutput,
+    WorkspaceHandle,
+    workspace_bootstrap,
+)
 
-__all__ = ["WorkspaceHandle"]
+__all__ = [
+    "BootstrapInput",
+    "BootstrapOutput",
+    "WorkspaceHandle",
+    "workspace_bootstrap",
+]
