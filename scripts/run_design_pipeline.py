@@ -23,6 +23,7 @@ from pathlib import Path
 
 from agent_foundry.orchestration.errors import AgentFailedError
 from archetype.markdown import MarkdownValidationError, validate_markdown
+from dotenv import load_dotenv
 
 from archipelago.models import CodebaseSource, FeatureDefinition
 from archipelago.systems.design_pipeline import run_design_pipeline
@@ -38,12 +39,25 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--repo", required=True, help="Git URL of the target codebase.")
     parser.add_argument("--ref", required=True, help="Git ref (commit SHA, branch, or tag).")
+    parser.add_argument(
+        "--env-file",
+        default=".env",
+        help="Path to a dotenv file to load into the process environment "
+        "(default: .env in cwd). Provides CLAUDE_CODE_OAUTH_TOKEN / "
+        "ANTHROPIC_API_KEY for the designer and GITHUB_TOKEN for private clones.",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    # Load dotenv FIRST so downstream env reads (agent-foundry's
+    # CLAUDE_CODE_OAUTH_TOKEN forwarding, bootstrap_fn's GITHUB_TOKEN
+    # lookup) see the values. override=False — explicit exports from
+    # the parent shell win.
+    load_dotenv(args.env_file, override=False)
 
     feature_path = Path(args.feature)
     if not feature_path.exists():
