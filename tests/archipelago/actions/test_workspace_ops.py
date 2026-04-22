@@ -113,6 +113,17 @@ class TestCloneAndResolveRef:
         assert "https://example.com/x.git" in str(exc.value)
         assert "main" in str(exc.value)
 
+    def test_given_client_when_clone_then_entrypoint_overridden_to_empty(self):
+        """Regression guard: alpine/git has `git` as entrypoint, so the shell
+        command must override it or git interprets 'sh' as a subcommand."""
+        client = MagicMock()
+        client.containers.run.return_value = b"a" * 40 + b"\n"
+
+        ops.clone_and_resolve_ref(client, volume_name="ws", repo_url="u", ref="r")
+
+        call = client.containers.run.call_args
+        assert call.kwargs.get("entrypoint") == ""
+
 
 class TestChmodTreeExcludingGit:
     def test_given_path_when_chmod_tree_excluding_git_then_find_excludes_dot_git(self):

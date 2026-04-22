@@ -58,6 +58,7 @@ def clone_and_resolve_ref(
         raw = client.containers.run(
             GIT_IMAGE,
             command=["sh", "-c", script],
+            entrypoint="",
             volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
             remove=True,
             stdout=True,
