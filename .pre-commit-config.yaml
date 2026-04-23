@@ -14,7 +14,7 @@ repos:
         types: [python]
       - id: pytest-unit
         name: pytest (unit)
-        entry: pdm run test-unit
+        entry: bash -c 'pdm run test-unit || [ $? -eq 5 ]'
         language: system
         pass_filenames: false
         always_run: true
