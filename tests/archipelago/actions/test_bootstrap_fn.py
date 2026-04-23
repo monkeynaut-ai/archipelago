@@ -15,6 +15,16 @@ from archipelago.actions.workspace_bootstrap import (
 from archipelago.models import CodebaseSource
 
 
+@pytest.fixture(autouse=True)
+def _clear_github_tokens(monkeypatch):
+    """Default bootstrap_fn tests to a token-free environment so assertions
+    about github_token=None hold regardless of the developer's shell env.
+    Tests that exercise the token-passthrough path (below) opt in with
+    monkeypatch.setenv."""
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+
 @pytest.fixture
 def patched_ops():
     with (
