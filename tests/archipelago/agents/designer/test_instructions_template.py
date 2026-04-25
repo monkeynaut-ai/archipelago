@@ -93,31 +93,35 @@ class TestTemplateResolution:
         )
         assert "```" in after, "skeleton's closing fence is missing"
 
-    def test_given_resolved_when_checked_then_inlines_feature_prose(
+    def test_given_resolved_when_checked_then_inlines_feature_title(
         self, minimal_feature_definition
     ):
+        """The feature title is the only feature-definition value still
+        inlined — the agent reads the rest from the file at the path
+        named in the instructions."""
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
-        assert minimal_feature_definition.problem_statement in resolved
-        assert minimal_feature_definition.feature_intent in resolved
+        assert minimal_feature_definition.title in resolved
 
-    def test_given_resolved_when_checked_then_inlines_list_items(self, minimal_feature_definition):
+    def test_given_resolved_when_checked_then_does_not_inline_feature_prose(
+        self, minimal_feature_definition
+    ):
+        """Regression guard for the de-inlining decision: keeping role
+        instructions feature-agnostic (other than the title) so CLAUDE.md
+        doesn't grow with the size of the feature definition every run.
+        The agent reads the full feature def from the workspace file."""
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
-        for item in minimal_feature_definition.desired_outcomes.user_outcomes.items:
-            assert item in resolved
-        for item in minimal_feature_definition.assumptions.items:
-            assert item in resolved
-        for item in minimal_feature_definition.acceptance_criteria.items:
-            assert item in resolved
+        assert minimal_feature_definition.problem_statement not in resolved
+        assert minimal_feature_definition.feature_intent not in resolved
 
     def test_given_resolved_when_checked_then_mentions_workspace_paths(
         self, minimal_feature_definition

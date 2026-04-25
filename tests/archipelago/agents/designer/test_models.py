@@ -43,13 +43,27 @@ class TestDesignerInput:
 
 
 class TestDesignerOutput:
-    def test_given_path_when_constructed_then_stored_as_string(self):
-        out = DesignerOutput(design_document="/workspace/documents/design.md")
+    def test_given_paths_when_constructed_then_stored_as_strings(self):
+        out = DesignerOutput(
+            investigation_summary="/workspace/documents/investigation.md",
+            design_document="/workspace/documents/design.md",
+        )
+        assert out.investigation_summary == "/workspace/documents/investigation.md"
         assert out.design_document == "/workspace/documents/design.md"
 
-    def test_given_json_schema_when_generated_then_design_document_carries_agent_file_path_marker(
+    def test_given_missing_investigation_summary_when_constructed_then_validation_error(self):
+        with pytest.raises(ValidationError):
+            DesignerOutput(design_document="/workspace/documents/design.md")  # type: ignore[call-arg]
+
+    def test_given_missing_design_document_when_constructed_then_validation_error(self):
+        with pytest.raises(ValidationError):
+            DesignerOutput(  # type: ignore[call-arg]
+                investigation_summary="/workspace/documents/investigation.md",
+            )
+
+    def test_given_json_schema_when_generated_then_both_paths_carry_agent_file_path_marker(
         self,
     ):
         schema = DesignerOutput.model_json_schema()
-        path_schema = schema["properties"]["design_document"]
-        assert "x-agent-file-path" in path_schema
+        assert "x-agent-file-path" in schema["properties"]["design_document"]
+        assert "x-agent-file-path" in schema["properties"]["investigation_summary"]

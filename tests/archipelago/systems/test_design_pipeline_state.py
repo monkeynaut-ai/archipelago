@@ -42,7 +42,10 @@ class TestDesignPipelineState:
             codebase_source=CodebaseSource(repo_url="u", ref="r"),
             volume_name="archipelago-ws-demo-1",
             workspace_handle=_handle(),
-            designer_output=DesignerOutput(design_document="/workspace/documents/design.md"),
+            designer_output=DesignerOutput(
+                investigation_summary="/workspace/documents/investigation.md",
+                design_document="/workspace/documents/design.md",
+            ),
         )
         assert state.workspace_handle is not None
         assert state.designer_output is not None

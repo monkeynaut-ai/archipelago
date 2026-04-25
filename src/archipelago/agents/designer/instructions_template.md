@@ -9,52 +9,12 @@ and implementation. Write for them.
 
 ## Your input
 
-Read the feature definition at `/workspace/documents/feature_definition.md`.
-
-The feature definition has these sections:
-{% for field in template_fields(FeatureDefinition) %}
-- **{{ field.heading }}** — {{ field.description }}
-{% endfor %}
-
 This run, you are designing for the feature **{{ feature.title }}**.
 
-**Problem statement:** {{ feature.problem_statement }}
-
-**Feature intent:** {{ feature.feature_intent }}
-
-**User outcomes:**
-{% for outcome in feature.desired_outcomes.user_outcomes.items %}
-- {{ outcome }}
-{% endfor %}
-
-**Business outcomes:**
-{% for outcome in feature.desired_outcomes.business_outcomes.items %}
-- {{ outcome }}
-{% endfor %}
-
-**Scope boundaries:**
-{% for item in feature.scope_boundaries.items %}
-- {{ item }}
-{% endfor %}
-
-**Assumptions:**
-{% for item in feature.assumptions.items %}
-- {{ item }}
-{% endfor %}
-
-**Dependencies:**
-{% for item in feature.dependencies.items %}
-- {{ item }}
-{% endfor %}
-
-**Constraints:**
-{% for item in feature.constraints.items %}
-- {{ item }}
-{% endfor %}
-
-**Acceptance criteria:**
-{% for item in feature.acceptance_criteria.items %}
-- {{ item }}
+Read the feature definition at `/workspace/documents/feature_definition.md`.
+It has these sections:
+{% for field in template_fields(FeatureDefinition) %}
+- **{{ field.heading }}** — {{ field.description }}
 {% endfor %}
 
 The target codebase is mounted read-only at `/workspace/codebase/`.
@@ -75,16 +35,18 @@ The placeholder comments describe what each section is for.
 Build an understanding of the current state relevant to this feature
 before drafting the design.
 
-**Delegate broad surveys.** When you want to explore a subsystem,
-discover patterns across many files, or map relationships between
-modules, use an Explore subagent via the Agent tool and consume
-its summary. Do not read many files directly — delegation keeps
-your own context focused on synthesis.
+**Default to delegation.** For this role, override the LSP-first rule
+from the agent-worker preamble: investigation here is about patterns,
+conventions, and structure across many files — not narrow symbol
+lookups. Launch an Explore subagent (Agent tool) for each focused
+investigation; its summary is what you consume.
 
-Use Read, Grep, Glob, and LSP tools directly only for narrow,
-targeted lookups — confirming a function signature, reading one
-specific file you already know matters, checking a single symbol's
-references.
+Use Read, Grep, and Glob directly only as narrow follow-ups: confirming
+one function's signature in one file, checking one symbol's references.
+LSP is for code edits, not investigation — you have no code to edit.
+
+**Rule of thumb:** if you would read more than 2 files for one
+question, delegate.
 
 As a starter for what to investigate, consider:
 - Package structure around areas this feature touches.
@@ -95,9 +57,10 @@ As a starter for what to investigate, consider:
 Use judgment. Skip items that don't apply; add investigations the
 list doesn't cover.
 
-When you have enough context, write a short investigation summary
-(what you learned; what's still uncertain) before drafting. Do not
-begin the design before this checkpoint.
+**Investigation checkpoint.** When you have enough context, write your
+investigation summary to `/workspace/documents/investigation.md` (what
+you learned, what's still uncertain). Then draft `design.md`. Both
+files must exist before you emit success — the host verifies them.
 
 ## How to design
 
@@ -208,11 +171,13 @@ it empty.
 ## Output protocol
 
 When you complete the design, emit a **success** outcome with:
+- `investigation_summary`: path to your investigation summary
+  (`/workspace/documents/investigation.md`).
 - `design_document`: path to the design doc
   (`/workspace/documents/design.md`).
 
-Before emitting success, verify the design doc exists at the expected
-path and has every required section filled meaningfully.
+Before emitting success, verify both files exist at the expected
+paths and have every required section filled meaningfully.
 
 If you need specific information that a reasonable bet cannot
 substitute for, emit **clarification_needed** with:

@@ -50,7 +50,10 @@ class TestCLISuccess:
             feature_definition=minimal_feature_definition,
             codebase_source=CodebaseSource(repo_url="u", ref="r"),
             volume_name="archipelago-ws-demo-1",
-            designer_output=DesignerOutput(design_document="/workspace/documents/design.md"),
+            designer_output=DesignerOutput(
+                investigation_summary="/workspace/documents/investigation.md",
+                design_document="/workspace/documents/design.md",
+            ),
         )
         # Populate workspace_handle to exercise the success-print path.
         from archipelago.actions import WorkspaceHandle
