@@ -269,7 +269,9 @@ class TestChmodPath:
 
 
 class TestPrepareDocumentsDir:
-    def test_given_volume_when_prepare_documents_then_mkdir_and_chmod_called(self):
+    def test_given_volume_when_prepare_documents_then_mkdir_chown_chmod_called(self):
+        from agent_foundry.agents import AGENT_USER_GID, AGENT_USER_UID
+
         client = MagicMock()
         client.containers.run.return_value = b""
 
@@ -279,7 +281,24 @@ class TestPrepareDocumentsDir:
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
         assert "mkdir -p /workspace/documents" in rendered
+        assert f"chown {AGENT_USER_UID}:{AGENT_USER_GID} /workspace/documents" in rendered
         assert "chmod 775 /workspace/documents" in rendered
+
+    def test_given_volume_when_prepare_documents_then_chown_runs_before_chmod(self):
+        """Chmod after chown so the bits land on the new ownership; if
+        the order swaps, root-owned dirs end up 775 before chown — fine
+        but unintentional. Pin the order."""
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.prepare_documents_dir(client, volume_name="ws")
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        chown_idx = rendered.index("chown")
+        chmod_idx = rendered.index("chmod 775")
+        assert chown_idx < chmod_idx
 
 
 class TestWriteFile:

@@ -1,12 +1,16 @@
 """Designer agent state models.
 
 Input: workspace handle (paths, volume, ref/SHA) + parsed
-FeatureDefinition (inlined into instructions via Jinja).
+FeatureDefinition (the feature title is inlined into instructions via
+Jinja; the agent reads the full feature definition from the workspace).
 
-Output: a single envelope pointing at the design document's path in
-the workspace. `Annotated[str, AgentFilePath()]` causes the container
-executor's file-verification machinery to check existence + size bounds
-when the agent emits success.
+Output: an envelope pointing at the agent's two artifact paths in the
+workspace — the investigation summary written before drafting, and the
+final design document. Both fields use `Annotated[str, AgentFilePath()]`
+so the container executor's file-verification machinery checks existence
+and size bounds when the agent emits success — runs that skip the
+investigation checkpoint will fail verification rather than silently
+shipping a no-investigation design.
 """
 
 from __future__ import annotations
@@ -30,4 +34,5 @@ class DesignerInput(BaseModel):
 
 
 class DesignerOutput(BaseModel):
+    investigation_summary: Annotated[str, AgentFilePath()]
     design_document: Annotated[str, AgentFilePath()]

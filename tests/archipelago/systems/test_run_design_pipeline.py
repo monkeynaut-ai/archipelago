@@ -35,7 +35,10 @@ class TestRunDesignPipeline:
             feature_definition=minimal_feature_definition,
             codebase_source=cs,
             volume_name="archipelago-ws-demo-1",
-            designer_output=DesignerOutput(design_document="/workspace/documents/design.md"),
+            designer_output=DesignerOutput(
+                investigation_summary="/workspace/documents/investigation.md",
+                design_document="/workspace/documents/design.md",
+            ),
         )
         patched_runner.return_value = final
 

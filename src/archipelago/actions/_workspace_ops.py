@@ -13,6 +13,7 @@ import posixpath
 import tarfile
 
 import docker.errors
+from agent_foundry.agents import AGENT_USER_GID, AGENT_USER_UID
 from docker.client import DockerClient
 from docker.models.volumes import Volume
 
@@ -153,15 +154,21 @@ DOCUMENTS_DIR_MODE = "775"
 
 
 def prepare_documents_dir(client: DockerClient, *, volume_name: str) -> None:
-    """mkdir -p /workspace/documents and chmod it 0775 so a non-root
-    designer container can create design.md there.
+    """mkdir -p /workspace/documents, chown it to the agent-worker
+    container's claude user, and chmod it 0775 so the agent can write
+    design.md and investigation.md there.
 
-    Ownership UID is whatever the throwaway container's default is
-    (root in alpine), matched by the agent-worker base image running
-    with a matching UID. If a future base image uses a different UID,
-    add a chown step here.
+    The throwaway alpine container creates the directory as root by
+    default; without the chown, the agent-worker container's claude
+    user can't write to it. UID/GID come from agent_foundry.agents so
+    they stay in lockstep with the Dockerfile (a regression test in
+    agent-foundry verifies the constants match the Dockerfile values).
     """
-    script = "mkdir -p /workspace/documents && chmod 775 /workspace/documents"
+    script = (
+        "mkdir -p /workspace/documents && "
+        f"chown {AGENT_USER_UID}:{AGENT_USER_GID} /workspace/documents && "
+        "chmod 775 /workspace/documents"
+    )
     try:
         client.containers.run(
             ALPINE_IMAGE,

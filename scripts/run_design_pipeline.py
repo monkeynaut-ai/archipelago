@@ -91,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     # agent emits success, but print defensively and surface the
     # volume name so the user can inspect the workspace.
     if final.designer_output is not None:
+        print(f"Investigation summary: {final.designer_output.investigation_summary}")
         print(f"Design document: {final.designer_output.design_document}")
     if final.workspace_handle is not None:
         print(f"Workspace volume: {final.workspace_handle.volume_name}")
