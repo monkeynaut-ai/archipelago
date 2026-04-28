@@ -9,10 +9,17 @@ class TestPublicAPI:
     def test_given_systems_package_when_imported_then_all_matches_expected(self):
         assert set(systems_pkg.__all__) == {
             "BASE_IMAGE_TAG",
+            "ChangeSetProcessingState",
+            "ChangeSetsLoopState",
             "DesignPipelineState",
+            "FullPipelineState",
+            "StepProcessingState",
+            "StepsLoopState",
             "design_pipeline",
+            "full_pipeline",
             "generate_volume_name",
             "run_design_pipeline",
+            "run_full_pipeline",
         }
 
     def test_given_all_names_when_accessed_then_importable(self):
