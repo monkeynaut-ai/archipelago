@@ -181,6 +181,81 @@ def prepare_documents_dir(client: DockerClient, *, volume_name: str) -> None:
         raise RuntimeError(f"prepare_documents_dir failed: {stderr}") from exc
 
 
+def read_file(
+    client: DockerClient,
+    *,
+    volume_name: str,
+    path: str,
+) -> str:
+    """Read a UTF-8 text file from inside the workspace volume.
+
+    Spawns a throwaway alpine container that mounts the volume read-only
+    and `cat`s the file. Used by Loop's `over` lambdas to parse markdown
+    documents written by upstream agents — host-side composition needs
+    a bridge to in-volume content.
+    """
+    try:
+        output = client.containers.run(
+            ALPINE_IMAGE,
+            command=["cat", path],
+            volumes={volume_name: {"bind": "/workspace", "mode": "ro"}},
+            detach=False,
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"read_file({path}) failed: {stderr}") from exc
+    return output.decode("utf-8")
+
+
+def make_change_sets_dir(client: DockerClient, *, volume_name: str) -> None:
+    """mkdir -p /workspace/documents/change-sets, owned by the
+    agent-worker container's claude user.
+
+    Created at bootstrap time so per-CS subdirs (created later by
+    prepare_change_set_workspace inside the outer loop) inherit the
+    correct ownership.
+    """
+    script = (
+        "mkdir -p /workspace/documents/change-sets && "
+        f"chown {AGENT_USER_UID}:{AGENT_USER_GID} /workspace/documents/change-sets && "
+        "chmod 775 /workspace/documents/change-sets"
+    )
+    try:
+        client.containers.run(
+            ALPINE_IMAGE,
+            command=["sh", "-c", script],
+            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"make_change_sets_dir failed: {stderr}") from exc
+
+
+def make_change_set_subdir(client: DockerClient, *, volume_name: str, slug: str) -> str:
+    """mkdir -p /workspace/documents/change-sets/{slug}, owned by the
+    agent-worker container's claude user. Returns the in-container path.
+    """
+    cs_path = f"/workspace/documents/change-sets/{slug}"
+    script = (
+        f"mkdir -p {cs_path} && "
+        f"chown {AGENT_USER_UID}:{AGENT_USER_GID} {cs_path} && "
+        f"chmod 775 {cs_path}"
+    )
+    try:
+        client.containers.run(
+            ALPINE_IMAGE,
+            command=["sh", "-c", script],
+            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"make_change_set_subdir({slug}) failed: {stderr}") from exc
+    return cs_path
+
+
 def write_file(
     client: DockerClient,
     *,
