@@ -1,7 +1,8 @@
 """Full end-to-end test: bootstrap → designer → design.md.
 
-Marked `integration`; skipped when Docker, network, or claude-code
-authentication is unavailable. Phase 2's completion criterion.
+Marked `integration` and `e2e`. Excluded from `pdm test-all` and
+`pdm test-integration`; runs only via explicit `pdm test-e2e` because
+it hits real Claude Code and takes minutes.
 
 Running requires:
 - Docker daemon reachable.
@@ -9,8 +10,7 @@ Running requires:
 - ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN in env (for the designer).
 - agent-worker:latest image available locally.
 
-    GH_TOKEN=$(gh auth token) ANTHROPIC_API_KEY=... \\
-        pdm test-integration tests/archipelago/systems/test_design_pipeline_integration.py
+    GH_TOKEN=$(gh auth token) ANTHROPIC_API_KEY=... pdm test-e2e
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ from archetype.markdown import validate_markdown
 from archipelago.models import CodebaseSource, DesignDocument, FeatureDefinition
 from archipelago.systems.design_pipeline import run_design_pipeline
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
 REPO_URL = "https://github.com/730alchemy/agent-foundry.git"
 REF = "main"

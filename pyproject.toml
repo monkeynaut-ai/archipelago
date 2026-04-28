@@ -23,11 +23,12 @@ license = {text = "MIT"}
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
-addopts = "-m 'not benchmark' -n 8"
+addopts = "-m 'not benchmark and not e2e' -n 8"
 asyncio_mode = "strict"
 markers = [
     "benchmark: performance benchmark tests (excluded from normal runs)",
     "integration: integration tests (require Docker, external services)",
+    "e2e: end-to-end tests that hit real LLMs; minutes per run; explicit invocation only via `pdm test-e2e`",
     "timeout: mark a test with a maximum runtime in seconds (requires pytest-timeout)",
 ]
 
@@ -39,12 +40,14 @@ distribution = false
 
 [tool.pdm.scripts]
 post_install.cmd = "pre-commit install"
-test-unit.cmd = "pytest tests/ -m 'not integration and not benchmark'"
+test-unit.cmd = "pytest tests/ -m 'not integration and not benchmark and not e2e'"
 test-unit.env = {PYTHONPATH = "src"}
-test-integration.cmd = "pytest tests/ -m 'integration'"
+test-integration.cmd = "pytest tests/ -m 'integration and not e2e'"
 test-integration.env = {PYTHONPATH = "src"}
-test-all.cmd = "pytest tests/ -m 'not benchmark'"
+test-all.cmd = "pytest tests/ -m 'not benchmark and not e2e'"
 test-all.env = {PYTHONPATH = "src"}
+test-e2e.cmd = "pytest tests/ -m 'e2e'"
+test-e2e.env = {PYTHONPATH = "src"}
 lint.cmd = "ruff check src/ tests/"
 lint.env = {PYTHONPATH = "src"}
 format.cmd = "ruff format src/ tests/"
