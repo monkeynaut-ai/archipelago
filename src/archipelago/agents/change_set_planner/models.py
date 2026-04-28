@@ -1,13 +1,15 @@
 """ChangeSetPlanner state models.
 
 Input: workspace handle (for the target write path via the typed
-`change_sets_document_path` property) + designer output (for the
-upstream design.md path) + parsed feature definition (for instruction-
-template injection).
+`change_sets_document_path` property) + the upstream `design_document`
+path (Designer's flat output field) + parsed feature definition (for
+instruction-template injection).
 
-Output: an envelope pointing at the change-sets document path the
-agent wrote. `Annotated[str, AgentFilePath()]` triggers the container
-executor's existence check on success.
+Output: a single `change_sets_document` path — `Annotated[str,
+AgentFilePath()]` triggers the container executor's existence check
+on success. AgentAction outputs are merged flat into accumulated
+state, so consumers downstream pick up `change_sets_document` as a
+top-level field.
 """
 
 from __future__ import annotations
@@ -18,7 +20,6 @@ from agent_foundry.models.markers import AgentFilePath
 from pydantic import BaseModel, ConfigDict
 
 from archipelago.actions import WorkspaceHandle
-from archipelago.agents.designer import DesignerOutput
 from archipelago.models import FeatureDefinition
 
 
@@ -26,7 +27,7 @@ class ChangeSetPlannerInput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     workspace_handle: WorkspaceHandle
-    designer_output: DesignerOutput
+    design_document: str
     feature_definition: FeatureDefinition
 
 

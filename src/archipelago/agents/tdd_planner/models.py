@@ -1,12 +1,12 @@
 """TDDPlanner state models.
 
-Input: workspace handle + designer output (for the design.md path) +
-the current change set (bound by the outer Loop's item_key) + paths
-into the per-CS subdirectory (computed by prepare_change_set_workspace
-and threaded as state).
+Input: workspace handle + the upstream `design_document` path (flat
+field from Designer's output) + the current change set (bound by the
+outer Loop's item_key) + paths into the per-CS subdirectory
+(computed by prepare_change_set_workspace and threaded as state).
 
-Output: an envelope pointing at the steps document path the agent
-wrote.
+Output: a single `steps_document` path — also flat, merged into
+accumulated state for downstream consumers.
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ from agent_foundry.models.markers import AgentFilePath
 from pydantic import BaseModel, ConfigDict
 
 from archipelago.actions import WorkspaceHandle
-from archipelago.agents.designer import DesignerOutput
 from archipelago.models import ChangeSetRef, FeatureDefinition
 
 
@@ -25,7 +24,7 @@ class TDDPlannerInput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     workspace_handle: WorkspaceHandle
-    designer_output: DesignerOutput
+    design_document: str
     feature_definition: FeatureDefinition
     current_change_set: ChangeSetRef
     change_set_workspace_path: str

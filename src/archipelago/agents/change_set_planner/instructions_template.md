@@ -8,7 +8,7 @@ independently-shippable change sets.
 
 This run, you are planning change sets for the feature **{{ feature.title }}**.
 
-Read the design document at `{{ designer_output.design_document }}`.
+Read the design document at `{{ design_document }}`.
 
 The feature definition at `{{ workspace_handle.feature_definition_path }}` is
 also available if you need to consult the original outcomes, scope, or

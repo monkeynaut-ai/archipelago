@@ -13,9 +13,8 @@ This run, you are planning steps for the change set
 Change set summary:
 > {{ current_change_set.summary }}
 
-Read the full design at `{{ designer_output.design_document }}` for
-broader context. The per-change-set workspace is at
-`{{ change_set_workspace_path }}/`.
+Read the full design at `{{ design_document }}` for broader context.
+The per-change-set workspace is at `{{ change_set_workspace_path }}/`.
 
 ## Your output
 

@@ -26,7 +26,7 @@ def tdd_planner_instructions_provider(state: TDDPlannerInput) -> str:
         template_text,
         feature=state.feature_definition,
         workspace_handle=state.workspace_handle,
-        designer_output=state.designer_output,
+        design_document=state.design_document,
         current_change_set=state.current_change_set,
         change_set_workspace_path=state.change_set_workspace_path,
         steps_document_path=state.steps_document_path,

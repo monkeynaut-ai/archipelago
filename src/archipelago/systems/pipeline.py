@@ -42,12 +42,9 @@ from archipelago.actions import (
     workspace_bootstrap,
 )
 from archipelago.actions import _workspace_ops as _ops
-from archipelago.agents.change_set_planner import (
-    ChangeSetPlannerOutput,
-    change_set_planner,
-)
-from archipelago.agents.designer import DesignerOutput, designer
-from archipelago.agents.tdd_planner import TDDPlannerOutput, tdd_planner
+from archipelago.agents.change_set_planner import change_set_planner
+from archipelago.agents.designer import designer
+from archipelago.agents.tdd_planner import tdd_planner
 from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
@@ -68,14 +65,26 @@ from archipelago.systems.design_pipeline import (
 
 class FullPipelineState(BaseModel):
     """Top-level pipeline state. Pre-loop fields only; per-iteration
-    fields live in the loop-scoped types below."""
+    fields live in the loop-scoped types below.
+
+    AgentAction outputs are merged FLAT into accumulated state (the
+    AgentAction compiler returns ``typed.model_dump()``), so this
+    model carries each agent's output fields directly rather than
+    nesting them under a wrapper. For Designer this means
+    ``investigation_summary`` and ``design_document`` (DesignerOutput's
+    fields) appear here as top-level optional strings; same shape for
+    Change Set Planner's ``change_sets_document``.
+    """
 
     feature_definition: FeatureDefinition
     codebase_source: CodebaseSource
     volume_name: str
     workspace_handle: WorkspaceHandle | None = None
-    designer_output: DesignerOutput | None = None
-    change_set_planner_output: ChangeSetPlannerOutput | None = None
+    # Designer's flat output:
+    investigation_summary: str | None = None
+    design_document: str | None = None
+    # Change Set Planner's flat output:
+    change_sets_document: str | None = None
 
 
 class ChangeSetsLoopState(BaseModel):
@@ -84,9 +93,9 @@ class ChangeSetsLoopState(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    change_set_planner_output: ChangeSetPlannerOutput
+    change_sets_document: str
     workspace_handle: WorkspaceHandle
-    designer_output: DesignerOutput
+    design_document: str
     feature_definition: FeatureDefinition
 
 
@@ -101,13 +110,13 @@ class ChangeSetProcessingState(BaseModel):
 
     # Inherited from ChangeSetsLoopState:
     workspace_handle: WorkspaceHandle
-    designer_output: DesignerOutput
+    design_document: str
     feature_definition: FeatureDefinition
 
     # Written by body steps:
     change_set_workspace_path: str | None = None
     steps_document_path: str | None = None
-    tdd_planner_output: TDDPlannerOutput | None = None
+    steps_document: str | None = None  # TDD Planner's flat output
 
 
 class StepsLoopState(BaseModel):
@@ -116,7 +125,7 @@ class StepsLoopState(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    tdd_planner_output: TDDPlannerOutput
+    steps_document: str
     change_set_workspace_path: str
     workspace_handle: WorkspaceHandle
 
@@ -143,7 +152,7 @@ def _change_sets_over(state: ChangeSetsLoopState) -> list[ChangeSetRef]:
     text = _ops.read_file(
         client,
         volume_name=state.workspace_handle.volume_name,
-        path=state.change_set_planner_output.change_sets_document,
+        path=state.change_sets_document,
     )
     return validate_markdown(text, ChangeSetsDocument).change_sets
 
@@ -153,7 +162,7 @@ def _steps_over(state: StepsLoopState) -> list[StepRef]:
     text = _ops.read_file(
         client,
         volume_name=state.workspace_handle.volume_name,
-        path=state.tdd_planner_output.steps_document,
+        path=state.steps_document,
     )
     return validate_markdown(text, StepsDocument).steps
 
