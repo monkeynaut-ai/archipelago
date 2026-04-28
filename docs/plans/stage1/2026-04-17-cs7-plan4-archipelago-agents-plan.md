@@ -1,7 +1,7 @@
 # CS7 Plan 4 (+ possibly Plan 5): Archipelago Agents & Agent Foundry Construction Capabilities — Design (Living Document)
 
 > **Status:** BRAINSTORM IN PROGRESS. Nothing in this document is locked. Do not implement from this plan yet.
-> **Roadmap:** `docs/plans/2026-04-03-review-feedback-loop-roadmap.md` (Change Set 7, Plan 4)
+> **Roadmap:** `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md` (Change Set 7, Plan 4)
 > **Depends on:** CS7 Plan 1 (AgentAction primitive), CS7 Plan 2 (lifecycle orchestration), CS7 Plan 3 (base image + instructions).
 > **Started:** 2026-04-17
 
@@ -260,4 +260,4 @@ This is not a single decision — it's a set of axes, and the right point on eac
 - **2026-04-17** — **Template models are built from typed markdown-element classes** — `MarkdownHeading`, `MarkdownSection` (bold title), `MarkdownCodeBlock`, `MarkdownTable`, etc. — via a discriminated-union base with `kind` as the discriminator. The model expresses document structure in terms of markdown elements; validation pipeline is markdown → `markdown-it-py` AST → normalized JSON → Pydantic validation.
 - **2026-04-17** — **Layering decision: Option (iii) — annotation-driven domain models.** Applications declare ordinary Pydantic domain models and use `Annotated[T, AsHeading(...)] / AsSection(...) / AsCodeBlock() / ...` annotations to describe how each field renders as markdown. Agent Foundry provides the annotation vocabulary, the rendering engine, and the parsing/validation engine. App writes zero validation code. See ADR: `agent-foundry/docs/architecture/adr_markdown_template_model_shape.md`.
 - **2026-04-17** — **Second north star named: single-source-of-truth data models.** One change in a Pydantic model should propagate to every touchpoint (prompts, instructions, rendering, parsing, validation, schemas, skeletons, data flow) without any other edits. Covered touchpoints and the gap list added to the plan as the roadmap beyond the ADR's initial scope.
-- **2026-04-17** — **CS7 Plan 4 broken into phases. Phase 1 design drafted:** `docs/plans/2026-04-17-cs7-plan4-phase1-markdown-machinery-design.md`. Phase 1 builds the platform machinery in agent-foundry (element classes, annotations, `MarkdownDocument` base + meta-validation, renderer, parser/validator, subtree extractor). Subsequent phases will extend the machinery and implement the four Archipelago agents on it.
+- **2026-04-17** — **CS7 Plan 4 broken into phases. Phase 1 design drafted:** `docs/plans/stage1/2026-04-17-cs7-plan4-phase1-markdown-machinery-design.md`. Phase 1 builds the platform machinery in agent-foundry (element classes, annotations, `MarkdownDocument` base + meta-validation, renderer, parser/validator, subtree extractor). Subsequent phases will extend the machinery and implement the four Archipelago agents on it.

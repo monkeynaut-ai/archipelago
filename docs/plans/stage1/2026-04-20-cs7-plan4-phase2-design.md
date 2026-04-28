@@ -2,9 +2,9 @@
 
 > **Status:** Design draft from 2026-04-20 brainstorm. Slice 1 built.
 > **Date:** 2026-04-20
-> **Roadmap:** `docs/plans/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
-> **Parent plan:** `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
-> **Previous phase:** `docs/plans/2026-04-17-cs7-plan4-phase1-implementation-plan.md` (Phase 1 markdown machinery — shipped)
+> **Roadmap:** `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
+> **Parent plan:** `docs/plans/stage1/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
+> **Previous phase:** `docs/plans/stage1/2026-04-17-cs7-plan4-phase1-implementation-plan.md` (Phase 1 markdown machinery — shipped)
 > **Vision doc:** `docs/archipelago-vision.md` (§3.1 harness-competing-tensions method justifies the agent split)
 > **First feature-def to test against:** `examples/features/run-observability.md`
 

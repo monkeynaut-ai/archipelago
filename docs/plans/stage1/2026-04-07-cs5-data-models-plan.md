@@ -1,7 +1,7 @@
 # CS5: New and Modified Data Models — Implementation Plan
 
-> **Design:** docs/plans/2026-04-03-review-feedback-loop-design.md
-> **Roadmap:** docs/plans/2026-04-03-review-feedback-loop-roadmap.md
+> **Design:** docs/plans/stage1/2026-04-03-review-feedback-loop-design.md
+> **Roadmap:** docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md
 > **Scope:** Archipelago repo. Broader than the roadmap's original CS5 — absorbs transition cleanup that was originally deferred to CS11.
 
 **Goal:** Install the new data models for the review feedback loop (`ChangeSetStep`, `ReviewFinding`, new `ImplementationTask`, `DispatchedFinding`, new `DispatcherOutput`, `IntegratorOutput`), restructure `ChangeSet` and `JobSpecification`, and remove the dead code that no longer compiles or has no transition value.
@@ -1151,7 +1151,7 @@ No commit needed for this task — it is a verification gate only.
 - [ ] `docker_worker/models.py` does not import `ChangeSet`
 - [ ] All new domain models (`ChangeSetStep`, `ReviewFinding`, `ImplementationTask`, `DispatchedFinding`, `DispatcherOutput`, `IntegratorOutput`), supporting enums (`Severity`, `Disposition`, `OriginKind`), union wrappers (`StepOrigin`, `FindingOrigin`, `TaskOrigin`), the restructured `ChangeSet`, and the extended `JobSpecification` are importable from `archipelago.models`
 - [ ] All models comply with the Data Model Conventions in `CLAUDE.md` (StrEnum for routing keys, free `str` for informational labels, discriminated unions via tagged wrappers, no `Literal[...]` for enumerated values except the narrow Pydantic discriminator fallback)
-- [ ] `docs/plans/2026-04-03-review-feedback-loop-roadmap.md` CS5 section is still accurate, or has been updated to note the broadened scope
+- [ ] `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md` CS5 section is still accurate, or has been updated to note the broadened scope
 
 ---
 

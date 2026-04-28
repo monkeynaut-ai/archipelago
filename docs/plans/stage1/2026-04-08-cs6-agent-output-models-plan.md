@@ -1,8 +1,8 @@
 # CS6: Agent Payload Models and Role Specs Implementation Plan
 
-> **Design:** docs/plans/2026-04-03-review-feedback-loop-design.md
-> **Roadmap:** docs/plans/2026-04-03-review-feedback-loop-roadmap.md (CS6 section)
-> **Related:** docs/plans/2026-04-08-cs6.5-structured-output-protocol-plan.md (the protocol machinery that consumes these types)
+> **Design:** docs/plans/stage1/2026-04-03-review-feedback-loop-design.md
+> **Roadmap:** docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md (CS6 section)
+> **Related:** docs/plans/stage1/2026-04-08-cs6.5-structured-output-protocol-plan.md (the protocol machinery that consumes these types)
 > **Issue:** 730alchemy/archipelago#1
 > **For agents:** Use team-dev (parallel) or sdd (sequential) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

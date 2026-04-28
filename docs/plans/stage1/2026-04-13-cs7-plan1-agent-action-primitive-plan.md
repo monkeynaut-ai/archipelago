@@ -1,6 +1,6 @@
 # CS7 Plan 1: AgentAction Primitive, Validator, and Compiler — Implementation Plan
 
-> **Roadmap:** docs/plans/2026-04-03-review-feedback-loop-roadmap.md (Change Set 7)
+> **Roadmap:** docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md (Change Set 7)
 > **For agents:** Use team-dev (parallel) or sdd (sequential) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 ## Where this plan fits in CS7

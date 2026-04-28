@@ -1,9 +1,9 @@
 # CS7 Plan 4 Phase 1 — Markdown Machinery Implementation Plan
 
 > **Status:** Revised 2026-04-17 after jig:review swarm (5 blocking + 4 major findings addressed in this version).
-> **Design:** `docs/plans/2026-04-17-cs7-plan4-phase1-markdown-machinery-design.md`
+> **Design:** `docs/plans/stage1/2026-04-17-cs7-plan4-phase1-markdown-machinery-design.md`
 > **ADR:** `agent-foundry/docs/architecture/adr_markdown_template_model_shape.md`
-> **Parent:** `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
+> **Parent:** `docs/plans/stage1/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
 > **For agents:** Use team-dev (parallel) or sdd (sequential) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the declarative markdown-document machinery in agent-foundry — six element classes, six annotations, two base classes with class-definition-time meta-validation, a deterministic renderer, a parser/validator that returns populated Pydantic instances, and a heading-keyed subtree extractor — so applications declare ordinary Pydantic templates and Agent Foundry handles all rendering, parsing, and validation with zero application code.
@@ -4395,7 +4395,7 @@ class TestPublicAPI:
 """Declarative markdown-document machinery for Agent Foundry products.
 
 See `agent-foundry/docs/architecture/adr_markdown_template_model_shape.md` for the
-architectural decision and `archipelago/docs/plans/2026-04-17-cs7-plan4-phase1-markdown-machinery-design.md`
+architectural decision and `archipelago/docs/plans/stage1/2026-04-17-cs7-plan4-phase1-markdown-machinery-design.md`
 for the design.
 
 Quick example:
@@ -4521,7 +4521,7 @@ Append to the Change log:
 - **YYYY-MM-DD** — Phase 1 implemented. Two base classes (`MarkdownHeader`, `MarkdownDocument`),
   six annotations, six element classes, deterministic renderer, parser/validator, subtree
   extractor. Live in `agent_foundry.markdown`. See
-  `archipelago/docs/plans/2026-04-17-cs7-plan4-phase1-implementation-plan.md` for task list.
+  `archipelago/docs/plans/stage1/2026-04-17-cs7-plan4-phase1-implementation-plan.md` for task list.
 ```
 
 - [ ] **Step 3: Commit**

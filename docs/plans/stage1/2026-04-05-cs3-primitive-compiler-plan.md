@@ -1,7 +1,7 @@
 # CS3: Primitive Compiler — Implementation Plan
 
-> **Design:** docs/plans/2026-04-03-review-feedback-loop-design.md
-> **Roadmap:** docs/plans/2026-04-03-review-feedback-loop-roadmap.md
+> **Design:** docs/plans/stage1/2026-04-03-review-feedback-loop-design.md
+> **Roadmap:** docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md
 > **For agents:** Use team-dev (parallel) or sdd (sequential) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Update primitive models (rename Action → FunctionAction, Gate → GateAction, remove on_exhausted from Retry), then compile the typed primitive graph into an executable LangGraph `StateGraph` with a fully typed public API. The old `compile_plan(GraphWiringPlan)` path is deleted after the new compiler proves working.

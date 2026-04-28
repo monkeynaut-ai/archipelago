@@ -1,7 +1,7 @@
 # CS2: Primitive Validators — Implementation Plan
 
-> **Design:** docs/plans/2026-04-03-review-feedback-loop-design.md
-> **Roadmap:** docs/plans/2026-04-03-review-feedback-loop-roadmap.md
+> **Design:** docs/plans/stage1/2026-04-03-review-feedback-loop-design.md
+> **Roadmap:** docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md
 > **For agents:** Use team-dev (parallel) or sdd (sequential) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add graph-level type compatibility validation for primitive compositions. Validate type boundaries between connected primitives at graph construction time, not at runtime. Two composition modes: **chaining** (Sequence steps — output feeds next input) and **containment** (Loop/Retry/Conditional wrapping a body — body operates within the parent's scope).

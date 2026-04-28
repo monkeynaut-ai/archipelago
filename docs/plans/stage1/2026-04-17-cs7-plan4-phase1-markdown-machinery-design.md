@@ -2,8 +2,8 @@
 
 > **Status:** Design draft, second iteration. Survived two sanity-check passes against the change-set Reviewer model. Pending final review before Phase-1 implementation begins.
 > **Date:** 2026-04-17 (initial draft); revised same day after design sharpening
-> **Roadmap:** `docs/plans/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
-> **Parent plan:** `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
+> **Roadmap:** `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
+> **Parent plan:** `docs/plans/stage1/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
 > **Architectural ADR:** `agent-foundry/docs/architecture/adr_markdown_template_model_shape.md`
 > **Cross-repo:** all Phase-1 work lives in **agent-foundry**; archipelago is the eventual consumer but is not touched in Phase 1.
 

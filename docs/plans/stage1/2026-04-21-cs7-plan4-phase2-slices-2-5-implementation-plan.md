@@ -1,9 +1,9 @@
 # CS7 Plan 4 Phase 2 Slices 2–5 — Design Pipeline Implementation Plan
 
-> **Design:** `docs/plans/2026-04-20-cs7-plan4-phase2-design.md`
-> **Previous slice (shipped):** `docs/plans/2026-04-20-cs7-plan4-phase2-slice1-implementation-plan.md`
-> **Parent:** `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
-> **Roadmap:** `docs/plans/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
+> **Design:** `docs/plans/stage1/2026-04-20-cs7-plan4-phase2-design.md`
+> **Previous slice (shipped):** `docs/plans/stage1/2026-04-20-cs7-plan4-phase2-slice1-implementation-plan.md`
+> **Parent:** `docs/plans/stage1/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
+> **Roadmap:** `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
 > **Vision:** `docs/archipelago-vision.md` (§3.1 harness-competing-tensions)
 > **For agents:** Use team-dev (parallel) or sdd (sequential) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

@@ -1,7 +1,7 @@
 # CS1: Primitive Pydantic Models — Implementation Plan
 
-> **Design:** docs/plans/2026-04-03-review-feedback-loop-design.md
-> **Roadmap:** docs/plans/2026-04-03-review-feedback-loop-roadmap.md
+> **Design:** docs/plans/stage1/2026-04-03-review-feedback-loop-design.md
+> **Roadmap:** docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md
 > **For agents:** Use team-dev (parallel) or sdd (sequential) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Define the six composable primitive types (Sequence, Loop, Retry, Conditional, Gate, Action) as typed Pydantic models in Agent Foundry, with input/output type boundaries and composition by direct object reference.

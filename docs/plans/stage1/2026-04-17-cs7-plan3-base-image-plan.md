@@ -1,6 +1,6 @@
 # CS7 Plan 3 — Base Image Takes Over, Archipelago Image Goes Away
 
-**Roadmap**: `docs/plans/2026-04-03-review-feedback-loop-roadmap.md` — CS7, Plan 3.
+**Roadmap**: `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md` — CS7, Plan 3.
 **Branches**:
 - Agent Foundry: `feat/cs7-plan3-base-image` (lands first)
 - Archipelago: `feat/cs7-plan3-drop-archipelago-image` (lands after)
@@ -194,7 +194,7 @@ Opens after PR 1 merges. Archipelago's `file://` dep on agent-foundry picks up t
 
 ### Phase L — Update roadmap
 
-1. Edit `docs/plans/2026-04-03-review-feedback-loop-roadmap.md`:
+1. Edit `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md`:
    - Mark CS7 Plan 3 complete.
    - CS11 items now done (strike or mark superseded): marker-config deletion, archipelago image deletion, `ARCHIPELAGO_UPDATE_AVAILABLE` marker deletion. Preserve the CI-pipeline task note for CS11 proper.
 2. Commit the roadmap edit with the PR.

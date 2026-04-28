@@ -2,9 +2,9 @@
 
 > **Status:** Built.
 > **Date:** 2026-04-20
-> **Roadmap:** `docs/plans/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
-> **Parent plan:** `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
-> **Parent phase design:** `docs/plans/2026-04-20-cs7-plan4-phase2-design.md`
+> **Roadmap:** `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md` (CS7 Plan 4)
+> **Parent plan:** `docs/plans/stage1/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
+> **Parent phase design:** `docs/plans/stage1/2026-04-20-cs7-plan4-phase2-design.md`
 > **Cross-repo:** Slice 1 lives entirely in **agent-foundry**. Archipelago is not touched in this slice.
 
 > **Post-build note (2026-04-20):** During implementation, the Slice 1 code
