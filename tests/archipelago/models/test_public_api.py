@@ -11,6 +11,9 @@ class TestPublicAPI:
             "AcceptanceCriteria",
             "Assumptions",
             "BusinessOutcomes",
+            "ChangeSetRef",
+            "ChangeSetsDocument",
+            "ChangeSetsDocumentFrontmatter",
             "CodebaseSource",
             "Constraints",
             "Dependencies",
@@ -20,7 +23,11 @@ class TestPublicAPI:
             "FeatureDefinition",
             "FeatureDefinitionFrontmatter",
             "ScopeBoundaries",
+            "StepRef",
+            "StepsDocument",
+            "StepsDocumentFrontmatter",
             "UserOutcomes",
+            "slugify",
         }
 
     def test_given_all_names_when_accessed_then_importable(self):

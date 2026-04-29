@@ -25,10 +25,19 @@ class TestWorkspaceBootstrapPrimitive:
 class TestPublicAPI:
     def test_given_actions_package_when_imported_then_all_matches_expected(self):
         assert set(actions_pkg.__all__) == {
-            "workspace_bootstrap",
             "BootstrapInput",
             "BootstrapOutput",
+            "LogChangeSetNameInput",
+            "LogChangeSetNameOutput",
+            "LogChangeSetStepNameInput",
+            "LogChangeSetStepNameOutput",
+            "PrepareChangeSetWorkspaceInput",
+            "PrepareChangeSetWorkspaceOutput",
             "WorkspaceHandle",
+            "log_change_set_name",
+            "log_change_set_step_name",
+            "prepare_change_set_workspace",
+            "workspace_bootstrap",
         }
 
     def test_given_all_names_when_accessed_then_importable(self):

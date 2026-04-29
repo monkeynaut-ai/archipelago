@@ -5,6 +5,12 @@ BaseModel subclass.
 
 from __future__ import annotations
 
+from archipelago.models.change_sets_document import (
+    ChangeSetRef,
+    ChangeSetsDocument,
+    ChangeSetsDocumentFrontmatter,
+    slugify,
+)
 from archipelago.models.codebase_source import CodebaseSource
 from archipelago.models.design_document import (
     DesignDocument,
@@ -22,11 +28,19 @@ from archipelago.models.feature_definition import (
     ScopeBoundaries,
     UserOutcomes,
 )
+from archipelago.models.steps_document import (
+    StepRef,
+    StepsDocument,
+    StepsDocumentFrontmatter,
+)
 
 __all__ = [
     "AcceptanceCriteria",
     "Assumptions",
     "BusinessOutcomes",
+    "ChangeSetRef",
+    "ChangeSetsDocument",
+    "ChangeSetsDocumentFrontmatter",
     "CodebaseSource",
     "Constraints",
     "Dependencies",
@@ -36,5 +50,9 @@ __all__ = [
     "FeatureDefinition",
     "FeatureDefinitionFrontmatter",
     "ScopeBoundaries",
+    "StepRef",
+    "StepsDocument",
+    "StepsDocumentFrontmatter",
     "UserOutcomes",
+    "slugify",
 ]

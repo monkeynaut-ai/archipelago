@@ -26,7 +26,14 @@ from archipelago.models import CodebaseSource, FeatureDefinition
 
 
 class WorkspaceHandle(BaseModel):
-    """Pointer to the provisioned workspace volume."""
+    """Pointer to the provisioned workspace volume.
+
+    Computed properties (`design_document_path`, `change_sets_document_path`,
+    `change_sets_dir`) expose well-known document and directory paths
+    derived from `documents_path`. New agents should read these via the
+    typed property rather than hardcoding the path string in instruction
+    templates (path-threading principle).
+    """
 
     volume_name: str
     root: str
@@ -35,6 +42,18 @@ class WorkspaceHandle(BaseModel):
     feature_definition_path: str
     codebase_source_ref: str
     codebase_resolved_sha: str
+
+    @property
+    def design_document_path(self) -> str:
+        return f"{self.documents_path}/design.md"
+
+    @property
+    def change_sets_document_path(self) -> str:
+        return f"{self.documents_path}/change-sets.md"
+
+    @property
+    def change_sets_dir(self) -> str:
+        return f"{self.documents_path}/change-sets"
 
 
 class BootstrapInput(BaseModel):
@@ -93,6 +112,11 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
 
         # 5. Ensure documents dir exists and is writable to the designer UID.
         _ops.prepare_documents_dir(client, volume_name=state.volume_name)
+
+        # 5b. Create change-sets/ subdirectory under documents/. Per-CS
+        # subdirs (created later by prepare_change_set_workspace inside
+        # the outer loop) inherit the same agent-writable ownership.
+        _ops.make_change_sets_dir(client, volume_name=state.volume_name)
 
         # 6. Stage the feature definition file (locked to 444 once written).
         _ops.write_file(
