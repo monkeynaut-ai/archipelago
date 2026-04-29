@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the design pipeline against the bundled run-observability feature
+# Run the full pipeline against the bundled run-observability feature
 # definition, targeting agent-foundry's main branch.
 #
 # Auth:
@@ -18,7 +18,7 @@ if command -v gh >/dev/null 2>&1 && gh auth token >/dev/null 2>&1; then
     export GITHUB_TOKEN="$(gh auth token)"
 fi
 
-PYTHONPATH=src pdm run python scripts/run_design_pipeline.py \
+PYTHONPATH=src pdm run python scripts/run_full_pipeline.py \
     --feature examples/features/run-observability.md \
     --repo https://github.com/730alchemy/agent-foundry.git \
     --ref main

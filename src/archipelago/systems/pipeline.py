@@ -57,6 +57,7 @@ from archipelago.systems.design_pipeline import (
     BASE_IMAGE_TAG,
     generate_volume_name,
 )
+from archipelago.telemetry import attach_mlflow_adapter, telemetry_configuration
 
 # ============================================================
 # State models
@@ -240,6 +241,8 @@ async def run_full_pipeline(
         workspace_volume=volume_name,
         base_image_tag=BASE_IMAGE_TAG,
         responder_provider=static_provider(StdinResponder()),
+        telemetry=telemetry_configuration,
+        on_run_starting=[attach_mlflow_adapter],
     )
     assert isinstance(final, FullPipelineState), (
         f"run_primitive_plan returned {type(final).__name__}, expected FullPipelineState"
