@@ -27,7 +27,7 @@ from agent_foundry.primitives.models import Loop, Sequence
 from agent_foundry.primitives.plan import PrimitivePlan
 from agent_foundry.responders.protocol import static_provider
 from agent_foundry.responders.stdin import StdinResponder
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from archipelago.actions import (
     WorkspaceHandle,
@@ -88,8 +88,6 @@ class ChangeSetsLoopState(BaseModel):
     """Outer Loop's view: fields the Loop reads (for `over`) plus
     inheritable context for the body."""
 
-    model_config = ConfigDict(extra="ignore")
-
     change_sets_document: str
     workspace_handle: WorkspaceHandle
     design_document: str
@@ -99,8 +97,6 @@ class ChangeSetsLoopState(BaseModel):
 class ChangeSetProcessingState(BaseModel):
     """Outer body Sequence's view: bound iteration item + inherited
     context + slots for per-iteration writes."""
-
-    model_config = ConfigDict(extra="ignore")
 
     # Bound by outer Loop's item_key:
     current_change_set: ChangeSetRef
@@ -120,8 +116,6 @@ class StepsLoopState(BaseModel):
     """Inner Loop's view. Includes `workspace_handle` so the `over`
     callable can read steps.md from the volume."""
 
-    model_config = ConfigDict(extra="ignore")
-
     steps_document: str
     change_set_workspace_path: str
     workspace_handle: WorkspaceHandle
@@ -131,8 +125,6 @@ class StepProcessingState(BaseModel):
     """Inner body Sequence's view. Future iterations will widen this as
     Test Agent / Implementer / CommitAction need design context, current
     change set, etc."""
-
-    model_config = ConfigDict(extra="ignore")
 
     current_step: StepRef
     change_set_workspace_path: str

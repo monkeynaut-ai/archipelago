@@ -18,17 +18,13 @@ from __future__ import annotations
 from typing import Annotated
 
 from agent_foundry.models.markers import AgentFilePath
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from archipelago.actions import WorkspaceHandle
 from archipelago.models import FeatureDefinition
 
 
 class DesignerInput(BaseModel):
-    # Explicit extra="ignore" — the compiler passes the full pipeline
-    # state; extra fields must be dropped.
-    model_config = ConfigDict(extra="ignore")
-
     workspace_handle: WorkspaceHandle
     feature_definition: FeatureDefinition
 
