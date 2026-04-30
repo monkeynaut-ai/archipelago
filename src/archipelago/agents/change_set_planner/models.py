@@ -17,15 +17,13 @@ from __future__ import annotations
 from typing import Annotated
 
 from agent_foundry.models.markers import AgentFilePath
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from archipelago.actions import WorkspaceHandle
 from archipelago.models import FeatureDefinition
 
 
 class ChangeSetPlannerInput(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     workspace_handle: WorkspaceHandle
     design_document: str
     feature_definition: FeatureDefinition

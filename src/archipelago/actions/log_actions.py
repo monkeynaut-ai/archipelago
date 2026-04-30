@@ -8,14 +8,12 @@ structured run-event emission replaces stdout logging.
 from __future__ import annotations
 
 from agent_foundry.primitives.models import FunctionAction
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from archipelago.models import ChangeSetRef, StepRef
 
 
 class LogChangeSetNameInput(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     current_change_set: ChangeSetRef
 
 
@@ -37,8 +35,6 @@ log_change_set_name = FunctionAction[LogChangeSetNameInput, LogChangeSetNameOutp
 
 
 class LogChangeSetStepNameInput(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     current_step: StepRef
 
 

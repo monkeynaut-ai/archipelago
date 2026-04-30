@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import docker
 from agent_foundry.primitives.models import FunctionAction
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops
 from archipelago.actions.workspace_bootstrap import WorkspaceHandle
@@ -20,8 +20,6 @@ from archipelago.models import ChangeSetRef
 
 
 class PrepareChangeSetWorkspaceInput(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
     workspace_handle: WorkspaceHandle
     current_change_set: ChangeSetRef
 

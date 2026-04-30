@@ -19,7 +19,7 @@ import os
 import docker
 from agent_foundry.primitives.models import FunctionAction
 from archetype.markdown import render_instance
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops
 from archipelago.models import CodebaseSource, FeatureDefinition
@@ -57,11 +57,6 @@ class WorkspaceHandle(BaseModel):
 
 
 class BootstrapInput(BaseModel):
-    # Explicit extra="ignore" documents that the compiler passes the full
-    # pipeline state into model_validate; extra fields (workspace_handle,
-    # designer_output) must be silently dropped.
-    model_config = ConfigDict(extra="ignore")
-
     feature_definition: FeatureDefinition
     codebase_source: CodebaseSource
     volume_name: str
