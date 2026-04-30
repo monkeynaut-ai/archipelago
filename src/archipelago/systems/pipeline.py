@@ -22,9 +22,6 @@ its own composition.
 
 from __future__ import annotations
 
-import datetime
-from pathlib import Path
-
 from agent_foundry.orchestration import run_primitive_plan
 from agent_foundry.primitives.models import Loop, Sequence
 from agent_foundry.primitives.plan import PrimitivePlan
@@ -51,6 +48,7 @@ from archipelago.models import (
     StepRef,
     StepsDocument,
 )
+from archipelago.systems._artifacts import artifacts_dir_for_run as _artifacts_dir_for_run
 from archipelago.systems.design_pipeline import (
     BASE_IMAGE_TAG,
     generate_volume_name,
@@ -193,12 +191,6 @@ full_pipeline = Sequence[FullPipelineState, FullPipelineState](
 # ============================================================
 # Orchestrator
 # ============================================================
-
-
-def _artifacts_dir_for_run() -> Path:
-    """`cwd/runs/<YYYY-MM-DD-HH-MM-SS>/`. Mirrors design_pipeline."""
-    ts = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    return Path.cwd() / "runs" / ts
 
 
 async def run_full_pipeline(
