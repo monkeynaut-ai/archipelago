@@ -22,16 +22,11 @@ its own composition.
 
 from __future__ import annotations
 
-import datetime
-from pathlib import Path
-
-import docker
 from agent_foundry.orchestration import run_primitive_plan
 from agent_foundry.primitives.models import Loop, Sequence
 from agent_foundry.primitives.plan import PrimitivePlan
 from agent_foundry.responders.protocol import static_provider
 from agent_foundry.responders.stdin import StdinResponder
-from archetype.markdown import validate_markdown
 from pydantic import BaseModel, ConfigDict
 
 from archipelago.actions import (
@@ -39,9 +34,9 @@ from archipelago.actions import (
     log_change_set_name,
     log_change_set_step_name,
     prepare_change_set_workspace,
+    read_markdown,
     workspace_bootstrap,
 )
-from archipelago.actions import _workspace_ops as _ops
 from archipelago.agents.change_set_planner import change_set_planner
 from archipelago.agents.designer import designer
 from archipelago.agents.tdd_planner import tdd_planner
@@ -53,6 +48,7 @@ from archipelago.models import (
     StepRef,
     StepsDocument,
 )
+from archipelago.systems._artifacts import artifacts_dir_for_run as _artifacts_dir_for_run
 from archipelago.systems.design_pipeline import (
     BASE_IMAGE_TAG,
     generate_volume_name,
@@ -143,29 +139,21 @@ class StepProcessingState(BaseModel):
 
 
 # ============================================================
-# Loop `over` callables — read markdown from the volume, parse, return
-# the iterable. Inline (no Loop helper abstracts this for now).
+# Loop `over` callables — read the typed document at the path stored
+# in state, then project the field that holds the iteration items.
+# Reads go through `read_markdown` so this module doesn't pull in
+# Docker or `workspace_ops` directly.
 # ============================================================
 
 
 def _change_sets_over(state: ChangeSetsLoopState) -> list[ChangeSetRef]:
-    client = docker.from_env()
-    text = _ops.read_file(
-        client,
-        volume_name=state.workspace_handle.volume_name,
-        path=state.change_sets_document,
-    )
-    return validate_markdown(text, ChangeSetsDocument).change_sets
+    return read_markdown(
+        state.workspace_handle, state.change_sets_document, ChangeSetsDocument
+    ).change_sets
 
 
 def _steps_over(state: StepsLoopState) -> list[StepRef]:
-    client = docker.from_env()
-    text = _ops.read_file(
-        client,
-        volume_name=state.workspace_handle.volume_name,
-        path=state.steps_document,
-    )
-    return validate_markdown(text, StepsDocument).steps
+    return read_markdown(state.workspace_handle, state.steps_document, StepsDocument).steps
 
 
 # ============================================================
@@ -203,12 +191,6 @@ full_pipeline = Sequence[FullPipelineState, FullPipelineState](
 # ============================================================
 # Orchestrator
 # ============================================================
-
-
-def _artifacts_dir_for_run() -> Path:
-    """`cwd/runs/<YYYY-MM-DD-HH-MM-SS>/`. Mirrors design_pipeline."""
-    ts = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    return Path.cwd() / "runs" / ts
 
 
 async def run_full_pipeline(

@@ -37,7 +37,10 @@ class TestPublicAPI:
             "log_change_set_name",
             "log_change_set_step_name",
             "prepare_change_set_workspace",
+            "read_markdown",
             "workspace_bootstrap",
+            "workspace_io",
+            "workspace_ops",
         }
 
     def test_given_all_names_when_accessed_then_importable(self):

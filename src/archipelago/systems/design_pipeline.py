@@ -7,10 +7,8 @@ document.
 
 from __future__ import annotations
 
-import datetime
 import re
 import time
-from pathlib import Path
 
 from agent_foundry.orchestration import run_primitive_plan
 from agent_foundry.primitives.models import Sequence
@@ -22,6 +20,7 @@ from pydantic import BaseModel
 from archipelago.actions import WorkspaceHandle, workspace_bootstrap
 from archipelago.agents.designer import DesignerOutput, designer
 from archipelago.models import CodebaseSource, FeatureDefinition
+from archipelago.systems._artifacts import artifacts_dir_for_run as _artifacts_dir_for_run
 
 # Base image for AgentAction containers. Hardcoded for Phase 2; sourced
 # from Phase 3's published image once that ships. If the tag needs to
@@ -63,14 +62,6 @@ class DesignPipelineState(BaseModel):
 design_pipeline = Sequence[DesignPipelineState, DesignPipelineState](
     steps=[workspace_bootstrap, designer],
 )
-
-
-def _artifacts_dir_for_run() -> Path:
-    """`cwd/runs/<YYYY-MM-DD-HH-MM-SS>/` — second-resolution timestamp
-    makes per-run directories sortable and human-readable without the
-    visual noise of nanoseconds."""
-    ts = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    return Path.cwd() / "runs" / ts
 
 
 async def run_design_pipeline(

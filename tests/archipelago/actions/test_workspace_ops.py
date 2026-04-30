@@ -1,4 +1,4 @@
-"""Tests for the private _workspace_ops helpers.
+"""Tests for the workspace_ops helpers.
 
 Docker client is patched — these are unit tests. Integration against a
 real daemon lives in test_bootstrap_integration.py.
@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from archipelago.actions import _workspace_ops as ops
+from archipelago.actions import workspace_ops as ops
 
 
 class TestPullImage:

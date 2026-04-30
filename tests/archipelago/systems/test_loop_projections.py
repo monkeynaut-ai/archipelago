@@ -1,0 +1,183 @@
+"""Tests for the full_pipeline Loop `over` callables.
+
+`_change_sets_over` and `_steps_over` are the two projection functions
+the outer and inner Loops use to compute the iterable they walk. The
+contract is: read the typed document at the path stored in state, then
+project the document field that holds the iteration items.
+
+These tests pin both halves of that contract — the read goes through
+`read_markdown` with the right path and document type, and the field
+projection picks up the right list.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+
+import pytest
+from archetype.markdown import MarkdownHeader
+
+from archipelago.actions import WorkspaceHandle
+from archipelago.models import (
+    ChangeSetRef,
+    ChangeSetsDocument,
+    ChangeSetsDocumentFrontmatter,
+    StepRef,
+    StepsDocument,
+    StepsDocumentFrontmatter,
+)
+from archipelago.systems.pipeline import (
+    ChangeSetsLoopState,
+    StepsLoopState,
+    _change_sets_over,
+    _steps_over,
+)
+
+
+def _handle(volume_name: str = "ws") -> WorkspaceHandle:
+    return WorkspaceHandle(
+        volume_name=volume_name,
+        root="/workspace",
+        documents_path="/workspace/documents",
+        codebase_path="/workspace/codebase",
+        feature_definition_path="/workspace/documents/feature_definition.md",
+        codebase_source_ref="main",
+        codebase_resolved_sha="a" * 40,
+    )
+
+
+@pytest.fixture
+def fake_feature_definition(minimal_feature_definition):
+    return minimal_feature_definition
+
+
+def _change_sets_doc() -> ChangeSetsDocument:
+    return ChangeSetsDocument(
+        frontmatter=ChangeSetsDocumentFrontmatter(
+            feature_slug="demo",
+            feature_name="Demo Feature",
+            generated_at=date(2026, 4, 30).isoformat(),
+        ),
+        title="Demo Feature",
+        change_sets=[
+            ChangeSetRef(title="Slice One", summary="First slice."),
+            ChangeSetRef(title="Slice Two", summary="Second slice."),
+        ],
+    )
+
+
+def _steps_doc() -> StepsDocument:
+    return StepsDocument(
+        frontmatter=StepsDocumentFrontmatter(
+            change_set_slug="slice-one",
+            change_set_name="Slice One",
+            generated_at=date(2026, 4, 30).isoformat(),
+        ),
+        title="Slice One",
+        steps=[
+            StepRef(title="First Step", summary="Red."),
+            StepRef(title="Second Step", summary="Green."),
+        ],
+    )
+
+
+@pytest.fixture
+def stub_read_markdown(monkeypatch):
+    """Patch read_markdown at its imported location in pipeline.py and
+    record the calls. The stub returns whatever the test installs in
+    `stub.return_value`.
+
+    `monkeypatch.setattr` raises AttributeError if `read_markdown` is
+    not yet imported at this site — that's the red-phase signal that
+    the projections still call into _ops directly.
+    """
+    calls: list[tuple[WorkspaceHandle, str, type[MarkdownHeader]]] = []
+
+    class _Stub:
+        return_value: object = None
+
+        def __call__(
+            self,
+            workspace_handle: WorkspaceHandle,
+            path: str,
+            model_type: type[MarkdownHeader],
+        ):
+            calls.append((workspace_handle, path, model_type))
+            return self.return_value
+
+    stub = _Stub()
+    monkeypatch.setattr("archipelago.systems.pipeline.read_markdown", stub)
+    stub.calls = calls  # type: ignore[attr-defined]
+    return stub
+
+
+class TestChangeSetsOver:
+    def test_given_state_when_called_then_read_markdown_called_with_handle_path_and_doc_type(
+        self, stub_read_markdown, fake_feature_definition
+    ):
+        stub_read_markdown.return_value = _change_sets_doc()
+        handle = _handle()
+        state = ChangeSetsLoopState(
+            change_sets_document="/workspace/documents/change-sets.md",
+            workspace_handle=handle,
+            design_document="/workspace/documents/design.md",
+            feature_definition=fake_feature_definition,
+        )
+
+        _change_sets_over(state)
+
+        assert stub_read_markdown.calls == [  # type: ignore[attr-defined]
+            (handle, "/workspace/documents/change-sets.md", ChangeSetsDocument)
+        ]
+
+    def test_given_doc_when_called_then_returns_change_sets_field(
+        self, stub_read_markdown, fake_feature_definition
+    ):
+        doc = _change_sets_doc()
+        stub_read_markdown.return_value = doc
+        state = ChangeSetsLoopState(
+            change_sets_document="/workspace/documents/change-sets.md",
+            workspace_handle=_handle(),
+            design_document="/workspace/documents/design.md",
+            feature_definition=fake_feature_definition,
+        )
+
+        result = _change_sets_over(state)
+
+        assert result == doc.change_sets
+
+
+class TestStepsOver:
+    def test_given_state_when_called_then_read_markdown_called_with_handle_path_and_doc_type(
+        self, stub_read_markdown
+    ):
+        stub_read_markdown.return_value = _steps_doc()
+        handle = _handle()
+        state = StepsLoopState(
+            steps_document="/workspace/documents/change-sets/slice-one/steps.md",
+            change_set_workspace_path="/workspace/documents/change-sets/slice-one",
+            workspace_handle=handle,
+        )
+
+        _steps_over(state)
+
+        assert stub_read_markdown.calls == [  # type: ignore[attr-defined]
+            (
+                handle,
+                "/workspace/documents/change-sets/slice-one/steps.md",
+                StepsDocument,
+            )
+        ]
+
+    def test_given_doc_when_called_then_returns_steps_field(self, stub_read_markdown):
+        doc = _steps_doc()
+        stub_read_markdown.return_value = doc
+        state = StepsLoopState(
+            steps_document="/workspace/documents/change-sets/slice-one/steps.md",
+            change_set_workspace_path="/workspace/documents/change-sets/slice-one",
+            workspace_handle=_handle(),
+        )
+
+        result = _steps_over(state)
+
+        assert result == doc.steps
