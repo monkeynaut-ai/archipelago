@@ -41,7 +41,7 @@ from archipelago.actions import (
     prepare_change_set_workspace,
     workspace_bootstrap,
 )
-from archipelago.actions import _workspace_ops as _ops
+from archipelago.actions import workspace_ops as _ops
 from archipelago.agents.change_set_planner import change_set_planner
 from archipelago.agents.designer import designer
 from archipelago.agents.tdd_planner import tdd_planner

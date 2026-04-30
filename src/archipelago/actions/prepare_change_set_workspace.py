@@ -14,7 +14,7 @@ import docker
 from agent_foundry.primitives.models import FunctionAction
 from pydantic import BaseModel, ConfigDict
 
-from archipelago.actions import _workspace_ops as _ops
+from archipelago.actions import workspace_ops as _ops
 from archipelago.actions.workspace_bootstrap import WorkspaceHandle
 from archipelago.models import ChangeSetRef
 

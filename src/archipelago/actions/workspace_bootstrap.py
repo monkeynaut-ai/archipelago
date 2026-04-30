@@ -21,7 +21,7 @@ from agent_foundry.primitives.models import FunctionAction
 from archetype.markdown import render_instance
 from pydantic import BaseModel, ConfigDict
 
-from archipelago.actions import _workspace_ops as _ops
+from archipelago.actions import workspace_ops as _ops
 from archipelago.models import CodebaseSource, FeatureDefinition
 
 
