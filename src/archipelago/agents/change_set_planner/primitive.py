@@ -32,7 +32,6 @@ change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](
     executor=run_agent_in_container,  # type: ignore[arg-type]
     reuse_policy=ContainerReusePolicy.REUSE_NEW_SESSION,
     timeout_seconds=1800,
-    visible_dirs=["/workspace"],
-    writable_dirs=["/workspace/documents"],
+    gids=[1001],
     skip_permissions=True,
 )
