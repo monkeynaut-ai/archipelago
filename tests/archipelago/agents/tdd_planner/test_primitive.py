@@ -6,6 +6,7 @@ from agent_foundry.orchestration.container_executor import run_agent_in_containe
 from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 
 from archipelago.agents.tdd_planner.primitive import tdd_planner
+from archipelago.constants import GID_DOCUMENTS
 
 
 class TestTDDPlannerPrimitiveConfig:
@@ -25,4 +26,4 @@ class TestTDDPlannerPrimitiveConfig:
         assert tdd_planner.timeout_seconds == 1800
 
     def test_given_tdd_planner_when_inspected_then_gids_are_documents_writer(self):
-        assert tdd_planner.gids == [1001]
+        assert tdd_planner.gids == [GID_DOCUMENTS]

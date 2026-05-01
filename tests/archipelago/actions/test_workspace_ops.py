@@ -270,7 +270,7 @@ class TestChmodPath:
 
 class TestPrepareDocumentsDir:
     def test_given_volume_when_prepare_documents_then_mkdir_chown_chmod_called(self):
-        from agent_foundry.agents import AGENT_USER_GID, AGENT_USER_UID
+        from archipelago.constants import GID_DOCUMENTS
 
         client = MagicMock()
         client.containers.run.return_value = b""
@@ -281,13 +281,11 @@ class TestPrepareDocumentsDir:
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
         assert "mkdir -p /workspace/documents" in rendered
-        assert f"chown {AGENT_USER_UID}:{AGENT_USER_GID} /workspace/documents" in rendered
+        assert f"chown root:{GID_DOCUMENTS} /workspace/documents" in rendered
         assert "chmod 775 /workspace/documents" in rendered
 
     def test_given_volume_when_prepare_documents_then_chown_runs_before_chmod(self):
-        """Chmod after chown so the bits land on the new ownership; if
-        the order swaps, root-owned dirs end up 775 before chown — fine
-        but unintentional. Pin the order."""
+        """Pin chown-before-chmod order so bits land on the correct ownership."""
         client = MagicMock()
         client.containers.run.return_value = b""
 
@@ -299,6 +297,41 @@ class TestPrepareDocumentsDir:
         chown_idx = rendered.index("chown")
         chmod_idx = rendered.index("chmod 775")
         assert chown_idx < chmod_idx
+
+
+class TestMakeChangeSetsDir:
+    def test_given_volume_when_make_change_sets_dir_then_mkdir_chown_chmod_called(self):
+        from archipelago.constants import GID_DOCUMENTS
+
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.make_change_sets_dir(client, volume_name="ws")
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert "mkdir -p /workspace/documents/change-sets" in rendered
+        assert f"chown root:{GID_DOCUMENTS} /workspace/documents/change-sets" in rendered
+        assert "chmod 775 /workspace/documents/change-sets" in rendered
+
+
+class TestMakeChangeSetSubdir:
+    def test_given_slug_when_make_change_set_subdir_then_mkdir_chown_chmod_called(self):
+        from archipelago.constants import GID_DOCUMENTS
+
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        path = ops.make_change_set_subdir(client, volume_name="ws", slug="add-login")
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert "mkdir -p /workspace/documents/change-sets/add-login" in rendered
+        assert f"chown root:{GID_DOCUMENTS} /workspace/documents/change-sets/add-login" in rendered
+        assert "chmod 775 /workspace/documents/change-sets/add-login" in rendered
+        assert path == "/workspace/documents/change-sets/add-login"
 
 
 class TestWriteFile:

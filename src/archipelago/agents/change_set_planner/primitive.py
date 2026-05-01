@@ -24,6 +24,7 @@ from archipelago.agents.change_set_planner.models import (
     ChangeSetPlannerInput,
     ChangeSetPlannerOutput,
 )
+from archipelago.constants import GID_DOCUMENTS
 
 change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](
     name="change_set_planner",
@@ -32,6 +33,6 @@ change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](
     executor=run_agent_in_container,  # type: ignore[arg-type]
     reuse_policy=ContainerReusePolicy.REUSE_NEW_SESSION,
     timeout_seconds=1800,
-    gids=[1001],
+    gids=[GID_DOCUMENTS],
     skip_permissions=True,
 )

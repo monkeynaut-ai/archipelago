@@ -13,9 +13,10 @@ import posixpath
 import tarfile
 
 import docker.errors
-from agent_foundry.agents import AGENT_USER_GID, AGENT_USER_UID
 from docker.client import DockerClient
 from docker.models.volumes import Volume
+
+from archipelago.constants import GID_DOCUMENTS
 
 GIT_IMAGE = "alpine/git:v2.47.2"
 ALPINE_IMAGE = "alpine:3.20"
@@ -154,19 +155,14 @@ DOCUMENTS_DIR_MODE = "775"
 
 
 def prepare_documents_dir(client: DockerClient, *, volume_name: str) -> None:
-    """mkdir -p /workspace/documents, chown it to the agent-worker
-    container's claude user, and chmod it 0775 so the agent can write
-    design.md and investigation.md there.
+    """mkdir -p /workspace/documents, chown to root:GID_DOCUMENTS, chmod 775.
 
-    The throwaway alpine container creates the directory as root by
-    default; without the chown, the agent-worker container's claude
-    user can't write to it. UID/GID come from agent_foundry.agents so
-    they stay in lockstep with the Dockerfile (a regression test in
-    agent-foundry verifies the constants match the Dockerfile values).
+    Group ownership + mode 775 lets any agent holding GID_DOCUMENTS write
+    there; all others get r-x (read-only).
     """
     script = (
         "mkdir -p /workspace/documents && "
-        f"chown {AGENT_USER_UID}:{AGENT_USER_GID} /workspace/documents && "
+        f"chown root:{GID_DOCUMENTS} /workspace/documents && "
         "chmod 775 /workspace/documents"
     )
     try:
@@ -209,16 +205,13 @@ def read_file(
 
 
 def make_change_sets_dir(client: DockerClient, *, volume_name: str) -> None:
-    """mkdir -p /workspace/documents/change-sets, owned by the
-    agent-worker container's claude user.
+    """mkdir -p /workspace/documents/change-sets, chown root:GID_DOCUMENTS, chmod 775.
 
-    Created at bootstrap time so per-CS subdirs (created later by
-    prepare_change_set_workspace inside the outer loop) inherit the
-    correct ownership.
+    Created at bootstrap time so per-CS subdirs inherit the correct ownership.
     """
     script = (
         "mkdir -p /workspace/documents/change-sets && "
-        f"chown {AGENT_USER_UID}:{AGENT_USER_GID} /workspace/documents/change-sets && "
+        f"chown root:{GID_DOCUMENTS} /workspace/documents/change-sets && "
         "chmod 775 /workspace/documents/change-sets"
     )
     try:
@@ -234,15 +227,12 @@ def make_change_sets_dir(client: DockerClient, *, volume_name: str) -> None:
 
 
 def make_change_set_subdir(client: DockerClient, *, volume_name: str, slug: str) -> str:
-    """mkdir -p /workspace/documents/change-sets/{slug}, owned by the
-    agent-worker container's claude user. Returns the in-container path.
+    """mkdir -p /workspace/documents/change-sets/{slug}, chown root:GID_DOCUMENTS, chmod 775.
+
+    Returns the in-container path.
     """
     cs_path = f"/workspace/documents/change-sets/{slug}"
-    script = (
-        f"mkdir -p {cs_path} && "
-        f"chown {AGENT_USER_UID}:{AGENT_USER_GID} {cs_path} && "
-        f"chmod 775 {cs_path}"
-    )
+    script = f"mkdir -p {cs_path} && chown root:{GID_DOCUMENTS} {cs_path} && chmod 775 {cs_path}"
     try:
         client.containers.run(
             ALPINE_IMAGE,

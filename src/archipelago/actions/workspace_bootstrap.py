@@ -3,8 +3,8 @@
 Provisions a Docker volume seeded with a cloned codebase (working tree
 read-only, .git/ writable for git tooling) and a rendered
 feature-definition file (read-only). The writable documents directory
-is owned by the designer container's UID so the agent can write
-design.md.
+is owned by root:GID_DOCUMENTS (mode 775) so any agent holding that
+supplementary GID can write there.
 
 The caller (run_design_pipeline) supplies the volume name so the
 container registry and bootstrap agree on it. bootstrap_fn does not
