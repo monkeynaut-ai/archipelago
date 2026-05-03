@@ -6,6 +6,11 @@ WORKSPACE_ROOT           /workspace
 WORKSPACE_CODEBASE_PATH  /workspace/codebase
 WORKSPACE_DOCUMENTS_PATH /workspace/documents
 
+Well-known filenames / subdirectory names
+-----------------------------------------
+CHANGE_SETS_DIR_NAME         change-sets
+FEATURE_DEFINITION_FILENAME  feature_definition.md
+
 GID map (controls write access to each zone)
 --------------------------------------------
 GID_DOCUMENTS = 1001  WORKSPACE_DOCUMENTS_PATH (and all subdirs)
@@ -23,6 +28,10 @@ DOCUMENTS_DIR_NAME: str = "documents"
 # --- Composed paths ---
 WORKSPACE_CODEBASE_PATH: str = f"{WORKSPACE_ROOT}/{CODEBASE_DIR_NAME}"
 WORKSPACE_DOCUMENTS_PATH: str = f"{WORKSPACE_ROOT}/{DOCUMENTS_DIR_NAME}"
+
+# --- Well-known filenames / subdirectory names ---
+CHANGE_SETS_DIR_NAME: str = "change-sets"
+FEATURE_DEFINITION_FILENAME: str = "feature_definition.md"
 
 # --- GIDs ---
 GID_DOCUMENTS: int = 1001

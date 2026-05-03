@@ -23,6 +23,8 @@ from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops
 from archipelago.constants import (
+    CHANGE_SETS_DIR_NAME,
+    FEATURE_DEFINITION_FILENAME,
     WORKSPACE_CODEBASE_PATH,
     WORKSPACE_DOCUMENTS_PATH,
     WORKSPACE_ROOT,
@@ -54,11 +56,11 @@ class WorkspaceHandle(BaseModel):
 
     @property
     def change_sets_document_path(self) -> str:
-        return f"{self.documents_path}/change-sets.md"
+        return f"{self.documents_path}/{CHANGE_SETS_DIR_NAME}.md"
 
     @property
     def change_sets_dir(self) -> str:
-        return f"{self.documents_path}/change-sets"
+        return f"{self.documents_path}/{CHANGE_SETS_DIR_NAME}"
 
     @property
     def investigation_document_path(self) -> str:
@@ -126,14 +128,14 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
         _ops.make_change_sets_dir(
             client,
             volume_name=state.volume_name,
-            path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}",
         )
 
         # 6. Stage the feature definition file (locked to 444 once written).
         _ops.write_file(
             client,
             volume_name=state.volume_name,
-            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
             content=render_instance(state.feature_definition),
             mode="444",
         )
@@ -150,7 +152,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
         root=WORKSPACE_ROOT,
         documents_path=WORKSPACE_DOCUMENTS_PATH,
         codebase_path=WORKSPACE_CODEBASE_PATH,
-        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
         codebase_source_ref=state.codebase_source.ref,
         codebase_resolved_sha=resolved_sha,
     )
