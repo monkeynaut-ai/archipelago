@@ -50,7 +50,7 @@ class TestDesignPipelineState:
             workspace_handle=_handle(),
             designer_output=DesignerOutput(
                 investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
-                design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
+                design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             ),
         )
         assert state.workspace_handle is not None

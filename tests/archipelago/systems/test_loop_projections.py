@@ -127,7 +127,7 @@ class TestChangeSetsOver:
         state = ChangeSetsLoopState(
             change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             workspace_handle=handle,
-            design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
+            design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             feature_definition=fake_feature_definition,
         )
 
@@ -145,7 +145,7 @@ class TestChangeSetsOver:
         state = ChangeSetsLoopState(
             change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             workspace_handle=_handle(),
-            design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
+            design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             feature_definition=fake_feature_definition,
         )
 

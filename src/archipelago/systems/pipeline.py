@@ -79,7 +79,7 @@ class FullPipelineState(BaseModel):
     workspace_handle: WorkspaceHandle | None = None
     # Designer's flat output:
     investigation_summary: str | None = None
-    design_document: str | None = None
+    design_document_path: str | None = None
     # Change Set Planner's flat output:
     change_sets_document: str | None = None
 
@@ -90,7 +90,7 @@ class ChangeSetsLoopState(BaseModel):
 
     change_sets_document: str
     workspace_handle: WorkspaceHandle
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
 
 
@@ -103,7 +103,7 @@ class ChangeSetProcessingState(BaseModel):
 
     # Inherited from ChangeSetsLoopState:
     workspace_handle: WorkspaceHandle
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
 
     # Written by body steps:

@@ -29,7 +29,7 @@ def implementer_instructions_provider(state: ImplementerInput) -> str:
         template_text,
         feature=state.feature_definition,
         workspace_handle=state.workspace_handle,
-        design_document=state.design_document,
+        design_document=state.design_document_path,
         current_change_set=state.current_change_set,
         change_set_workspace_path=state.change_set_workspace_path,
         steps_document_path=state.steps_document_path,

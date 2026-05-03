@@ -49,14 +49,14 @@ class TestDesignerOutput:
     def test_given_paths_when_constructed_then_stored_as_strings(self):
         out = DesignerOutput(
             investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
-            design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
+            design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
         )
         assert out.investigation_summary == f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md"
-        assert out.design_document == f"{WORKSPACE_DOCUMENTS_PATH}/design.md"
+        assert out.design_document_path == f"{WORKSPACE_DOCUMENTS_PATH}/design.md"
 
     def test_given_missing_investigation_summary_when_constructed_then_validation_error(self):
         with pytest.raises(ValidationError):
-            DesignerOutput(design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md")  # type: ignore[call-arg]
+            DesignerOutput(design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md")  # type: ignore[call-arg]
 
     def test_given_missing_design_document_when_constructed_then_validation_error(self):
         with pytest.raises(ValidationError):
@@ -68,5 +68,5 @@ class TestDesignerOutput:
         self,
     ):
         schema = DesignerOutput.model_json_schema()
-        assert "x-agent-file-path" in schema["properties"]["design_document"]
+        assert "x-agent-file-path" in schema["properties"]["design_document_path"]
         assert "x-agent-file-path" in schema["properties"]["investigation_summary"]

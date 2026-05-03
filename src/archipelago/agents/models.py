@@ -21,11 +21,11 @@ class DesignerInput(AgentInputBase):
 
 class DesignerOutput(BaseModel):
     investigation_summary: Annotated[str, AgentFilePath()]
-    design_document: Annotated[str, AgentFilePath()]
+    design_document_path: Annotated[str, AgentFilePath()]
 
 
 class ChangeSetPlannerInput(AgentInputBase):
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
 
 
@@ -34,7 +34,7 @@ class ChangeSetPlannerOutput(BaseModel):
 
 
 class TDDPlannerInput(AgentInputBase):
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
     current_change_set: ChangeSetRef
     change_set_workspace_path: str
@@ -46,7 +46,7 @@ class TDDPlannerOutput(BaseModel):
 
 
 class TesterInput(AgentInputBase):
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
     current_change_set: ChangeSetRef
     change_set_workspace_path: str
@@ -58,7 +58,7 @@ class TesterOutput(BaseModel):
 
 
 class ImplementerInput(AgentInputBase):
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
     current_change_set: ChangeSetRef
     change_set_workspace_path: str
