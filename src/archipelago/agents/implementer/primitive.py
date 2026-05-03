@@ -19,7 +19,7 @@ def implementer_prompt_builder(state: ImplementerInput) -> str:
     return (
         f"The workspace is mounted at {state.workspace_handle.root}. "
         f"Implement change set '{state.current_change_set.title}' "
-        f"following the TDD steps in {state.steps_document_path}."
+        f"following the TDD steps in {state.tdd_plan_path}."
     )
 
 
@@ -32,7 +32,7 @@ def implementer_instructions_provider(state: ImplementerInput) -> str:
         design_document=state.design_document_path,
         current_change_set=state.current_change_set,
         change_set_workspace_path=state.change_set_workspace_path,
-        steps_document_path=state.steps_document_path,
+        tdd_plan_path=state.tdd_plan_path,
         FeatureDefinition=FeatureDefinition,
     )
 

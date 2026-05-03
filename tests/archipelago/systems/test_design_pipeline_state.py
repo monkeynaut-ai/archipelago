@@ -49,7 +49,7 @@ class TestDesignPipelineState:
             volume_name="archipelago-ws-demo-1",
             workspace_handle=_handle(),
             designer_output=DesignerOutput(
-                investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
+                investigation_summary_path=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
                 design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             ),
         )

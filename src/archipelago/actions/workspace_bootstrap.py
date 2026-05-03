@@ -66,6 +66,9 @@ class WorkspaceHandle(BaseModel):
     def investigation_document_path(self) -> str:
         return f"{self.documents_path}/investigation.md"
 
+    def tdd_plan_path(self, change_set_slug: str) -> str:
+        return f"{self.change_sets_dir}/{change_set_slug}/tdd_plan.md"
+
 
 class BootstrapInput(BaseModel):
     feature_definition: FeatureDefinition

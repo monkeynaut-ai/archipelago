@@ -19,7 +19,7 @@ def tester_prompt_builder(state: TesterInput) -> str:
     return (
         f"The workspace is mounted at {state.workspace_handle.root}. "
         f"Run the test suite for change set '{state.current_change_set.title}' "
-        f"following the steps in {state.steps_document_path}."
+        f"following the steps in {state.tdd_plan_path}."
     )
 
 
@@ -31,7 +31,7 @@ def tester_instructions_provider(state: TesterInput) -> str:
         workspace_handle=state.workspace_handle,
         current_change_set=state.current_change_set,
         change_set_workspace_path=state.change_set_workspace_path,
-        steps_document_path=state.steps_document_path,
+        tdd_plan_path=state.tdd_plan_path,
         FeatureDefinition=FeatureDefinition,
     )
 

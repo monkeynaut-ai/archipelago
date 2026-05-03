@@ -59,7 +59,7 @@ class TestCLISuccess:
             codebase_source=CodebaseSource(repo_url="u", ref="r"),
             volume_name="archipelago-ws-demo-1",
             designer_output=DesignerOutput(
-                investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
+                investigation_summary_path=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
                 design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             ),
             workspace_handle=WorkspaceHandle(

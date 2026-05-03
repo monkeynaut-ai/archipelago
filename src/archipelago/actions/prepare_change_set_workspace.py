@@ -26,7 +26,7 @@ class PrepareChangeSetWorkspaceInput(BaseModel):
 
 class PrepareChangeSetWorkspaceOutput(BaseModel):
     change_set_workspace_path: str
-    steps_document_path: str
+    tdd_plan_path: str
 
 
 def prepare_change_set_workspace_fn(
@@ -41,7 +41,7 @@ def prepare_change_set_workspace_fn(
     )
     return PrepareChangeSetWorkspaceOutput(
         change_set_workspace_path=cs_path,
-        steps_document_path=f"{cs_path}/steps.md",
+        tdd_plan_path=f"{cs_path}/tdd_plan.md",
     )
 
 

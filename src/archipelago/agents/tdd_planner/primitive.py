@@ -34,10 +34,10 @@ def tdd_planner_instructions_provider(state: TDDPlannerInput) -> str:
         template_text,
         feature=state.feature_definition,
         workspace_handle=state.workspace_handle,
-        design_document=state.design_document_path,
+        design_document_path=state.design_document_path,
         current_change_set=state.current_change_set,
         change_set_workspace_path=state.change_set_workspace_path,
-        steps_document_path=state.steps_document_path,
+        tdd_plan_path=state.tdd_plan_path,
         FeatureDefinition=FeatureDefinition,
         TDDPlan=TDDPlan,
     )

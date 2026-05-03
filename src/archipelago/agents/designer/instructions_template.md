@@ -171,9 +171,9 @@ it empty.
 ## Output protocol
 
 When you complete the design, emit a **success** outcome with:
-- `investigation_summary`: path to your investigation summary
+- `investigation_summary_path`: path to your investigation summary
   (`{{ workspace_handle.investigation_document_path }}`).
-- `design_document`: path to the design doc
+- `design_document_path`: path to the design doc
   (`{{ workspace_handle.design_document_path }}`).
 
 Before emitting success, verify both files exist at the expected

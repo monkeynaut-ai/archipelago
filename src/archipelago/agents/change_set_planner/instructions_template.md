@@ -33,7 +33,7 @@ For each change set, provide:
 ## Output protocol
 
 When the document is written, emit a **success** outcome with:
-- `change_sets_document`: the path you wrote
+- `change_sets_document_path`: the path you wrote
   (`{{ workspace_handle.change_sets_document_path }}`).
 
 Before emitting success, verify the file exists at the expected path

@@ -85,12 +85,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: pipeline failed: {exc}", file=sys.stderr)
         return 1
 
-    if final.investigation_summary is not None:
-        print(f"Investigation summary: {final.investigation_summary}")
-    if final.design_document is not None:
-        print(f"Design document: {final.design_document}")
-    if final.change_sets_document is not None:
-        print(f"Change-sets document: {final.change_sets_document}")
+    if final.investigation_summary_path is not None:
+        print(f"Investigation summary: {final.investigation_summary_path}")
+    if final.design_document_path is not None:
+        print(f"Design document: {final.design_document_path}")
+    if final.change_sets_document_path is not None:
+        print(f"Change-sets document: {final.change_sets_document_path}")
     if final.workspace_handle is not None:
         print(f"Workspace volume: {final.workspace_handle.volume_name}")
     return 0
