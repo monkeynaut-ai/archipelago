@@ -17,7 +17,12 @@ import pytest
 
 from archipelago.actions import BootstrapInput, BootstrapOutput
 from archipelago.actions.workspace_bootstrap import bootstrap_fn
-from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH, WORKSPACE_ROOT
+from archipelago.constants import (
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import CodebaseSource
 
 PINNED_REPO = "https://github.com/730alchemy/agent-foundry.git"
@@ -77,7 +82,7 @@ class TestBootstrapIntegration:
                 "sh",
                 "-c",
                 "ls -la /workspace/documents && "
-                "stat -c '%a %n' /workspace/documents/feature_definition.md && "
+                f"stat -c '%a %n' {WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME} && "
                 "stat -c '%a %n' /workspace/documents && "
                 "test -d /workspace/codebase/.git && echo '.git present' && "
                 "find /workspace/codebase -maxdepth 2 -name pyproject.toml "
@@ -87,9 +92,9 @@ class TestBootstrapIntegration:
             remove=True,
         ).decode("utf-8", errors="replace")
 
-        assert "feature_definition.md" in output
+        assert FEATURE_DEFINITION_FILENAME in output
         assert ".git present" in output
-        assert f"444 {WORKSPACE_DOCUMENTS_PATH}/feature_definition.md" in output
+        assert f"444 {WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}" in output
         assert f"775 {WORKSPACE_DOCUMENTS_PATH}" in output
         assert f"555 {WORKSPACE_CODEBASE_PATH}/" in output
 

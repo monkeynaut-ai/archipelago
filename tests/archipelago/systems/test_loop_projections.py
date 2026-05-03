@@ -18,7 +18,13 @@ import pytest
 from archetype.markdown import MarkdownHeader
 
 from archipelago.actions import WorkspaceHandle
-from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH, WORKSPACE_ROOT
+from archipelago.constants import (
+    CHANGE_SETS_DIR_NAME,
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
@@ -41,7 +47,7 @@ def _handle(volume_name: str = "ws") -> WorkspaceHandle:
         root=WORKSPACE_ROOT,
         documents_path=WORKSPACE_DOCUMENTS_PATH,
         codebase_path=WORKSPACE_CODEBASE_PATH,
-        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
         codebase_source_ref="main",
         codebase_resolved_sha="a" * 40,
     )
@@ -119,7 +125,7 @@ class TestChangeSetsOver:
         stub_read_markdown.return_value = _change_sets_doc()
         handle = _handle()
         state = ChangeSetsLoopState(
-            change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md",
+            change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             workspace_handle=handle,
             design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             feature_definition=fake_feature_definition,
@@ -128,7 +134,7 @@ class TestChangeSetsOver:
         _change_sets_over(state)
 
         assert stub_read_markdown.calls == [  # type: ignore[attr-defined]
-            (handle, f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md", ChangeSetsDocument)
+            (handle, f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md", ChangeSetsDocument)
         ]
 
     def test_given_doc_when_called_then_returns_change_sets_field(
@@ -137,7 +143,7 @@ class TestChangeSetsOver:
         doc = _change_sets_doc()
         stub_read_markdown.return_value = doc
         state = ChangeSetsLoopState(
-            change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md",
+            change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             workspace_handle=_handle(),
             design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             feature_definition=fake_feature_definition,
@@ -156,7 +162,7 @@ class TestStepsOver:
         handle = _handle()
         state = StepsLoopState(
             steps_document=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
-            change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one",
+            change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}/slice-one",
             workspace_handle=handle,
         )
 
@@ -175,7 +181,7 @@ class TestStepsOver:
         stub_read_markdown.return_value = doc
         state = StepsLoopState(
             steps_document=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
-            change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one",
+            change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}/slice-one",
             workspace_handle=_handle(),
         )
 

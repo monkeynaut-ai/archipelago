@@ -11,6 +11,7 @@ from archipelago.agents.designer.models import (
     DesignerOutput,
 )
 from archipelago.constants import (
+    FEATURE_DEFINITION_FILENAME,
     WORKSPACE_CODEBASE_PATH,
     WORKSPACE_DOCUMENTS_PATH,
     WORKSPACE_ROOT,
@@ -23,7 +24,7 @@ def _sample_handle() -> WorkspaceHandle:
         root=WORKSPACE_ROOT,
         documents_path=WORKSPACE_DOCUMENTS_PATH,
         codebase_path=WORKSPACE_CODEBASE_PATH,
-        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
         codebase_source_ref="main",
         codebase_resolved_sha="a" * 40,
     )

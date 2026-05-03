@@ -16,6 +16,8 @@ from archetype.markdown import MarkdownValidationError, render_instance
 
 from archipelago.actions import WorkspaceHandle, workspace_io
 from archipelago.constants import (
+    CHANGE_SETS_DIR_NAME,
+    FEATURE_DEFINITION_FILENAME,
     WORKSPACE_CODEBASE_PATH,
     WORKSPACE_DOCUMENTS_PATH,
     WORKSPACE_ROOT,
@@ -33,7 +35,7 @@ def _handle(volume_name: str = "ws") -> WorkspaceHandle:
         root=WORKSPACE_ROOT,
         documents_path=WORKSPACE_DOCUMENTS_PATH,
         codebase_path=WORKSPACE_CODEBASE_PATH,
-        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
         codebase_source_ref="main",
         codebase_resolved_sha="a" * 40,
     )
@@ -75,14 +77,14 @@ class TestReadMarkdown:
 
         workspace_io.read_markdown(
             _handle("my-vol"),
-            f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md",
+            f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             ChangeSetsDocument,
         )
 
         read_file.assert_called_once_with(
             client,
             volume_name="my-vol",
-            path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
         )
 
     def test_given_valid_markdown_when_called_then_returns_validated_instance(self, patched_io):
@@ -92,7 +94,7 @@ class TestReadMarkdown:
 
         result = workspace_io.read_markdown(
             _handle(),
-            f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md",
+            f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             ChangeSetsDocument,
         )
 
@@ -106,7 +108,7 @@ class TestReadMarkdown:
         with pytest.raises(MarkdownValidationError):
             workspace_io.read_markdown(
                 _handle(),
-                f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md",
+                f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
                 ChangeSetsDocument,
             )
 
@@ -117,7 +119,7 @@ class TestReadMarkdown:
         with pytest.raises(RuntimeError, match="read_file boom"):
             workspace_io.read_markdown(
                 _handle(),
-                f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md",
+                f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
                 ChangeSetsDocument,
             )
 
@@ -127,7 +129,7 @@ class TestReadMarkdown:
 
         workspace_io.read_markdown(
             _handle(),
-            f"{WORKSPACE_DOCUMENTS_PATH}/change-sets.md",
+            f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             ChangeSetsDocument,
         )
 

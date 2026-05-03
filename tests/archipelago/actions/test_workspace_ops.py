@@ -13,7 +13,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from archipelago.actions import workspace_ops as ops
-from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH, WORKSPACE_ROOT
+from archipelago.constants import (
+    CHANGE_SETS_DIR_NAME,
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 
 
 class TestPullImage:
@@ -273,14 +279,14 @@ class TestChmodPath:
         ops.chmod_path(
             client,
             volume_name="ws",
-            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
             mode="444",
         )
 
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert f"chmod 444 {WORKSPACE_DOCUMENTS_PATH}/feature_definition.md" in rendered
+        assert f"chmod 444 {WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}" in rendered
 
 
 class TestPrepareDocumentsDir:
@@ -322,7 +328,7 @@ class TestMakeChangeSetsDir:
         client.containers.run.return_value = b""
 
         ops.make_change_sets_dir(
-            client, volume_name="ws", path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets"
+            client, volume_name="ws", path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}"
         )
 
         call = client.containers.run.call_args
@@ -344,7 +350,7 @@ class TestMakeChangeSetSubdir:
             client,
             volume_name="ws",
             slug="add-login",
-            parent_dir=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets",
+            parent_dir=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}",
         )
 
         call = client.containers.run.call_args
@@ -368,7 +374,7 @@ class TestWriteFile:
         ops.write_file(
             client,
             volume_name="ws",
-            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
             content="# hello\n",
         )
 
@@ -380,7 +386,7 @@ class TestWriteFile:
         with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r") as tar:
             members = tar.getmembers()
             assert len(members) == 1
-            assert members[0].name == "feature_definition.md"
+            assert members[0].name == FEATURE_DEFINITION_FILENAME
             extracted = tar.extractfile(members[0])
             assert extracted is not None
             assert extracted.read() == b"# hello\n"
@@ -393,7 +399,7 @@ class TestWriteFile:
         ops.write_file(
             client,
             volume_name="ws",
-            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
             content="content",
             mode="444",
         )
@@ -418,7 +424,7 @@ class TestWriteFile:
         ops.write_file(
             client,
             volume_name="ws",
-            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
             content="content",
         )
         assert helper.remove.called
