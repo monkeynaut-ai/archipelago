@@ -16,12 +16,7 @@ import docker.errors
 from docker.client import DockerClient
 from docker.models.volumes import Volume
 
-from archipelago.constants import (
-    GID_DOCUMENTS,
-    WORKSPACE_CODEBASE_PATH,
-    WORKSPACE_DOCUMENTS_PATH,
-    WORKSPACE_ROOT,
-)
+from archipelago.constants import GID_DOCUMENTS, WORKSPACE_ROOT
 
 GIT_IMAGE = "alpine/git:v2.47.2"
 ALPINE_IMAGE = "alpine:3.20"
@@ -70,6 +65,7 @@ def clone_and_resolve_ref(
     volume_name: str,
     repo_url: str,
     ref: str,
+    codebase_path: str,
     github_token: str | None = None,
 ) -> str:
     """Clone repo_url into /workspace/codebase inside volume_name, check
@@ -85,9 +81,9 @@ def clone_and_resolve_ref(
     effective_url = _with_github_token(repo_url, github_token)
     script = (
         f"set -e && "
-        f"git clone {effective_url} {WORKSPACE_CODEBASE_PATH} && "
-        f"git -C {WORKSPACE_CODEBASE_PATH} checkout {ref} && "
-        f"git -C {WORKSPACE_CODEBASE_PATH} rev-parse HEAD"
+        f"git clone {effective_url} {codebase_path} && "
+        f"git -C {codebase_path} checkout {ref} && "
+        f"git -C {codebase_path} rev-parse HEAD"
     )
     try:
         raw = client.containers.run(
@@ -159,17 +155,13 @@ def chmod_path(
 DOCUMENTS_DIR_MODE = "775"
 
 
-def prepare_documents_dir(client: DockerClient, *, volume_name: str) -> None:
-    """mkdir -p /workspace/documents, chown to root:GID_DOCUMENTS, chmod 775.
+def prepare_documents_dir(client: DockerClient, *, volume_name: str, path: str) -> None:
+    """mkdir -p `path`, chown to root:GID_DOCUMENTS, chmod 775.
 
     Group ownership + mode 775 lets any agent holding GID_DOCUMENTS write
     there; all others get r-x (read-only).
     """
-    script = (
-        f"mkdir -p {WORKSPACE_DOCUMENTS_PATH} && "
-        f"chown root:{GID_DOCUMENTS} {WORKSPACE_DOCUMENTS_PATH} && "
-        f"chmod 775 {WORKSPACE_DOCUMENTS_PATH}"
-    )
+    script = f"mkdir -p {path} && chown root:{GID_DOCUMENTS} {path} && chmod 775 {path}"
     try:
         client.containers.run(
             ALPINE_IMAGE,
@@ -209,17 +201,12 @@ def read_file(
     return output.decode("utf-8")
 
 
-def make_change_sets_dir(client: DockerClient, *, volume_name: str) -> None:
-    """mkdir -p /workspace/documents/change-sets, chown root:GID_DOCUMENTS, chmod 775.
+def make_change_sets_dir(client: DockerClient, *, volume_name: str, path: str) -> None:
+    """mkdir -p `path`, chown root:GID_DOCUMENTS, chmod 775.
 
     Created at bootstrap time so per-CS subdirs inherit the correct ownership.
     """
-    _change_sets_dir = f"{WORKSPACE_DOCUMENTS_PATH}/change-sets"
-    script = (
-        f"mkdir -p {_change_sets_dir} && "
-        f"chown root:{GID_DOCUMENTS} {_change_sets_dir} && "
-        f"chmod 775 {_change_sets_dir}"
-    )
+    script = f"mkdir -p {path} && chown root:{GID_DOCUMENTS} {path} && chmod 775 {path}"
     try:
         client.containers.run(
             ALPINE_IMAGE,
@@ -232,12 +219,14 @@ def make_change_sets_dir(client: DockerClient, *, volume_name: str) -> None:
         raise RuntimeError(f"make_change_sets_dir failed: {stderr}") from exc
 
 
-def make_change_set_subdir(client: DockerClient, *, volume_name: str, slug: str) -> str:
-    """mkdir -p /workspace/documents/change-sets/{slug}, chown root:GID_DOCUMENTS, chmod 775.
+def make_change_set_subdir(
+    client: DockerClient, *, volume_name: str, slug: str, parent_dir: str
+) -> str:
+    """mkdir -p `parent_dir/{slug}`, chown root:GID_DOCUMENTS, chmod 775.
 
     Returns the in-container path.
     """
-    cs_path = f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/{slug}"
+    cs_path = f"{parent_dir}/{slug}"
     script = f"mkdir -p {cs_path} && chown root:{GID_DOCUMENTS} {cs_path} && chmod 775 {cs_path}"
     try:
         client.containers.run(

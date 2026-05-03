@@ -99,6 +99,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
             volume_name=state.volume_name,
             repo_url=state.codebase_source.repo_url,
             ref=state.codebase_source.ref,
+            codebase_path=WORKSPACE_CODEBASE_PATH,
             github_token=github_token,
         )
 
@@ -111,12 +112,18 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
         )
 
         # 5. Ensure documents dir exists and is writable to the designer UID.
-        _ops.prepare_documents_dir(client, volume_name=state.volume_name)
+        _ops.prepare_documents_dir(
+            client, volume_name=state.volume_name, path=WORKSPACE_DOCUMENTS_PATH
+        )
 
         # 5b. Create change-sets/ subdirectory under documents/. Per-CS
         # subdirs (created later by prepare_change_set_workspace inside
         # the outer loop) inherit the same agent-writable ownership.
-        _ops.make_change_sets_dir(client, volume_name=state.volume_name)
+        _ops.make_change_sets_dir(
+            client,
+            volume_name=state.volume_name,
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets",
+        )
 
         # 6. Stage the feature definition file (locked to 444 once written).
         _ops.write_file(

@@ -12,6 +12,7 @@ from archipelago.actions.workspace_bootstrap import (
     BootstrapOutput,
     bootstrap_fn,
 )
+from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH
 from archipelago.models import CodebaseSource
 
 
@@ -70,6 +71,7 @@ class TestBootstrapFn:
             volume_name="archipelago-ws-demo-1",
             repo_url="https://example.com/repo.git",
             ref="main",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
             github_token=None,
         )
 
@@ -83,7 +85,7 @@ class TestBootstrapFn:
 
         # 5. Documents dir prepared.
         ops_mod.prepare_documents_dir.assert_called_once_with(
-            client, volume_name="archipelago-ws-demo-1"
+            client, volume_name="archipelago-ws-demo-1", path=WORKSPACE_DOCUMENTS_PATH
         )
 
         # 6. write_file on feature_definition.md with mode 444.

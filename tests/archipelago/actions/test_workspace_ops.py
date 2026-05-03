@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from archipelago.actions import workspace_ops as ops
+from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH
 
 
 class TestPullImage:
@@ -62,6 +63,7 @@ class TestCloneAndResolveRef:
             volume_name="ws",
             repo_url="https://example.com/repo.git",
             ref="main",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
         )
 
         call = client.containers.run.call_args
@@ -79,6 +81,7 @@ class TestCloneAndResolveRef:
             volume_name="ws",
             repo_url="https://example.com/repo.git",
             ref="abc123",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
         )
 
         call = client.containers.run.call_args
@@ -92,7 +95,9 @@ class TestCloneAndResolveRef:
     def test_given_trailing_whitespace_when_clone_then_sha_stripped(self):
         client = MagicMock()
         client.containers.run.return_value = b"  " + b"c" * 40 + b"\r\n"
-        sha = ops.clone_and_resolve_ref(client, volume_name="ws", repo_url="u", ref="r")
+        sha = ops.clone_and_resolve_ref(
+            client, volume_name="ws", repo_url="u", ref="r", codebase_path=WORKSPACE_CODEBASE_PATH
+        )
         assert sha == "c" * 40
 
     def test_given_container_error_when_clone_then_informative_error_raised(self):
@@ -108,7 +113,11 @@ class TestCloneAndResolveRef:
         )
         with pytest.raises(RuntimeError) as exc:
             ops.clone_and_resolve_ref(
-                client, volume_name="ws", repo_url="https://example.com/x.git", ref="main"
+                client,
+                volume_name="ws",
+                repo_url="https://example.com/x.git",
+                ref="main",
+                codebase_path=WORKSPACE_CODEBASE_PATH,
             )
         assert "https://example.com/x.git" in str(exc.value)
         assert "main" in str(exc.value)
@@ -119,7 +128,9 @@ class TestCloneAndResolveRef:
         client = MagicMock()
         client.containers.run.return_value = b"a" * 40 + b"\n"
 
-        ops.clone_and_resolve_ref(client, volume_name="ws", repo_url="u", ref="r")
+        ops.clone_and_resolve_ref(
+            client, volume_name="ws", repo_url="u", ref="r", codebase_path=WORKSPACE_CODEBASE_PATH
+        )
 
         call = client.containers.run.call_args
         assert call.kwargs.get("entrypoint") == ""
@@ -133,6 +144,7 @@ class TestCloneAndResolveRef:
             volume_name="ws",
             repo_url="https://github.com/owner/repo.git",
             ref="main",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
             github_token="secret-token",
         )
 
@@ -150,6 +162,7 @@ class TestCloneAndResolveRef:
             volume_name="ws",
             repo_url="https://gitlab.com/owner/repo.git",
             ref="main",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
             github_token="secret-token",
         )
 
@@ -168,6 +181,7 @@ class TestCloneAndResolveRef:
             volume_name="ws",
             repo_url="https://github.com/owner/repo.git",
             ref="main",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
         )
 
         call = client.containers.run.call_args
@@ -192,6 +206,7 @@ class TestCloneAndResolveRef:
                 volume_name="ws",
                 repo_url="https://github.com/owner/repo.git",
                 ref="main",
+                codebase_path=WORKSPACE_CODEBASE_PATH,
                 github_token="secret-token",
             )
         # The original URL appears; the token does not leak into error logs.
@@ -275,7 +290,7 @@ class TestPrepareDocumentsDir:
         client = MagicMock()
         client.containers.run.return_value = b""
 
-        ops.prepare_documents_dir(client, volume_name="ws")
+        ops.prepare_documents_dir(client, volume_name="ws", path=WORKSPACE_DOCUMENTS_PATH)
 
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
@@ -289,7 +304,7 @@ class TestPrepareDocumentsDir:
         client = MagicMock()
         client.containers.run.return_value = b""
 
-        ops.prepare_documents_dir(client, volume_name="ws")
+        ops.prepare_documents_dir(client, volume_name="ws", path=WORKSPACE_DOCUMENTS_PATH)
 
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
@@ -306,7 +321,9 @@ class TestMakeChangeSetsDir:
         client = MagicMock()
         client.containers.run.return_value = b""
 
-        ops.make_change_sets_dir(client, volume_name="ws")
+        ops.make_change_sets_dir(
+            client, volume_name="ws", path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets"
+        )
 
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
@@ -323,7 +340,12 @@ class TestMakeChangeSetSubdir:
         client = MagicMock()
         client.containers.run.return_value = b""
 
-        path = ops.make_change_set_subdir(client, volume_name="ws", slug="add-login")
+        path = ops.make_change_set_subdir(
+            client,
+            volume_name="ws",
+            slug="add-login",
+            parent_dir=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets",
+        )
 
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]

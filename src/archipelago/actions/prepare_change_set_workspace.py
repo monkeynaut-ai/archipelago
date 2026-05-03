@@ -37,6 +37,7 @@ def prepare_change_set_workspace_fn(
         client,
         volume_name=state.workspace_handle.volume_name,
         slug=state.current_change_set.slug,
+        parent_dir=state.workspace_handle.change_sets_dir,
     )
     return PrepareChangeSetWorkspaceOutput(
         change_set_workspace_path=cs_path,
