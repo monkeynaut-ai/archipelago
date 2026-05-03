@@ -1,23 +1,3 @@
-"""Archipelago workspace constants.
-
-Directory layout
-----------------
-WORKSPACE_ROOT           /workspace
-WORKSPACE_CODEBASE_PATH  /workspace/codebase
-WORKSPACE_DOCUMENTS_PATH /workspace/documents
-
-Well-known filenames / subdirectory names
------------------------------------------
-CHANGE_SETS_DIR_NAME         change-sets
-FEATURE_DEFINITION_FILENAME  feature_definition.md
-
-GID map (controls write access to each zone)
---------------------------------------------
-GID_DOCUMENTS = 1001  WORKSPACE_DOCUMENTS_PATH (and all subdirs)
-GID_CODEBASE  = 1002  WORKSPACE_CODEBASE_PATH  (excluding tests/)
-GID_TESTS     = 1003  WORKSPACE_CODEBASE_PATH/tests
-"""
-
 from __future__ import annotations
 
 # --- Directory names ---
