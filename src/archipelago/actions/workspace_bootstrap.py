@@ -22,6 +22,11 @@ from archetype.markdown import render_instance
 from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops
+from archipelago.constants import (
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import CodebaseSource, FeatureDefinition
 
 
@@ -101,7 +106,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
         _ops.chmod_tree_excluding_git(
             client,
             volume_name=state.volume_name,
-            path="/workspace/codebase",
+            path=WORKSPACE_CODEBASE_PATH,
             mode="555",
         )
 
@@ -117,7 +122,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
         _ops.write_file(
             client,
             volume_name=state.volume_name,
-            path="/workspace/documents/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
             content=render_instance(state.feature_definition),
             mode="444",
         )
@@ -131,10 +136,10 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
 
     handle = WorkspaceHandle(
         volume_name=state.volume_name,
-        root="/workspace",
-        documents_path="/workspace/documents",
-        codebase_path="/workspace/codebase",
-        feature_definition_path="/workspace/documents/feature_definition.md",
+        root=WORKSPACE_ROOT,
+        documents_path=WORKSPACE_DOCUMENTS_PATH,
+        codebase_path=WORKSPACE_CODEBASE_PATH,
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
         codebase_source_ref=state.codebase_source.ref,
         codebase_resolved_sha=resolved_sha,
     )

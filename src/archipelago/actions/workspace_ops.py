@@ -16,7 +16,12 @@ import docker.errors
 from docker.client import DockerClient
 from docker.models.volumes import Volume
 
-from archipelago.constants import GID_DOCUMENTS
+from archipelago.constants import (
+    GID_DOCUMENTS,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 
 GIT_IMAGE = "alpine/git:v2.47.2"
 ALPINE_IMAGE = "alpine:3.20"
@@ -80,16 +85,16 @@ def clone_and_resolve_ref(
     effective_url = _with_github_token(repo_url, github_token)
     script = (
         f"set -e && "
-        f"git clone {effective_url} /workspace/codebase && "
-        f"git -C /workspace/codebase checkout {ref} && "
-        f"git -C /workspace/codebase rev-parse HEAD"
+        f"git clone {effective_url} {WORKSPACE_CODEBASE_PATH} && "
+        f"git -C {WORKSPACE_CODEBASE_PATH} checkout {ref} && "
+        f"git -C {WORKSPACE_CODEBASE_PATH} rev-parse HEAD"
     )
     try:
         raw = client.containers.run(
             GIT_IMAGE,
             command=["sh", "-c", script],
             entrypoint="",
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
             stdout=True,
             stderr=False,
@@ -123,7 +128,7 @@ def chmod_tree_excluding_git(
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", script],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -143,7 +148,7 @@ def chmod_path(
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", f"chmod {mode} {path}"],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -161,15 +166,15 @@ def prepare_documents_dir(client: DockerClient, *, volume_name: str) -> None:
     there; all others get r-x (read-only).
     """
     script = (
-        "mkdir -p /workspace/documents && "
-        f"chown root:{GID_DOCUMENTS} /workspace/documents && "
-        "chmod 775 /workspace/documents"
+        f"mkdir -p {WORKSPACE_DOCUMENTS_PATH} && "
+        f"chown root:{GID_DOCUMENTS} {WORKSPACE_DOCUMENTS_PATH} && "
+        f"chmod 775 {WORKSPACE_DOCUMENTS_PATH}"
     )
     try:
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", script],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -194,7 +199,7 @@ def read_file(
         output = client.containers.run(
             ALPINE_IMAGE,
             command=["cat", path],
-            volumes={volume_name: {"bind": "/workspace", "mode": "ro"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
             detach=False,
             remove=True,
         )
@@ -209,16 +214,17 @@ def make_change_sets_dir(client: DockerClient, *, volume_name: str) -> None:
 
     Created at bootstrap time so per-CS subdirs inherit the correct ownership.
     """
+    _change_sets_dir = f"{WORKSPACE_DOCUMENTS_PATH}/change-sets"
     script = (
-        "mkdir -p /workspace/documents/change-sets && "
-        f"chown root:{GID_DOCUMENTS} /workspace/documents/change-sets && "
-        "chmod 775 /workspace/documents/change-sets"
+        f"mkdir -p {_change_sets_dir} && "
+        f"chown root:{GID_DOCUMENTS} {_change_sets_dir} && "
+        f"chmod 775 {_change_sets_dir}"
     )
     try:
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", script],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -231,13 +237,13 @@ def make_change_set_subdir(client: DockerClient, *, volume_name: str, slug: str)
 
     Returns the in-container path.
     """
-    cs_path = f"/workspace/documents/change-sets/{slug}"
+    cs_path = f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/{slug}"
     script = f"mkdir -p {cs_path} && chown root:{GID_DOCUMENTS} {cs_path} && chmod 775 {cs_path}"
     try:
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", script],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -274,7 +280,7 @@ def write_file(
     helper = client.containers.create(
         ALPINE_IMAGE,
         command=["true"],
-        volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+        volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
     )
     try:
         helper.put_archive(directory, tar_bytes)
