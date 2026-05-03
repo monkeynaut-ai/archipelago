@@ -11,8 +11,11 @@ from archipelago.actions import WorkspaceHandle
 from archipelago.models import ChangeSetRef, FeatureDefinition
 
 
-class DesignerInput(BaseModel):
+class AgentInputBase(BaseModel):
     workspace_handle: WorkspaceHandle
+
+
+class DesignerInput(AgentInputBase):
     feature_definition: FeatureDefinition
 
 
@@ -21,8 +24,7 @@ class DesignerOutput(BaseModel):
     design_document: Annotated[str, AgentFilePath()]
 
 
-class ChangeSetPlannerInput(BaseModel):
-    workspace_handle: WorkspaceHandle
+class ChangeSetPlannerInput(AgentInputBase):
     design_document: str
     feature_definition: FeatureDefinition
 
@@ -31,8 +33,7 @@ class ChangeSetPlannerOutput(BaseModel):
     change_sets_document: Annotated[str, AgentFilePath()]
 
 
-class TDDPlannerInput(BaseModel):
-    workspace_handle: WorkspaceHandle
+class TDDPlannerInput(AgentInputBase):
     design_document: str
     feature_definition: FeatureDefinition
     current_change_set: ChangeSetRef
@@ -42,3 +43,19 @@ class TDDPlannerInput(BaseModel):
 
 class TDDPlannerOutput(BaseModel):
     steps_document: Annotated[str, AgentFilePath()]
+
+
+class TesterInput(AgentInputBase):
+    pass
+
+
+class TesterOutput(BaseModel):
+    pass
+
+
+class DeveloperInput(AgentInputBase):
+    pass
+
+
+class DeveloperOutput(BaseModel):
+    pass
