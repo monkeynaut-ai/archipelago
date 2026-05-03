@@ -18,6 +18,13 @@ import pytest
 from archetype.markdown import MarkdownHeader
 
 from archipelago.actions import WorkspaceHandle
+from archipelago.constants import (
+    CHANGE_SETS_DIR_NAME,
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
@@ -37,10 +44,10 @@ from archipelago.systems.pipeline import (
 def _handle(volume_name: str = "ws") -> WorkspaceHandle:
     return WorkspaceHandle(
         volume_name=volume_name,
-        root="/workspace",
-        documents_path="/workspace/documents",
-        codebase_path="/workspace/codebase",
-        feature_definition_path="/workspace/documents/feature_definition.md",
+        root=WORKSPACE_ROOT,
+        documents_path=WORKSPACE_DOCUMENTS_PATH,
+        codebase_path=WORKSPACE_CODEBASE_PATH,
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
         codebase_source_ref="main",
         codebase_resolved_sha="a" * 40,
     )
@@ -118,16 +125,16 @@ class TestChangeSetsOver:
         stub_read_markdown.return_value = _change_sets_doc()
         handle = _handle()
         state = ChangeSetsLoopState(
-            change_sets_document="/workspace/documents/change-sets.md",
+            change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             workspace_handle=handle,
-            design_document="/workspace/documents/design.md",
+            design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             feature_definition=fake_feature_definition,
         )
 
         _change_sets_over(state)
 
         assert stub_read_markdown.calls == [  # type: ignore[attr-defined]
-            (handle, "/workspace/documents/change-sets.md", ChangeSetsDocument)
+            (handle, f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md", ChangeSetsDocument)
         ]
 
     def test_given_doc_when_called_then_returns_change_sets_field(
@@ -136,9 +143,9 @@ class TestChangeSetsOver:
         doc = _change_sets_doc()
         stub_read_markdown.return_value = doc
         state = ChangeSetsLoopState(
-            change_sets_document="/workspace/documents/change-sets.md",
+            change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             workspace_handle=_handle(),
-            design_document="/workspace/documents/design.md",
+            design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             feature_definition=fake_feature_definition,
         )
 
@@ -154,8 +161,8 @@ class TestStepsOver:
         stub_read_markdown.return_value = _steps_doc()
         handle = _handle()
         state = StepsLoopState(
-            steps_document="/workspace/documents/change-sets/slice-one/steps.md",
-            change_set_workspace_path="/workspace/documents/change-sets/slice-one",
+            steps_document=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
+            change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}/slice-one",
             workspace_handle=handle,
         )
 
@@ -164,7 +171,7 @@ class TestStepsOver:
         assert stub_read_markdown.calls == [  # type: ignore[attr-defined]
             (
                 handle,
-                "/workspace/documents/change-sets/slice-one/steps.md",
+                f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
                 StepsDocument,
             )
         ]
@@ -173,8 +180,8 @@ class TestStepsOver:
         doc = _steps_doc()
         stub_read_markdown.return_value = doc
         state = StepsLoopState(
-            steps_document="/workspace/documents/change-sets/slice-one/steps.md",
-            change_set_workspace_path="/workspace/documents/change-sets/slice-one",
+            steps_document=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
+            change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}/slice-one",
             workspace_handle=_handle(),
         )
 

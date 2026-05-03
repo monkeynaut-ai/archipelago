@@ -22,6 +22,13 @@ from archetype.markdown import render_instance
 from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops
+from archipelago.constants import (
+    CHANGE_SETS_DIR_NAME,
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import CodebaseSource, FeatureDefinition
 
 
@@ -49,11 +56,15 @@ class WorkspaceHandle(BaseModel):
 
     @property
     def change_sets_document_path(self) -> str:
-        return f"{self.documents_path}/change-sets.md"
+        return f"{self.documents_path}/{CHANGE_SETS_DIR_NAME}.md"
 
     @property
     def change_sets_dir(self) -> str:
-        return f"{self.documents_path}/change-sets"
+        return f"{self.documents_path}/{CHANGE_SETS_DIR_NAME}"
+
+    @property
+    def investigation_document_path(self) -> str:
+        return f"{self.documents_path}/investigation.md"
 
 
 class BootstrapInput(BaseModel):
@@ -94,6 +105,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
             volume_name=state.volume_name,
             repo_url=state.codebase_source.repo_url,
             ref=state.codebase_source.ref,
+            codebase_path=WORKSPACE_CODEBASE_PATH,
             github_token=github_token,
         )
 
@@ -101,23 +113,29 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
         _ops.chmod_tree_excluding_git(
             client,
             volume_name=state.volume_name,
-            path="/workspace/codebase",
+            path=WORKSPACE_CODEBASE_PATH,
             mode="555",
         )
 
         # 5. Ensure documents dir exists and is writable to the designer UID.
-        _ops.prepare_documents_dir(client, volume_name=state.volume_name)
+        _ops.prepare_documents_dir(
+            client, volume_name=state.volume_name, path=WORKSPACE_DOCUMENTS_PATH
+        )
 
         # 5b. Create change-sets/ subdirectory under documents/. Per-CS
         # subdirs (created later by prepare_change_set_workspace inside
         # the outer loop) inherit the same agent-writable ownership.
-        _ops.make_change_sets_dir(client, volume_name=state.volume_name)
+        _ops.make_change_sets_dir(
+            client,
+            volume_name=state.volume_name,
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}",
+        )
 
         # 6. Stage the feature definition file (locked to 444 once written).
         _ops.write_file(
             client,
             volume_name=state.volume_name,
-            path="/workspace/documents/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
             content=render_instance(state.feature_definition),
             mode="444",
         )
@@ -131,10 +149,10 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
 
     handle = WorkspaceHandle(
         volume_name=state.volume_name,
-        root="/workspace",
-        documents_path="/workspace/documents",
-        codebase_path="/workspace/codebase",
-        feature_definition_path="/workspace/documents/feature_definition.md",
+        root=WORKSPACE_ROOT,
+        documents_path=WORKSPACE_DOCUMENTS_PATH,
+        codebase_path=WORKSPACE_CODEBASE_PATH,
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
         codebase_source_ref=state.codebase_source.ref,
         codebase_resolved_sha=resolved_sha,
     )

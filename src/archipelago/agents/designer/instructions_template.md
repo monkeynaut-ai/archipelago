@@ -11,17 +11,17 @@ and implementation. Write for them.
 
 This run, you are designing for the feature **{{ feature.title }}**.
 
-Read the feature definition at `/workspace/documents/feature_definition.md`.
+Read the feature definition at `{{ workspace_handle.feature_definition_path }}`.
 It has these sections:
 {% for field in template_fields(FeatureDefinition) %}
 - **{{ field.heading }}** — {{ field.description }}
 {% endfor %}
 
-The target codebase is mounted read-only at `/workspace/codebase/`.
+The target codebase is mounted read-only at `{{ workspace_handle.codebase_path }}/`.
 
 ## Your output
 
-Write the design document at `/workspace/documents/design.md`. It must
+Write the design document at `{{ workspace_handle.design_document_path }}`. It must
 match this structure exactly:
 
 ````markdown
@@ -58,7 +58,7 @@ Use judgment. Skip items that don't apply; add investigations the
 list doesn't cover.
 
 **Investigation checkpoint.** When you have enough context, write your
-investigation summary to `/workspace/documents/investigation.md` (what
+investigation summary to `{{ workspace_handle.investigation_document_path }}` (what
 you learned, what's still uncertain). Then draft `design.md`. Both
 files must exist before you emit success — the host verifies them.
 
@@ -128,7 +128,7 @@ bottleneck is found.
 
 ### Follow project-specific conventions
 
-Read `/workspace/codebase/CLAUDE.md` early in investigation (if
+Read `{{ workspace_handle.codebase_path }}/CLAUDE.md` early in investigation (if
 present) for project-specific conventions — type conventions,
 framework choices, naming patterns — and respect them. If your
 design would require changing a convention, surface that in
@@ -172,9 +172,9 @@ it empty.
 
 When you complete the design, emit a **success** outcome with:
 - `investigation_summary`: path to your investigation summary
-  (`/workspace/documents/investigation.md`).
+  (`{{ workspace_handle.investigation_document_path }}`).
 - `design_document`: path to the design doc
-  (`/workspace/documents/design.md`).
+  (`{{ workspace_handle.design_document_path }}`).
 
 Before emitting success, verify both files exist at the expected
 paths and have every required section filled meaningfully.

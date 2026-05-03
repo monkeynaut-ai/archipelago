@@ -10,15 +10,21 @@ from archipelago.agents.designer.models import (
     DesignerInput,
     DesignerOutput,
 )
+from archipelago.constants import (
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 
 
 def _sample_handle() -> WorkspaceHandle:
     return WorkspaceHandle(
         volume_name="v",
-        root="/workspace",
-        documents_path="/workspace/documents",
-        codebase_path="/workspace/codebase",
-        feature_definition_path="/workspace/documents/feature_definition.md",
+        root=WORKSPACE_ROOT,
+        documents_path=WORKSPACE_DOCUMENTS_PATH,
+        codebase_path=WORKSPACE_CODEBASE_PATH,
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
         codebase_source_ref="main",
         codebase_resolved_sha="a" * 40,
     )
@@ -32,7 +38,7 @@ class TestDesignerInput:
             workspace_handle=_sample_handle(),
             feature_definition=minimal_feature_definition,
         )
-        assert state.workspace_handle.root == "/workspace"
+        assert state.workspace_handle.root == WORKSPACE_ROOT
         assert state.feature_definition.title == "Demo Feature"
 
     def test_given_missing_workspace_handle_when_constructed_then_validation_error(
@@ -45,20 +51,20 @@ class TestDesignerInput:
 class TestDesignerOutput:
     def test_given_paths_when_constructed_then_stored_as_strings(self):
         out = DesignerOutput(
-            investigation_summary="/workspace/documents/investigation.md",
-            design_document="/workspace/documents/design.md",
+            investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
+            design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
         )
-        assert out.investigation_summary == "/workspace/documents/investigation.md"
-        assert out.design_document == "/workspace/documents/design.md"
+        assert out.investigation_summary == f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md"
+        assert out.design_document == f"{WORKSPACE_DOCUMENTS_PATH}/design.md"
 
     def test_given_missing_investigation_summary_when_constructed_then_validation_error(self):
         with pytest.raises(ValidationError):
-            DesignerOutput(design_document="/workspace/documents/design.md")  # type: ignore[call-arg]
+            DesignerOutput(design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md")  # type: ignore[call-arg]
 
     def test_given_missing_design_document_when_constructed_then_validation_error(self):
         with pytest.raises(ValidationError):
             DesignerOutput(  # type: ignore[call-arg]
-                investigation_summary="/workspace/documents/investigation.md",
+                investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
             )
 
     def test_given_json_schema_when_generated_then_both_paths_carry_agent_file_path_marker(

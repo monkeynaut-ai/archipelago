@@ -6,6 +6,7 @@ import pytest
 from archetype.markdown import render_instance, template_fields, validate_markdown
 from pydantic import ValidationError
 
+from archipelago.constants import FEATURE_DEFINITION_FILENAME, WORKSPACE_DOCUMENTS_PATH
 from archipelago.models.design_document import (
     DesignDocument,
     DesignDocumentFrontmatter,
@@ -17,7 +18,7 @@ def _minimal_design_document() -> DesignDocument:
         frontmatter=DesignDocumentFrontmatter(
             feature_slug="demo",
             feature_name="Demo Feature",
-            feature_definition_path="/workspace/documents/feature_definition.md",
+            feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
             codebase_ref="main",
             codebase_resolved_sha="a" * 40,
             generated_at="2026-04-21T12:00:00Z",

@@ -13,6 +13,12 @@ from archipelago.agents.designer.callables import (
     designer_prompt_builder,
 )
 from archipelago.agents.designer.models import DesignerInput
+from archipelago.constants import (
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import DesignDocument, FeatureDefinition
 
 
@@ -20,10 +26,10 @@ def _state(minimal_feature_definition) -> DesignerInput:
     return DesignerInput(
         workspace_handle=WorkspaceHandle(
             volume_name="v",
-            root="/workspace",
-            documents_path="/workspace/documents",
-            codebase_path="/workspace/codebase",
-            feature_definition_path="/workspace/documents/feature_definition.md",
+            root=WORKSPACE_ROOT,
+            documents_path=WORKSPACE_DOCUMENTS_PATH,
+            codebase_path=WORKSPACE_CODEBASE_PATH,
+            feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
             codebase_source_ref="main",
             codebase_resolved_sha="a" * 40,
         ),
@@ -43,7 +49,7 @@ class TestDesignerPromptBuilder:
         self, minimal_feature_definition
     ):
         result = designer_prompt_builder(_state(minimal_feature_definition))
-        assert "/workspace" in result
+        assert WORKSPACE_ROOT in result
 
     def test_given_state_when_prompt_builder_then_references_instructions_or_design(
         self, minimal_feature_definition
@@ -70,6 +76,7 @@ class TestDesignerInstructionsProvider:
         expected = resolve(
             template_path.read_text(encoding="utf-8"),
             feature=state.feature_definition,
+            workspace_handle=state.workspace_handle,
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )

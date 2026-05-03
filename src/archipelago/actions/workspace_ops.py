@@ -16,7 +16,7 @@ import docker.errors
 from docker.client import DockerClient
 from docker.models.volumes import Volume
 
-from archipelago.constants import GID_DOCUMENTS
+from archipelago.constants import GID_DOCUMENTS, WORKSPACE_ROOT
 
 GIT_IMAGE = "alpine/git:v2.47.2"
 ALPINE_IMAGE = "alpine:3.20"
@@ -65,6 +65,7 @@ def clone_and_resolve_ref(
     volume_name: str,
     repo_url: str,
     ref: str,
+    codebase_path: str,
     github_token: str | None = None,
 ) -> str:
     """Clone repo_url into /workspace/codebase inside volume_name, check
@@ -80,16 +81,16 @@ def clone_and_resolve_ref(
     effective_url = _with_github_token(repo_url, github_token)
     script = (
         f"set -e && "
-        f"git clone {effective_url} /workspace/codebase && "
-        f"git -C /workspace/codebase checkout {ref} && "
-        f"git -C /workspace/codebase rev-parse HEAD"
+        f"git clone {effective_url} {codebase_path} && "
+        f"git -C {codebase_path} checkout {ref} && "
+        f"git -C {codebase_path} rev-parse HEAD"
     )
     try:
         raw = client.containers.run(
             GIT_IMAGE,
             command=["sh", "-c", script],
             entrypoint="",
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
             stdout=True,
             stderr=False,
@@ -123,7 +124,7 @@ def chmod_tree_excluding_git(
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", script],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -143,7 +144,7 @@ def chmod_path(
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", f"chmod {mode} {path}"],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -154,22 +155,18 @@ def chmod_path(
 DOCUMENTS_DIR_MODE = "775"
 
 
-def prepare_documents_dir(client: DockerClient, *, volume_name: str) -> None:
-    """mkdir -p /workspace/documents, chown to root:GID_DOCUMENTS, chmod 775.
+def prepare_documents_dir(client: DockerClient, *, volume_name: str, path: str) -> None:
+    """mkdir -p `path`, chown to root:GID_DOCUMENTS, chmod 775.
 
     Group ownership + mode 775 lets any agent holding GID_DOCUMENTS write
     there; all others get r-x (read-only).
     """
-    script = (
-        "mkdir -p /workspace/documents && "
-        f"chown root:{GID_DOCUMENTS} /workspace/documents && "
-        "chmod 775 /workspace/documents"
-    )
+    script = f"mkdir -p {path} && chown root:{GID_DOCUMENTS} {path} && chmod 775 {path}"
     try:
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", script],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -194,7 +191,7 @@ def read_file(
         output = client.containers.run(
             ALPINE_IMAGE,
             command=["cat", path],
-            volumes={volume_name: {"bind": "/workspace", "mode": "ro"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
             detach=False,
             remove=True,
         )
@@ -204,21 +201,17 @@ def read_file(
     return output.decode("utf-8")
 
 
-def make_change_sets_dir(client: DockerClient, *, volume_name: str) -> None:
-    """mkdir -p /workspace/documents/change-sets, chown root:GID_DOCUMENTS, chmod 775.
+def make_change_sets_dir(client: DockerClient, *, volume_name: str, path: str) -> None:
+    """mkdir -p `path`, chown root:GID_DOCUMENTS, chmod 775.
 
     Created at bootstrap time so per-CS subdirs inherit the correct ownership.
     """
-    script = (
-        "mkdir -p /workspace/documents/change-sets && "
-        f"chown root:{GID_DOCUMENTS} /workspace/documents/change-sets && "
-        "chmod 775 /workspace/documents/change-sets"
-    )
+    script = f"mkdir -p {path} && chown root:{GID_DOCUMENTS} {path} && chmod 775 {path}"
     try:
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", script],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -226,18 +219,20 @@ def make_change_sets_dir(client: DockerClient, *, volume_name: str) -> None:
         raise RuntimeError(f"make_change_sets_dir failed: {stderr}") from exc
 
 
-def make_change_set_subdir(client: DockerClient, *, volume_name: str, slug: str) -> str:
-    """mkdir -p /workspace/documents/change-sets/{slug}, chown root:GID_DOCUMENTS, chmod 775.
+def make_change_set_subdir(
+    client: DockerClient, *, volume_name: str, slug: str, parent_dir: str
+) -> str:
+    """mkdir -p `parent_dir/{slug}`, chown root:GID_DOCUMENTS, chmod 775.
 
     Returns the in-container path.
     """
-    cs_path = f"/workspace/documents/change-sets/{slug}"
+    cs_path = f"{parent_dir}/{slug}"
     script = f"mkdir -p {cs_path} && chown root:{GID_DOCUMENTS} {cs_path} && chmod 775 {cs_path}"
     try:
         client.containers.run(
             ALPINE_IMAGE,
             command=["sh", "-c", script],
-            volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         )
     except docker.errors.ContainerError as exc:
@@ -274,7 +269,7 @@ def write_file(
     helper = client.containers.create(
         ALPINE_IMAGE,
         command=["true"],
-        volumes={volume_name: {"bind": "/workspace", "mode": "rw"}},
+        volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
     )
     try:
         helper.put_archive(directory, tar_bytes)

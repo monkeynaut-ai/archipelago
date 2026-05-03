@@ -1,18 +1,19 @@
-"""Archipelago workspace GID constants.
-
-Each GID controls write access to one workspace zone. Workspace setup
-(workspace_ops) chowns each zone to root:<GID> mode 775 so only agents
-holding that supplementary GID can write there; others get r-x (read-only).
-
-GID map
--------
-GID_DOCUMENTS = 1001  /workspace/documents (and all subdirs)
-GID_CODEBASE  = 1002  /workspace/codebase  (excluding tests/)
-GID_TESTS     = 1003  /workspace/codebase/tests
-"""
-
 from __future__ import annotations
 
+# --- Directory names ---
+WORKSPACE_ROOT: str = "/workspace"
+CODEBASE_DIR_NAME: str = "codebase"
+DOCUMENTS_DIR_NAME: str = "documents"
+
+# --- Composed paths ---
+WORKSPACE_CODEBASE_PATH: str = f"{WORKSPACE_ROOT}/{CODEBASE_DIR_NAME}"
+WORKSPACE_DOCUMENTS_PATH: str = f"{WORKSPACE_ROOT}/{DOCUMENTS_DIR_NAME}"
+
+# --- Well-known filenames / subdirectory names ---
+CHANGE_SETS_DIR_NAME: str = "change-sets"
+FEATURE_DEFINITION_FILENAME: str = "feature_definition.md"
+
+# --- GIDs ---
 GID_DOCUMENTS: int = 1001
 GID_CODEBASE: int = 1002
 GID_TESTS: int = 1003

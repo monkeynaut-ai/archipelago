@@ -6,6 +6,12 @@ import re
 
 from archipelago.actions import WorkspaceHandle
 from archipelago.agents.designer import DesignerOutput
+from archipelago.constants import (
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import CodebaseSource
 from archipelago.systems.design_pipeline import DesignPipelineState, generate_volume_name
 
@@ -13,10 +19,10 @@ from archipelago.systems.design_pipeline import DesignPipelineState, generate_vo
 def _handle() -> WorkspaceHandle:
     return WorkspaceHandle(
         volume_name="v",
-        root="/workspace",
-        documents_path="/workspace/documents",
-        codebase_path="/workspace/codebase",
-        feature_definition_path="/workspace/documents/feature_definition.md",
+        root=WORKSPACE_ROOT,
+        documents_path=WORKSPACE_DOCUMENTS_PATH,
+        codebase_path=WORKSPACE_CODEBASE_PATH,
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
         codebase_source_ref="main",
         codebase_resolved_sha="a" * 40,
     )
@@ -43,8 +49,8 @@ class TestDesignPipelineState:
             volume_name="archipelago-ws-demo-1",
             workspace_handle=_handle(),
             designer_output=DesignerOutput(
-                investigation_summary="/workspace/documents/investigation.md",
-                design_document="/workspace/documents/design.md",
+                investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
+                design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             ),
         )
         assert state.workspace_handle is not None

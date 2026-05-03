@@ -12,6 +12,11 @@ from archipelago.actions.workspace_bootstrap import (
     BootstrapOutput,
     bootstrap_fn,
 )
+from archipelago.constants import (
+    FEATURE_DEFINITION_FILENAME,
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+)
 from archipelago.models import CodebaseSource
 
 
@@ -70,6 +75,7 @@ class TestBootstrapFn:
             volume_name="archipelago-ws-demo-1",
             repo_url="https://example.com/repo.git",
             ref="main",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
             github_token=None,
         )
 
@@ -77,19 +83,19 @@ class TestBootstrapFn:
         ops_mod.chmod_tree_excluding_git.assert_called_once_with(
             client,
             volume_name="archipelago-ws-demo-1",
-            path="/workspace/codebase",
+            path=WORKSPACE_CODEBASE_PATH,
             mode="555",
         )
 
         # 5. Documents dir prepared.
         ops_mod.prepare_documents_dir.assert_called_once_with(
-            client, volume_name="archipelago-ws-demo-1"
+            client, volume_name="archipelago-ws-demo-1", path=WORKSPACE_DOCUMENTS_PATH
         )
 
         # 6. write_file on feature_definition.md with mode 444.
         ops_mod.write_file.assert_called_once()
         kwargs = ops_mod.write_file.call_args.kwargs
-        assert kwargs["path"] == "/workspace/documents/feature_definition.md"
+        assert kwargs["path"] == f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}"
         assert kwargs["mode"] == "444"
 
     def test_given_input_when_bootstrap_then_feature_def_rendered_via_render_instance(
