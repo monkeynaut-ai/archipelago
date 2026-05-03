@@ -157,6 +157,6 @@ class TestTemplateResolution:
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
-        assert "/workspace/documents/feature_definition.md" in resolved
-        assert "/workspace/codebase/" in resolved
-        assert "/workspace/documents/design.md" in resolved
+        assert f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md" in resolved
+        assert f"{WORKSPACE_CODEBASE_PATH}/" in resolved
+        assert f"{WORKSPACE_DOCUMENTS_PATH}/design.md" in resolved

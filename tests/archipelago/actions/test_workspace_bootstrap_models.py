@@ -10,16 +10,21 @@ from archipelago.actions.workspace_bootstrap import (
     BootstrapOutput,
     WorkspaceHandle,
 )
+from archipelago.constants import (
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import CodebaseSource
 
 
 def _sample_handle() -> WorkspaceHandle:
     return WorkspaceHandle(
         volume_name="archipelago-ws-demo-1000000000000000000",
-        root="/workspace",
-        documents_path="/workspace/documents",
-        codebase_path="/workspace/codebase",
-        feature_definition_path="/workspace/documents/feature_definition.md",
+        root=WORKSPACE_ROOT,
+        documents_path=WORKSPACE_DOCUMENTS_PATH,
+        codebase_path=WORKSPACE_CODEBASE_PATH,
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
         codebase_source_ref="main",
         codebase_resolved_sha="a" * 40,
     )
@@ -28,16 +33,16 @@ def _sample_handle() -> WorkspaceHandle:
 class TestWorkspaceHandle:
     def test_given_all_fields_when_constructed_then_fields_populated(self):
         handle = _sample_handle()
-        assert handle.root == "/workspace"
+        assert handle.root == WORKSPACE_ROOT
         assert handle.codebase_resolved_sha == "a" * 40
 
     def test_given_missing_volume_name_when_constructed_then_validation_error(self):
         with pytest.raises(ValidationError):
             WorkspaceHandle(
-                root="/workspace",
-                documents_path="/workspace/documents",
-                codebase_path="/workspace/codebase",
-                feature_definition_path="/workspace/documents/feature_definition.md",
+                root=WORKSPACE_ROOT,
+                documents_path=WORKSPACE_DOCUMENTS_PATH,
+                codebase_path=WORKSPACE_CODEBASE_PATH,
+                feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
                 codebase_source_ref="main",
                 codebase_resolved_sha="a" * 40,
             )  # type: ignore[call-arg]

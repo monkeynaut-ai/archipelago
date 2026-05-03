@@ -17,6 +17,7 @@ import pytest
 
 from archipelago.actions import BootstrapInput, BootstrapOutput
 from archipelago.actions.workspace_bootstrap import bootstrap_fn
+from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH, WORKSPACE_ROOT
 from archipelago.models import CodebaseSource
 
 PINNED_REPO = "https://github.com/730alchemy/agent-foundry.git"
@@ -82,15 +83,15 @@ class TestBootstrapIntegration:
                 "find /workspace/codebase -maxdepth 2 -name pyproject.toml "
                 "-exec stat -c '%a %n' {} +",
             ],
-            volumes={result.workspace_handle.volume_name: {"bind": "/workspace", "mode": "ro"}},
+            volumes={result.workspace_handle.volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
             remove=True,
         ).decode("utf-8", errors="replace")
 
         assert "feature_definition.md" in output
         assert ".git present" in output
-        assert "444 /workspace/documents/feature_definition.md" in output
-        assert "775 /workspace/documents" in output
-        assert "555 /workspace/codebase/" in output
+        assert f"444 {WORKSPACE_DOCUMENTS_PATH}/feature_definition.md" in output
+        assert f"775 {WORKSPACE_DOCUMENTS_PATH}" in output
+        assert f"555 {WORKSPACE_CODEBASE_PATH}/" in output
 
     def test_given_real_repo_when_bootstrap_then_git_log_still_works(
         self, docker_client, cleanup_volumes, minimal_feature_definition
@@ -118,7 +119,7 @@ class TestBootstrapIntegration:
                 "cd /workspace/codebase && git log -1 --oneline",
             ],
             entrypoint="",
-            volumes={result.workspace_handle.volume_name: {"bind": "/workspace", "mode": "rw"}},
+            volumes={result.workspace_handle.volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             remove=True,
         ).decode("utf-8", errors="replace")
 

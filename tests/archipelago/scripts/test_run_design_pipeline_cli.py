@@ -11,6 +11,7 @@ import pytest
 from agent_foundry.orchestration.errors import AgentFailedError
 
 from archipelago.agents.designer import DesignerOutput
+from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH, WORKSPACE_ROOT
 from archipelago.models import CodebaseSource
 from archipelago.systems.design_pipeline import DesignPipelineState
 
@@ -46,30 +47,25 @@ class TestCLISuccess:
         feature_file = tmp_path / "feature.md"
         feature_file.write_text(text, encoding="utf-8")
 
+        from archipelago.actions import WorkspaceHandle
+
         run_pipeline_mock.return_value = DesignPipelineState(
             feature_definition=minimal_feature_definition,
             codebase_source=CodebaseSource(repo_url="u", ref="r"),
             volume_name="archipelago-ws-demo-1",
             designer_output=DesignerOutput(
-                investigation_summary="/workspace/documents/investigation.md",
-                design_document="/workspace/documents/design.md",
+                investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
+                design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             ),
-        )
-        # Populate workspace_handle to exercise the success-print path.
-        from archipelago.actions import WorkspaceHandle
-
-        run_pipeline_mock.return_value = run_pipeline_mock.return_value.model_copy(
-            update={
-                "workspace_handle": WorkspaceHandle(
-                    volume_name="archipelago-ws-demo-1",
-                    root="/workspace",
-                    documents_path="/workspace/documents",
-                    codebase_path="/workspace/codebase",
-                    feature_definition_path="/workspace/documents/feature_definition.md",
-                    codebase_source_ref="r",
-                    codebase_resolved_sha="a" * 40,
-                )
-            }
+            workspace_handle=WorkspaceHandle(
+                volume_name="archipelago-ws-demo-1",
+                root=WORKSPACE_ROOT,
+                documents_path=WORKSPACE_DOCUMENTS_PATH,
+                codebase_path=WORKSPACE_CODEBASE_PATH,
+                feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+                codebase_source_ref="r",
+                codebase_resolved_sha="a" * 40,
+            ),
         )
 
         result = cli_module.main(
@@ -85,7 +81,7 @@ class TestCLISuccess:
         assert result == 0
         run_pipeline_mock.assert_called_once()
         out, _ = capsys.readouterr()
-        assert "/workspace/documents/design.md" in out
+        assert f"{WORKSPACE_DOCUMENTS_PATH}/design.md" in out
         assert "archipelago-ws-demo-1" in out
 
 

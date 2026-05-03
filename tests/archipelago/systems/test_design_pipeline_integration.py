@@ -87,10 +87,12 @@ class TestDesignPipelineEndToEnd:
         assert final.designer_output is not None
 
         # Read the produced design.md out of the volume.
+        from archipelago.constants import WORKSPACE_ROOT
+
         design_text = docker_and_auth_client.containers.run(
             "alpine:3.20",
             command=["cat", final.designer_output.design_document],
-            volumes={final.workspace_handle.volume_name: {"bind": "/workspace", "mode": "ro"}},
+            volumes={final.workspace_handle.volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
             remove=True,
         ).decode("utf-8", errors="replace")
 

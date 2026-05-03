@@ -79,7 +79,7 @@ class TestBootstrapFn:
         ops_mod.chmod_tree_excluding_git.assert_called_once_with(
             client,
             volume_name="archipelago-ws-demo-1",
-            path="/workspace/codebase",
+            path=WORKSPACE_CODEBASE_PATH,
             mode="555",
         )
 
@@ -91,7 +91,7 @@ class TestBootstrapFn:
         # 6. write_file on feature_definition.md with mode 444.
         ops_mod.write_file.assert_called_once()
         kwargs = ops_mod.write_file.call_args.kwargs
-        assert kwargs["path"] == "/workspace/documents/feature_definition.md"
+        assert kwargs["path"] == f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md"
         assert kwargs["mode"] == "444"
 
     def test_given_input_when_bootstrap_then_feature_def_rendered_via_render_instance(

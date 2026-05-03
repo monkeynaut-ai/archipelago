@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from archipelago.actions import workspace_ops as ops
-from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH
+from archipelago.constants import WORKSPACE_CODEBASE_PATH, WORKSPACE_DOCUMENTS_PATH, WORKSPACE_ROOT
 
 
 class TestPullImage:
@@ -68,7 +68,7 @@ class TestCloneAndResolveRef:
 
         call = client.containers.run.call_args
         assert call.args[0] == ops.GIT_IMAGE
-        assert call.kwargs["volumes"]["ws"]["bind"] == "/workspace"
+        assert call.kwargs["volumes"]["ws"]["bind"] == WORKSPACE_ROOT
         assert call.kwargs.get("remove") is True
         assert sha == "a" * 40
 
@@ -89,7 +89,7 @@ class TestCloneAndResolveRef:
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
         assert "https://example.com/repo.git" in rendered
         assert "abc123" in rendered
-        assert "/workspace/codebase" in rendered
+        assert WORKSPACE_CODEBASE_PATH in rendered
         assert "rev-parse HEAD" in rendered
 
     def test_given_trailing_whitespace_when_clone_then_sha_stripped(self):
@@ -220,17 +220,17 @@ class TestChmodTreeExcludingGit:
         client.containers.run.return_value = b""
 
         ops.chmod_tree_excluding_git(
-            client, volume_name="ws", path="/workspace/codebase", mode="555"
+            client, volume_name="ws", path=WORKSPACE_CODEBASE_PATH, mode="555"
         )
 
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
         # Implementation uses `find ... -path */.git -prune` so .git/ stays writable.
-        assert "/workspace/codebase" in rendered
+        assert WORKSPACE_CODEBASE_PATH in rendered
         assert ".git" in rendered
         assert "555" in rendered
-        assert call.kwargs["volumes"]["ws"]["bind"] == "/workspace"
+        assert call.kwargs["volumes"]["ws"]["bind"] == WORKSPACE_ROOT
         assert call.kwargs.get("remove") is True
 
     def test_given_container_error_when_chmod_tree_then_runtime_error_raised(self):
@@ -248,14 +248,14 @@ class TestChmodTreeExcludingGit:
             ops.chmod_tree_excluding_git(
                 client, volume_name="ws", path="/workspace/nowhere", mode="555"
             )
-        assert "/workspace/nowhere" in str(exc.value)
+        assert "/workspace/nowhere" in str(exc.value)  # arbitrary path, not a constant
 
     def test_given_trailing_slash_path_when_chmod_tree_then_no_double_slash_in_command(self):
         client = MagicMock()
         client.containers.run.return_value = b""
 
         ops.chmod_tree_excluding_git(
-            client, volume_name="ws", path="/workspace/codebase/", mode="555"
+            client, volume_name="ws", path=f"{WORKSPACE_CODEBASE_PATH}/", mode="555"
         )
 
         call = client.containers.run.call_args
@@ -273,14 +273,14 @@ class TestChmodPath:
         ops.chmod_path(
             client,
             volume_name="ws",
-            path="/workspace/documents/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
             mode="444",
         )
 
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "chmod 444 /workspace/documents/feature_definition.md" in rendered
+        assert f"chmod 444 {WORKSPACE_DOCUMENTS_PATH}/feature_definition.md" in rendered
 
 
 class TestPrepareDocumentsDir:
@@ -295,9 +295,9 @@ class TestPrepareDocumentsDir:
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "mkdir -p /workspace/documents" in rendered
-        assert f"chown root:{GID_DOCUMENTS} /workspace/documents" in rendered
-        assert "chmod 775 /workspace/documents" in rendered
+        assert f"mkdir -p {WORKSPACE_DOCUMENTS_PATH}" in rendered
+        assert f"chown root:{GID_DOCUMENTS} {WORKSPACE_DOCUMENTS_PATH}" in rendered
+        assert f"chmod 775 {WORKSPACE_DOCUMENTS_PATH}" in rendered
 
     def test_given_volume_when_prepare_documents_then_chown_runs_before_chmod(self):
         """Pin chown-before-chmod order so bits land on the correct ownership."""
@@ -328,9 +328,9 @@ class TestMakeChangeSetsDir:
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "mkdir -p /workspace/documents/change-sets" in rendered
-        assert f"chown root:{GID_DOCUMENTS} /workspace/documents/change-sets" in rendered
-        assert "chmod 775 /workspace/documents/change-sets" in rendered
+        assert f"mkdir -p {WORKSPACE_DOCUMENTS_PATH}/change-sets" in rendered
+        assert f"chown root:{GID_DOCUMENTS} {WORKSPACE_DOCUMENTS_PATH}/change-sets" in rendered
+        assert f"chmod 775 {WORKSPACE_DOCUMENTS_PATH}/change-sets" in rendered
 
 
 class TestMakeChangeSetSubdir:
@@ -350,10 +350,13 @@ class TestMakeChangeSetSubdir:
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "mkdir -p /workspace/documents/change-sets/add-login" in rendered
-        assert f"chown root:{GID_DOCUMENTS} /workspace/documents/change-sets/add-login" in rendered
-        assert "chmod 775 /workspace/documents/change-sets/add-login" in rendered
-        assert path == "/workspace/documents/change-sets/add-login"
+        assert f"mkdir -p {WORKSPACE_DOCUMENTS_PATH}/change-sets/add-login" in rendered
+        assert (
+            f"chown root:{GID_DOCUMENTS} {WORKSPACE_DOCUMENTS_PATH}/change-sets/add-login"
+            in rendered
+        )
+        assert f"chmod 775 {WORKSPACE_DOCUMENTS_PATH}/change-sets/add-login" in rendered
+        assert path == f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/add-login"
 
 
 class TestWriteFile:
@@ -365,14 +368,14 @@ class TestWriteFile:
         ops.write_file(
             client,
             volume_name="ws",
-            path="/workspace/documents/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
             content="# hello\n",
         )
 
         assert client.containers.create.called
         assert helper.put_archive.called
         call = helper.put_archive.call_args
-        assert call.args[0] == "/workspace/documents"
+        assert call.args[0] == WORKSPACE_DOCUMENTS_PATH
         tar_bytes = call.args[1]
         with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r") as tar:
             members = tar.getmembers()
@@ -390,7 +393,7 @@ class TestWriteFile:
         ops.write_file(
             client,
             volume_name="ws",
-            path="/workspace/documents/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
             content="content",
             mode="444",
         )
@@ -415,7 +418,7 @@ class TestWriteFile:
         ops.write_file(
             client,
             volume_name="ws",
-            path="/workspace/documents/feature_definition.md",
+            path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
             content="content",
         )
         assert helper.remove.called
