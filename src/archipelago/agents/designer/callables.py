@@ -11,7 +11,7 @@ from pathlib import Path
 
 from archetype.templating import resolve
 
-from archipelago.agents.designer.models import DesignerInput
+from archipelago.agents.models import DesignerInput
 from archipelago.models import DesignDocument, FeatureDefinition
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"

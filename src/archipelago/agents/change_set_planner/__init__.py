@@ -5,11 +5,8 @@ ordered, independently-shippable change sets.
 
 from __future__ import annotations
 
-from archipelago.agents.change_set_planner.models import (
-    ChangeSetPlannerInput,
-    ChangeSetPlannerOutput,
-)
 from archipelago.agents.change_set_planner.primitive import change_set_planner
+from archipelago.agents.models import ChangeSetPlannerInput, ChangeSetPlannerOutput
 
 __all__ = [
     "ChangeSetPlannerInput",

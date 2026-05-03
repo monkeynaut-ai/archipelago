@@ -20,10 +20,7 @@ from archipelago.agents.change_set_planner.callables import (
     change_set_planner_instructions_provider,
     change_set_planner_prompt_builder,
 )
-from archipelago.agents.change_set_planner.models import (
-    ChangeSetPlannerInput,
-    ChangeSetPlannerOutput,
-)
+from archipelago.agents.models import ChangeSetPlannerInput, ChangeSetPlannerOutput
 from archipelago.constants import GID_DOCUMENTS
 
 change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](

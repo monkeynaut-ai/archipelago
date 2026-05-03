@@ -10,11 +10,11 @@ from __future__ import annotations
 from agent_foundry.orchestration.container_executor import run_agent_in_container
 from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 
+from archipelago.agents.models import TDDPlannerInput, TDDPlannerOutput
 from archipelago.agents.tdd_planner.callables import (
     tdd_planner_instructions_provider,
     tdd_planner_prompt_builder,
 )
-from archipelago.agents.tdd_planner.models import TDDPlannerInput, TDDPlannerOutput
 from archipelago.constants import GID_DOCUMENTS
 
 tdd_planner = AgentAction[TDDPlannerInput, TDDPlannerOutput](

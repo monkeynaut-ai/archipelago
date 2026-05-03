@@ -5,7 +5,7 @@ and produces an ordered list of TDD steps for that change set.
 
 from __future__ import annotations
 
-from archipelago.agents.tdd_planner.models import TDDPlannerInput, TDDPlannerOutput
+from archipelago.agents.models import TDDPlannerInput, TDDPlannerOutput
 from archipelago.agents.tdd_planner.primitive import tdd_planner
 
 __all__ = [

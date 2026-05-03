@@ -17,7 +17,7 @@ from archipelago.agents.designer.callables import (
     designer_instructions_provider,
     designer_prompt_builder,
 )
-from archipelago.agents.designer.models import DesignerInput, DesignerOutput
+from archipelago.agents.models import DesignerInput, DesignerOutput
 from archipelago.constants import GID_DOCUMENTS
 
 designer = AgentAction[DesignerInput, DesignerOutput](

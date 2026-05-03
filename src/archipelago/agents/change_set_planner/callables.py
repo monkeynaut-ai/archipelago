@@ -10,7 +10,7 @@ from pathlib import Path
 
 from archetype.templating import resolve
 
-from archipelago.agents.change_set_planner.models import ChangeSetPlannerInput
+from archipelago.agents.models import ChangeSetPlannerInput
 from archipelago.models import ChangeSetsDocument, FeatureDefinition
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"

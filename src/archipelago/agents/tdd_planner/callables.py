@@ -6,7 +6,7 @@ from pathlib import Path
 
 from archetype.templating import resolve
 
-from archipelago.agents.tdd_planner.models import TDDPlannerInput
+from archipelago.agents.models import TDDPlannerInput
 from archipelago.models import FeatureDefinition, StepsDocument
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"

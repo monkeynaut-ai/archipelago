@@ -6,10 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from archipelago.actions import WorkspaceHandle
-from archipelago.agents.designer.models import (
-    DesignerInput,
-    DesignerOutput,
-)
+from archipelago.agents.models import DesignerInput, DesignerOutput
 from archipelago.constants import (
     FEATURE_DEFINITION_FILENAME,
     WORKSPACE_CODEBASE_PATH,
