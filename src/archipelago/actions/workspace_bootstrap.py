@@ -60,6 +60,10 @@ class WorkspaceHandle(BaseModel):
     def change_sets_dir(self) -> str:
         return f"{self.documents_path}/change-sets"
 
+    @property
+    def investigation_document_path(self) -> str:
+        return f"{self.documents_path}/investigation.md"
+
 
 class BootstrapInput(BaseModel):
     feature_definition: FeatureDefinition

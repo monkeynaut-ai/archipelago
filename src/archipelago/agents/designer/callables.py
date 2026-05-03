@@ -29,6 +29,7 @@ def designer_instructions_provider(state: DesignerInput) -> str:
     return resolve(
         template_text,
         feature=state.feature_definition,
+        workspace_handle=state.workspace_handle,
         FeatureDefinition=FeatureDefinition,
         DesignDocument=DesignDocument,
     )

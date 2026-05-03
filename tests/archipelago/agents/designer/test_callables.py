@@ -70,6 +70,7 @@ class TestDesignerInstructionsProvider:
         expected = resolve(
             template_path.read_text(encoding="utf-8"),
             feature=state.feature_definition,
+            workspace_handle=state.workspace_handle,
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )

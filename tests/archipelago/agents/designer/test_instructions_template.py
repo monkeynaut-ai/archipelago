@@ -11,6 +11,12 @@ from pathlib import Path
 from archetype.markdown import template_fields
 from archetype.templating import resolve
 
+from archipelago.actions import WorkspaceHandle
+from archipelago.constants import (
+    WORKSPACE_CODEBASE_PATH,
+    WORKSPACE_DOCUMENTS_PATH,
+    WORKSPACE_ROOT,
+)
 from archipelago.models import DesignDocument, FeatureDefinition
 
 TEMPLATE_PATH = (
@@ -27,6 +33,18 @@ def _template_text() -> str:
     return TEMPLATE_PATH.read_text(encoding="utf-8")
 
 
+def _workspace_handle() -> WorkspaceHandle:
+    return WorkspaceHandle(
+        volume_name="ws",
+        root=WORKSPACE_ROOT,
+        documents_path=WORKSPACE_DOCUMENTS_PATH,
+        codebase_path=WORKSPACE_CODEBASE_PATH,
+        feature_definition_path=f"{WORKSPACE_DOCUMENTS_PATH}/feature_definition.md",
+        codebase_source_ref="main",
+        codebase_resolved_sha="a" * 40,
+    )
+
+
 class TestTemplateFile:
     def test_given_template_path_when_read_then_exists_and_non_empty(self):
         text = _template_text()
@@ -38,6 +56,7 @@ class TestTemplateResolution:
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
+            workspace_handle=_workspace_handle(),
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
@@ -49,6 +68,7 @@ class TestTemplateResolution:
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
+            workspace_handle=_workspace_handle(),
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
@@ -61,6 +81,7 @@ class TestTemplateResolution:
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
+            workspace_handle=_workspace_handle(),
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
@@ -77,6 +98,7 @@ class TestTemplateResolution:
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
+            workspace_handle=_workspace_handle(),
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
@@ -102,6 +124,7 @@ class TestTemplateResolution:
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
+            workspace_handle=_workspace_handle(),
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
@@ -117,6 +140,7 @@ class TestTemplateResolution:
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
+            workspace_handle=_workspace_handle(),
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
@@ -129,6 +153,7 @@ class TestTemplateResolution:
         resolved = resolve(
             _template_text(),
             feature=minimal_feature_definition,
+            workspace_handle=_workspace_handle(),
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
