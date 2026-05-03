@@ -13,15 +13,37 @@ for now.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from agent_foundry.orchestration.container_executor import run_agent_in_container
 from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
+from archetype.templating import resolve
 
-from archipelago.agents.change_set_planner.callables import (
-    change_set_planner_instructions_provider,
-    change_set_planner_prompt_builder,
-)
 from archipelago.agents.models import ChangeSetPlannerInput, ChangeSetPlannerOutput
 from archipelago.constants import GID_DOCUMENTS
+from archipelago.models import ChangeSetsDocument, FeatureDefinition
+
+_TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
+
+
+def change_set_planner_prompt_builder(state: ChangeSetPlannerInput) -> str:
+    return (
+        f"The workspace is mounted at {state.workspace_handle.root}. "
+        f"Follow your instructions to produce the change-sets document."
+    )
+
+
+def change_set_planner_instructions_provider(state: ChangeSetPlannerInput) -> str:
+    template_text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+    return resolve(
+        template_text,
+        feature=state.feature_definition,
+        workspace_handle=state.workspace_handle,
+        design_document=state.design_document,
+        FeatureDefinition=FeatureDefinition,
+        ChangeSetsDocument=ChangeSetsDocument,
+    )
+
 
 change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](
     name="change_set_planner",

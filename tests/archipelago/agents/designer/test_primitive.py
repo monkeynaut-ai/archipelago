@@ -5,11 +5,11 @@ from __future__ import annotations
 from agent_foundry.orchestration.container_executor import run_agent_in_container
 from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 
-from archipelago.agents.designer.callables import (
+from archipelago.agents.designer.primitive import (
+    designer,
     designer_instructions_provider,
     designer_prompt_builder,
 )
-from archipelago.agents.designer.primitive import designer
 from archipelago.constants import GID_DOCUMENTS
 
 

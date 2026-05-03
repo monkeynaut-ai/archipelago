@@ -8,7 +8,7 @@ from archetype.markdown import template_fields
 from archetype.templating import resolve
 
 from archipelago.actions import WorkspaceHandle
-from archipelago.agents.designer.callables import (
+from archipelago.agents.designer.primitive import (
     designer_instructions_provider,
     designer_prompt_builder,
 )

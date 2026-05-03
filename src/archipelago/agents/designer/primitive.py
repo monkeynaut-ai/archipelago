@@ -10,15 +10,36 @@ Container config per design §6.1:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from agent_foundry.orchestration.container_executor import run_agent_in_container
 from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
+from archetype.templating import resolve
 
-from archipelago.agents.designer.callables import (
-    designer_instructions_provider,
-    designer_prompt_builder,
-)
 from archipelago.agents.models import DesignerInput, DesignerOutput
 from archipelago.constants import GID_DOCUMENTS
+from archipelago.models import DesignDocument, FeatureDefinition
+
+_TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
+
+
+def designer_prompt_builder(state: DesignerInput) -> str:
+    return (
+        f"The workspace is mounted at {state.workspace_handle.root}. "
+        f"Follow your instructions to produce the design document."
+    )
+
+
+def designer_instructions_provider(state: DesignerInput) -> str:
+    template_text = _TEMPLATE_PATH.read_text(encoding="utf-8")
+    return resolve(
+        template_text,
+        feature=state.feature_definition,
+        workspace_handle=state.workspace_handle,
+        FeatureDefinition=FeatureDefinition,
+        DesignDocument=DesignDocument,
+    )
+
 
 designer = AgentAction[DesignerInput, DesignerOutput](
     name="designer",
