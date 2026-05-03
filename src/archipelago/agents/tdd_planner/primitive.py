@@ -15,6 +15,7 @@ from archipelago.agents.tdd_planner.callables import (
     tdd_planner_prompt_builder,
 )
 from archipelago.agents.tdd_planner.models import TDDPlannerInput, TDDPlannerOutput
+from archipelago.constants import GID_DOCUMENTS
 
 tdd_planner = AgentAction[TDDPlannerInput, TDDPlannerOutput](
     name="tdd_planner",
@@ -23,7 +24,6 @@ tdd_planner = AgentAction[TDDPlannerInput, TDDPlannerOutput](
     executor=run_agent_in_container,  # type: ignore[arg-type]
     reuse_policy=ContainerReusePolicy.REUSE_NEW_SESSION,
     timeout_seconds=1800,
-    visible_dirs=["/workspace"],
-    writable_dirs=["/workspace/documents"],
+    gids=[GID_DOCUMENTS],
     skip_permissions=True,
 )

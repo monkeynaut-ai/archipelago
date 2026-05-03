@@ -18,6 +18,7 @@ from archipelago.agents.designer.callables import (
     designer_prompt_builder,
 )
 from archipelago.agents.designer.models import DesignerInput, DesignerOutput
+from archipelago.constants import GID_DOCUMENTS
 
 designer = AgentAction[DesignerInput, DesignerOutput](
     name="designer",
@@ -26,7 +27,6 @@ designer = AgentAction[DesignerInput, DesignerOutput](
     executor=run_agent_in_container,  # type: ignore[arg-type]  # agent-foundry's executor returns BaseModel; the AgentFilePath marker narrows at runtime.
     reuse_policy=ContainerReusePolicy.REUSE_NEW_SESSION,
     timeout_seconds=1800,
-    visible_dirs=["/workspace"],
-    writable_dirs=["/workspace/documents"],
+    gids=[GID_DOCUMENTS],
     skip_permissions=True,
 )

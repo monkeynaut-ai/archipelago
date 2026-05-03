@@ -1,10 +1,10 @@
 # Archipelago v0.1 — Stage 2 Roadmap
 
 > **Status:** Working roadmap, last revised 2026-04-27. Updated as Stage 2 progresses.
-> **Stage 1 (completed):** `docs/plans/stage1/2026-04-03-review-feedback-loop-roadmap.md`
-> **Topography (in progress):** `docs/plans/2026-04-27-topography-design.md`
+> **Stage 1 (completed):** `docs/archive/topology-basic-stage-1/2026-04-03-review-feedback-loop-roadmap.md`
+> **topology (in progress):** `docs/plans/2026-04-27-topology-design.md`
 > **Vision:** `docs/product/archipelago-vision.md`
-> **Original feature design (historical):** `docs/plans/stage1/2026-04-03-review-feedback-loop-design.md`
+> **Original feature design (historical):** `docs/archive/topology-basic-stage-1/2026-04-03-review-feedback-loop-design.md`
 
 ## What Stage 2 delivers
 
@@ -15,8 +15,8 @@ Stage 1 delivered the platform foundations (`AgentAction` primitive, structured-
 ## Working principles for Stage 2
 
 - **Topology first.** The pipeline's wiring is the conceptual image that ties this roadmap together. Every other work item plugs into a named slot in that wiring.
-- **Horizontal-first.** Build system topography end-to-end with stub agents, then thicken each agent. We learn faster from a thin pipeline running end-to-end than from one perfect agent.
-- **Rapid iteration over coverage.** Topology and agent shapes will change. **No new Archipelago unit or integration tests during fluid topographic work** — tests land once topology stabilizes. This is a conscious deviation from the project's standard TDD discipline (see `CLAUDE.md`) for Stage 2's fluid period only.
+- **Horizontal-first.** Build system topology end-to-end with stub agents, then thicken each agent. We learn faster from a thin pipeline running end-to-end than from one perfect agent.
+- **Rapid iteration over coverage.** Topology and agent shapes will change. **No new Archipelago unit or integration tests during fluid topology work** — tests land once topology stabilizes. This is a conscious deviation from the project's standard TDD discipline (see `CLAUDE.md`) for Stage 2's fluid period only.
 - **Path-threading.** Document paths are typed `AgentFilePath` values threaded through agent inputs/outputs. No hardcoded `/workspace/documents/X.md` in instruction templates. Designer's hardcoded paths are tolerated debt; new agents start clean.
 - **Workspace-mediated communication.** Inter-agent exchange via markdown documents in the shared workspace, not direct typed RPC. Vision §3.2.
 - **Single-source-of-truth data models.** Pydantic models drive markdown templates, parsers, validators, schemas, instructions. Vision §3.3.
@@ -74,7 +74,7 @@ Each work item below references the slot(s) it fills:
 
 ### Current snapshot
 
-The first horizontal pass — pre-pipeline + outer-loop preamble + minimal inner-loop body (logging only) — is captured in `docs/plans/2026-04-27-topography-design.md`. That document evolves as the topology fills in. When the inner-loop body, review slot, and feedback routing slot land, the topography doc updates accordingly.
+The first horizontal pass — pre-pipeline + outer-loop preamble + minimal inner-loop body (logging only) — is captured in `docs/plans/2026-04-27-topology-design.md`. That document evolves as the topology fills in. When the inner-loop body, review slot, and feedback routing slot land, the topology doc updates accordingly.
 
 ### Platform implications
 
@@ -99,7 +99,7 @@ Each agent fills a topology slot. Each ships with minimal definition first — P
 - **Reads:** `design.md`.
 - **Writes:** `change-sets.md` (lists `ChangeSetRef` items consumed by the outer loop).
 - **Renamed from:** "Decomposer" in original design.
-- **Initial spec:** topography design doc.
+- **Initial spec:** topology design doc.
 
 ### TDD Planner
 
@@ -109,7 +109,7 @@ Each agent fills a topology slot. Each ships with minimal definition first — P
 - **Reads:** `design.md`, current `ChangeSetRef`.
 - **Writes:** `change-sets/{slug}/steps.md` (lists `StepRef` items consumed by the inner loop).
 - **Renamed from:** "Planner" in original design.
-- **Initial spec:** topography design doc.
+- **Initial spec:** topology design doc.
 
 ### Test Agent
 
@@ -176,7 +176,7 @@ Deterministic, no LLM. Each fills a topology slot.
 
 ### Logging actions (transient)
 
-`log_change_set_name` and `log_change_set_step_name` print to stdout. Scaffolding for the topography skeleton; retired when Run Summary lands. Defined in the topography design doc.
+`log_change_set_name` and `log_change_set_step_name` print to stdout. Scaffolding for the topology skeleton; retired when Run Summary lands. Defined in the topology design doc.
 
 ---
 
@@ -262,7 +262,7 @@ Cross-cutting design questions to resolve as topology fills in. Not work items i
 - **Reviewer / Dispatcher / Integrator artifact paths.** Each writes to `/workspace/documents/change-sets/{slug}/...`. Naming TBD when those agents land.
 - **Gate primitives.** Human escalation when must-fix findings survive N review cycles. Position: in the review feedback routing slot, between Dispatcher and Integrator. Exact mechanism TBD.
 - **Post-PR follow-up loops.** Whether a post-PR Dispatcher → Integrator path for routing deferred findings lives in v0.1 or post-v0.1. TBD.
-- **`archetype.markdown` list-section shape.** `ChangeSetsDocument.change_sets` and similar list-of-typed-items fields need an annotation shape. Decide during the topography skeleton implementation.
+- **`archetype.markdown` list-section shape.** `ChangeSetsDocument.change_sets` and similar list-of-typed-items fields need an annotation shape. Decide during the topology skeleton implementation.
 - **Designer path-threading retrofit.** Designer hardcodes paths in its instruction template (small design debt against the path-threading principle). Retrofit before or after the new agents stabilize. TBD.
 - **`Loop` `over` markdown-parse helper.** Whether to grow a Loop primitive helper for archetype-backed iteration over a `MarkdownDocument` field, or keep inline lambdas. Decide once 2–3 instances exist.
 - **CS-level acceptance criteria.** Change Set Planner's minimal initial output is `name + slug + summary`. CS-level AC will be added when Reviewer needs them. The vision doc's AC ladder (feature / CS / step) drives this.
@@ -273,5 +273,5 @@ Cross-cutting design questions to resolve as topology fills in. Not work items i
 ## Live artifacts
 
 - **`docs/plans/2026-04-27-stage2-roadmap.md`** — this document. Revised as topology evolves and work lands.
-- **`docs/plans/2026-04-27-topography-design.md`** — current topography snapshot.
+- **`docs/plans/2026-04-27-topology-design.md`** — current topology snapshot.
 - New design / iteration documents land at `docs/plans/` top level with `YYYY-MM-DD-<descriptive-name>.md` filenames. No `Phase N` / `CS#` / `Slice#` prefixes; descriptive names only.
