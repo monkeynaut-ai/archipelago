@@ -19,6 +19,6 @@ if command -v gh >/dev/null 2>&1 && gh auth token >/dev/null 2>&1; then
 fi
 
 PYTHONPATH=src pdm run python scripts/run_full_pipeline.py \
-    --feature examples/features/run-observability.md \
+    --feature $1 \
     --repo https://github.com/730alchemy/agent-foundry.git \
     --ref main
