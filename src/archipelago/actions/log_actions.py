@@ -10,7 +10,7 @@ from __future__ import annotations
 from agent_foundry.primitives.models import FunctionAction
 from pydantic import BaseModel
 
-from archipelago.models import ChangeSetRef, StepRef
+from archipelago.models import ChangeSetRef, Task
 
 
 class LogChangeSetNameInput(BaseModel):
@@ -35,7 +35,7 @@ log_change_set_name = FunctionAction[LogChangeSetNameInput, LogChangeSetNameOutp
 
 
 class LogChangeSetStepNameInput(BaseModel):
-    current_step: StepRef
+    current_step: Task
 
 
 class LogChangeSetStepNameOutput(BaseModel):

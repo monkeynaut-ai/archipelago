@@ -45,8 +45,8 @@ from archipelago.models import (
     ChangeSetsDocument,
     CodebaseSource,
     FeatureDefinition,
-    StepRef,
-    StepsDocument,
+    Task,
+    TDDPlan,
 )
 from archipelago.systems._artifacts import artifacts_dir_for_run as _artifacts_dir_for_run
 from archipelago.systems.design_pipeline import (
@@ -126,7 +126,7 @@ class StepProcessingState(BaseModel):
     Test Agent / Implementer / CommitAction need design context, current
     change set, etc."""
 
-    current_step: StepRef
+    current_step: Task
     change_set_workspace_path: str
 
 
@@ -144,8 +144,8 @@ def _change_sets_over(state: ChangeSetsLoopState) -> list[ChangeSetRef]:
     ).change_sets
 
 
-def _steps_over(state: StepsLoopState) -> list[StepRef]:
-    return read_markdown(state.workspace_handle, state.steps_document, StepsDocument).steps
+def _steps_over(state: StepsLoopState) -> list[Task]:
+    return read_markdown(state.workspace_handle, state.steps_document, TDDPlan).tasks
 
 
 # ============================================================

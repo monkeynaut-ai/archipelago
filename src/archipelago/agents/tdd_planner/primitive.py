@@ -15,7 +15,7 @@ from archetype.templating import resolve
 
 from archipelago.agents.models import TDDPlannerInput, TDDPlannerOutput
 from archipelago.constants import GID_DOCUMENTS
-from archipelago.models import FeatureDefinition, StepsDocument
+from archipelago.models import FeatureDefinition, TDDPlan
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
 
@@ -39,7 +39,7 @@ def tdd_planner_instructions_provider(state: TDDPlannerInput) -> str:
         change_set_workspace_path=state.change_set_workspace_path,
         steps_document_path=state.steps_document_path,
         FeatureDefinition=FeatureDefinition,
-        StepsDocument=StepsDocument,
+        TDDPlan=TDDPlan,
     )
 
 

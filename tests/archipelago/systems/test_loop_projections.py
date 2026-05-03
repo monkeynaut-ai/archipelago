@@ -29,9 +29,9 @@ from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
     ChangeSetsDocumentFrontmatter,
-    StepRef,
-    StepsDocument,
-    StepsDocumentFrontmatter,
+    Task,
+    TDDPlan,
+    TDDPlanFrontmatter,
 )
 from archipelago.systems.pipeline import (
     ChangeSetsLoopState,
@@ -73,17 +73,17 @@ def _change_sets_doc() -> ChangeSetsDocument:
     )
 
 
-def _steps_doc() -> StepsDocument:
-    return StepsDocument(
-        frontmatter=StepsDocumentFrontmatter(
+def _steps_doc() -> TDDPlan:
+    return TDDPlan(
+        frontmatter=TDDPlanFrontmatter(
             change_set_slug="slice-one",
             change_set_name="Slice One",
             generated_at=date(2026, 4, 30).isoformat(),
         ),
         title="Slice One",
-        steps=[
-            StepRef(title="First Step", summary="Red."),
-            StepRef(title="Second Step", summary="Green."),
+        tasks=[
+            Task(title="First Step", summary="Red."),
+            Task(title="Second Step", summary="Green."),
         ],
     )
 
@@ -172,7 +172,7 @@ class TestStepsOver:
             (
                 handle,
                 f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
-                StepsDocument,
+                TDDPlan,
             )
         ]
 
@@ -187,4 +187,4 @@ class TestStepsOver:
 
         result = _steps_over(state)
 
-        assert result == doc.steps
+        assert result == doc.tasks

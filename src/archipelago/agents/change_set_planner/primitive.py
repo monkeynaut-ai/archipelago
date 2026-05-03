@@ -39,7 +39,7 @@ def change_set_planner_instructions_provider(state: ChangeSetPlannerInput) -> st
         template_text,
         feature=state.feature_definition,
         workspace_handle=state.workspace_handle,
-        design_document=state.design_document_path,
+        design_document_path=state.design_document_path,
         FeatureDefinition=FeatureDefinition,
         ChangeSetsDocument=ChangeSetsDocument,
     )
