@@ -39,6 +39,13 @@ class Task(MarkdownHeader):
         )
     )
 
+    task_details: Annotated[str, AsHeading()] = Field(
+        description=(
+            "Detailed description of the tests, commands, and source code required to "
+            " complete this task"
+        )
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def slug(self) -> str:
@@ -61,6 +68,8 @@ class TDDPlanFrontmatter(BaseModel):
 class TDDPlan(MarkdownDocument):
     frontmatter: TDDPlanFrontmatter | None = None
     title: Annotated[str, TextTemplate("TDD Plan for change set {value}")]
+
+    # List of files: file, action, responsibility
     tasks: list[Task] = Field(
         description=(
             "Ordered list of TDD tasks within this change set. Each task is "

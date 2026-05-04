@@ -34,10 +34,30 @@ class ChangeSetRef(MarkdownHeader):
         description="Human-readable name of this change set; renders as the heading."
     )
 
-    summary: Annotated[str, AsHeading()] = Field(
+    purpose: Annotated[str, AsHeading()] = Field(
+        description="one sentence that cleanly defines the purpose of the change set"
+    )
+
+    files: Annotated[str, AsHeading()] = Field(
         description=(
-            "One-paragraph statement of what this change set delivers — "
-            "why it stands alone as a shippable slice and what it changes."
+            "List of files this change set will create, modify, or remove. For each "
+            "file indicate its responsibility in this change set and whether the file "
+            "will be created, modified, or removed."
+        )
+    )
+
+    details: Annotated[str, AsHeading()] = Field(
+        description=(
+            "Detailed explanation of all changes to the codebase required by this change "
+            "set. This explanation must specify every change needed in the code base, "
+            "including source code, tests, configuration, database migrations, etc"
+        )
+    )
+
+    acceptance_criteria: Annotated[str, AsHeading()] = Field(
+        description=(
+            "Acceptance criteria for this change set. Concrete, testable statements of "
+            "what must be true for the change set to be considered complete."
         )
     )
 
@@ -63,6 +83,9 @@ class ChangeSetsDocumentFrontmatter(BaseModel):
 class ChangeSetsDocument(MarkdownDocument):
     frontmatter: ChangeSetsDocumentFrontmatter | None = None
     title: Annotated[str, TextTemplate("Change sets for {value}")]
+    tech_stack: Annotated[str, AsHeading()] = Field(
+        description="Key technologies, libraries, frameworks etc relevant to the implementation"
+    )
     change_sets: list[ChangeSetRef] = Field(
         description=(
             "Ordered list of change sets that, taken together, deliver the "

@@ -26,9 +26,7 @@ from archipelago.constants import (
     WORKSPACE_ROOT,
 )
 from archipelago.models import (
-    ChangeSetRef,
     ChangeSetsDocument,
-    ChangeSetsDocumentFrontmatter,
     Task,
     TDDPlan,
     TDDPlanFrontmatter,
@@ -39,6 +37,8 @@ from archipelago.systems.pipeline import (
     _change_sets_over,
     _tasks_over,
 )
+
+from ..actions.test_workspace_io import _sample_change_sets_doc
 
 
 def _handle(volume_name: str = "ws") -> WorkspaceHandle:
@@ -59,18 +59,7 @@ def fake_feature_definition(minimal_feature_definition):
 
 
 def _change_sets_doc() -> ChangeSetsDocument:
-    return ChangeSetsDocument(
-        frontmatter=ChangeSetsDocumentFrontmatter(
-            feature_slug="demo",
-            feature_name="Demo Feature",
-            generated_at=date(2026, 4, 30).isoformat(),
-        ),
-        title="Demo Feature",
-        change_sets=[
-            ChangeSetRef(title="Slice One", summary="First slice."),
-            ChangeSetRef(title="Slice Two", summary="Second slice."),
-        ],
-    )
+    return _sample_change_sets_doc()
 
 
 def _steps_doc() -> TDDPlan:
@@ -82,8 +71,8 @@ def _steps_doc() -> TDDPlan:
         ),
         title="Slice One",
         tasks=[
-            Task(title="First Step", summary="Red."),
-            Task(title="Second Step", summary="Green."),
+            Task(title="First Step", summary="Red.", task_details="d1"),
+            Task(title="Second Step", summary="Green.", task_details="d2"),
         ],
     )
 

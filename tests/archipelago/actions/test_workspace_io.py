@@ -49,9 +49,22 @@ def _sample_change_sets_doc() -> ChangeSetsDocument:
             generated_at=date(2026, 4, 30).isoformat(),
         ),
         title="Demo Feature",
+        tech_stack="marshall amps",
         change_sets=[
-            ChangeSetRef(title="First Slice", summary="Stand it up."),
-            ChangeSetRef(title="Second Slice", summary="Wire it together."),
+            ChangeSetRef(
+                title="First Slice",
+                purpose="Stand it up.",
+                details="wow, more!",
+                files="files",
+                acceptance_criteria="great finale",
+            ),
+            ChangeSetRef(
+                title="Second Slice",
+                purpose="Wire it together.",
+                details="on and on",
+                files="files",
+                acceptance_criteria="fine bouquet",
+            ),
         ],
     )
 
