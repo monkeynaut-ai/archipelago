@@ -9,8 +9,8 @@ State scope (per topography design §5):
 - `FullPipelineState`           pre-loop fields, top-level Sequence I/O.
 - `ChangeSetsLoopState`         outer Loop's I/O.
 - `ChangeSetProcessingState`    outer body Sequence's I/O.
-- `StepsLoopState`              inner Loop's I/O.
-- `StepProcessingState`         inner body Sequence's I/O.
+- `TDDPlanLoopState`              inner Loop's I/O.
+- `TaskProcessingState`         inner body Sequence's I/O.
 
 Per-loop scope is the state model — each primitive declares only the
 fields it needs; the platform projects via field-level slicing.
@@ -32,7 +32,7 @@ from pydantic import BaseModel
 from archipelago.actions import (
     WorkspaceHandle,
     log_change_set_name,
-    log_change_set_step_name,
+    log_tdd_plan_task,
     prepare_change_set_workspace,
     read_markdown,
     workspace_bootstrap,
@@ -45,8 +45,8 @@ from archipelago.models import (
     ChangeSetsDocument,
     CodebaseSource,
     FeatureDefinition,
-    StepRef,
-    StepsDocument,
+    Task,
+    TDDPlan,
 )
 from archipelago.systems._artifacts import artifacts_dir_for_run as _artifacts_dir_for_run
 from archipelago.systems.design_pipeline import (
@@ -68,7 +68,7 @@ class FullPipelineState(BaseModel):
     AgentAction compiler returns ``typed.model_dump()``), so this
     model carries each agent's output fields directly rather than
     nesting them under a wrapper. For Designer this means
-    ``investigation_summary`` and ``design_document`` (DesignerOutput's
+    ``investigation_summary_path`` and ``design_document`` (DesignerOutput's
     fields) appear here as top-level optional strings; same shape for
     Change Set Planner's ``change_sets_document``.
     """
@@ -78,19 +78,19 @@ class FullPipelineState(BaseModel):
     volume_name: str
     workspace_handle: WorkspaceHandle | None = None
     # Designer's flat output:
-    investigation_summary: str | None = None
-    design_document: str | None = None
+    investigation_summary_path: str | None = None
+    design_document_path: str | None = None
     # Change Set Planner's flat output:
-    change_sets_document: str | None = None
+    change_sets_document_path: str | None = None
 
 
 class ChangeSetsLoopState(BaseModel):
     """Outer Loop's view: fields the Loop reads (for `over`) plus
     inheritable context for the body."""
 
-    change_sets_document: str
+    change_sets_document_path: str
     workspace_handle: WorkspaceHandle
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
 
 
@@ -103,30 +103,30 @@ class ChangeSetProcessingState(BaseModel):
 
     # Inherited from ChangeSetsLoopState:
     workspace_handle: WorkspaceHandle
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
 
     # Written by body steps:
     change_set_workspace_path: str | None = None
-    steps_document_path: str | None = None
-    steps_document: str | None = None  # TDD Planner's flat output
+    tdd_plan_path: str | None = None
+    tdd_plan: str | None = None  # TDD Planner's flat output
 
 
-class StepsLoopState(BaseModel):
+class TDDPlanLoopState(BaseModel):
     """Inner Loop's view. Includes `workspace_handle` so the `over`
-    callable can read steps.md from the volume."""
+    callable can read tdd_plan.md from the volume."""
 
-    steps_document: str
+    tdd_plan: str
     change_set_workspace_path: str
     workspace_handle: WorkspaceHandle
 
 
-class StepProcessingState(BaseModel):
+class TaskProcessingState(BaseModel):
     """Inner body Sequence's view. Future iterations will widen this as
     Test Agent / Implementer / CommitAction need design context, current
     change set, etc."""
 
-    current_step: StepRef
+    current_task: Task
     change_set_workspace_path: str
 
 
@@ -140,12 +140,12 @@ class StepProcessingState(BaseModel):
 
 def _change_sets_over(state: ChangeSetsLoopState) -> list[ChangeSetRef]:
     return read_markdown(
-        state.workspace_handle, state.change_sets_document, ChangeSetsDocument
+        state.workspace_handle, state.change_sets_document_path, ChangeSetsDocument
     ).change_sets
 
 
-def _steps_over(state: StepsLoopState) -> list[StepRef]:
-    return read_markdown(state.workspace_handle, state.steps_document, StepsDocument).steps
+def _tasks_over(state: TDDPlanLoopState) -> list[Task]:
+    return read_markdown(state.workspace_handle, state.tdd_plan, TDDPlan).tasks
 
 
 # ============================================================
@@ -166,11 +166,11 @@ full_pipeline = Sequence[FullPipelineState, FullPipelineState](
                     prepare_change_set_workspace,
                     log_change_set_name,
                     tdd_planner,
-                    Loop[StepsLoopState, StepsLoopState](
-                        over=_steps_over,
-                        item_key="current_step",
-                        body=Sequence[StepProcessingState, StepProcessingState](
-                            steps=[log_change_set_step_name],
+                    Loop[TDDPlanLoopState, TDDPlanLoopState](
+                        over=_tasks_over,
+                        item_key="current_task",
+                        body=Sequence[TaskProcessingState, TaskProcessingState](
+                            steps=[log_tdd_plan_task],
                         ),
                     ),
                 ],

@@ -1,9 +1,4 @@
-"""TDDPlanner AgentAction declaration.
-
-Cluster C (verify + execute rigor). Reasoning agent — eventual
-candidate for API/SDK execution per the Stage 2 roadmap; uses
-container execution for now.
-"""
+"""Implementer AgentAction declaration."""
 
 from __future__ import annotations
 
@@ -13,40 +8,39 @@ from agent_foundry.orchestration.container_executor import run_agent_in_containe
 from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
 
-from archipelago.agents.models import TDDPlannerInput, TDDPlannerOutput
+from archipelago.agents.models import ImplementerInput, ImplementerOutput
 from archipelago.constants import GID_DOCUMENTS
-from archipelago.models import FeatureDefinition, TDDPlan
+from archipelago.models import FeatureDefinition
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
 
 
-def tdd_planner_prompt_builder(state: TDDPlannerInput) -> str:
+def implementer_prompt_builder(state: ImplementerInput) -> str:
     return (
         f"The workspace is mounted at {state.workspace_handle.root}. "
-        f"Plan TDD steps for change set "
-        f"'{state.current_change_set.title}'."
+        f"Implement change set '{state.current_change_set.title}' "
+        f"following the TDD steps in {state.tdd_plan_path}."
     )
 
 
-def tdd_planner_instructions_provider(state: TDDPlannerInput) -> str:
+def implementer_instructions_provider(state: ImplementerInput) -> str:
     template_text = _TEMPLATE_PATH.read_text(encoding="utf-8")
     return resolve(
         template_text,
         feature=state.feature_definition,
         workspace_handle=state.workspace_handle,
-        design_document_path=state.design_document_path,
+        design_document=state.design_document_path,
         current_change_set=state.current_change_set,
         change_set_workspace_path=state.change_set_workspace_path,
         tdd_plan_path=state.tdd_plan_path,
         FeatureDefinition=FeatureDefinition,
-        TDDPlan=TDDPlan,
     )
 
 
-tdd_planner = AgentAction[TDDPlannerInput, TDDPlannerOutput](
-    name="tdd_planner",
-    prompt_builder=tdd_planner_prompt_builder,
-    instructions_provider=tdd_planner_instructions_provider,
+implementer = AgentAction[ImplementerInput, ImplementerOutput](
+    name="implementer",
+    prompt_builder=implementer_prompt_builder,
+    instructions_provider=implementer_instructions_provider,
     executor=run_agent_in_container,  # type: ignore[arg-type]
     reuse_policy=ContainerReusePolicy.REUSE_NEW_SESSION,
     timeout_seconds=1800,

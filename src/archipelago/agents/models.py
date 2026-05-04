@@ -20,42 +20,50 @@ class DesignerInput(AgentInputBase):
 
 
 class DesignerOutput(BaseModel):
-    investigation_summary: Annotated[str, AgentFilePath()]
-    design_document: Annotated[str, AgentFilePath()]
+    investigation_summary_path: Annotated[str, AgentFilePath()]
+    design_document_path: Annotated[str, AgentFilePath()]
 
 
 class ChangeSetPlannerInput(AgentInputBase):
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
 
 
 class ChangeSetPlannerOutput(BaseModel):
-    change_sets_document: Annotated[str, AgentFilePath()]
+    change_sets_document_path: Annotated[str, AgentFilePath()]
 
 
 class TDDPlannerInput(AgentInputBase):
-    design_document: str
+    design_document_path: str
     feature_definition: FeatureDefinition
     current_change_set: ChangeSetRef
     change_set_workspace_path: str
-    steps_document_path: str
+    tdd_plan_path: str
 
 
 class TDDPlannerOutput(BaseModel):
-    steps_document: Annotated[str, AgentFilePath()]
+    tdd_plan: Annotated[str, AgentFilePath()]
 
 
 class TesterInput(AgentInputBase):
-    pass
+    design_document_path: str
+    feature_definition: FeatureDefinition
+    current_change_set: ChangeSetRef
+    change_set_workspace_path: str
+    tdd_plan_path: str
 
 
 class TesterOutput(BaseModel):
     pass
 
 
-class DeveloperInput(AgentInputBase):
-    pass
+class ImplementerInput(AgentInputBase):
+    design_document_path: str
+    feature_definition: FeatureDefinition
+    current_change_set: ChangeSetRef
+    change_set_workspace_path: str
+    tdd_plan_path: str
 
 
-class DeveloperOutput(BaseModel):
+class ImplementerOutput(BaseModel):
     pass

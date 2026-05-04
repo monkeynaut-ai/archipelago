@@ -1,6 +1,6 @@
 """Tests for the full_pipeline Loop `over` callables.
 
-`_change_sets_over` and `_steps_over` are the two projection functions
+`_change_sets_over` and `_tasks_over` are the two projection functions
 the outer and inner Loops use to compute the iterable they walk. The
 contract is: read the typed document at the path stored in state, then
 project the document field that holds the iteration items.
@@ -29,15 +29,15 @@ from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
     ChangeSetsDocumentFrontmatter,
-    StepRef,
-    StepsDocument,
-    StepsDocumentFrontmatter,
+    Task,
+    TDDPlan,
+    TDDPlanFrontmatter,
 )
 from archipelago.systems.pipeline import (
     ChangeSetsLoopState,
-    StepsLoopState,
+    TDDPlanLoopState,
     _change_sets_over,
-    _steps_over,
+    _tasks_over,
 )
 
 
@@ -73,17 +73,17 @@ def _change_sets_doc() -> ChangeSetsDocument:
     )
 
 
-def _steps_doc() -> StepsDocument:
-    return StepsDocument(
-        frontmatter=StepsDocumentFrontmatter(
+def _steps_doc() -> TDDPlan:
+    return TDDPlan(
+        frontmatter=TDDPlanFrontmatter(
             change_set_slug="slice-one",
             change_set_name="Slice One",
             generated_at=date(2026, 4, 30).isoformat(),
         ),
         title="Slice One",
-        steps=[
-            StepRef(title="First Step", summary="Red."),
-            StepRef(title="Second Step", summary="Green."),
+        tasks=[
+            Task(title="First Step", summary="Red."),
+            Task(title="Second Step", summary="Green."),
         ],
     )
 
@@ -125,9 +125,9 @@ class TestChangeSetsOver:
         stub_read_markdown.return_value = _change_sets_doc()
         handle = _handle()
         state = ChangeSetsLoopState(
-            change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
+            change_sets_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             workspace_handle=handle,
-            design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
+            design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             feature_definition=fake_feature_definition,
         )
 
@@ -143,9 +143,9 @@ class TestChangeSetsOver:
         doc = _change_sets_doc()
         stub_read_markdown.return_value = doc
         state = ChangeSetsLoopState(
-            change_sets_document=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
+            change_sets_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}.md",
             workspace_handle=_handle(),
-            design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
+            design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             feature_definition=fake_feature_definition,
         )
 
@@ -160,31 +160,31 @@ class TestStepsOver:
     ):
         stub_read_markdown.return_value = _steps_doc()
         handle = _handle()
-        state = StepsLoopState(
-            steps_document=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
+        state = TDDPlanLoopState(
+            tdd_plan=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/tdd_plan.md",
             change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}/slice-one",
             workspace_handle=handle,
         )
 
-        _steps_over(state)
+        _tasks_over(state)
 
         assert stub_read_markdown.calls == [  # type: ignore[attr-defined]
             (
                 handle,
-                f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
-                StepsDocument,
+                f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/tdd_plan.md",
+                TDDPlan,
             )
         ]
 
     def test_given_doc_when_called_then_returns_steps_field(self, stub_read_markdown):
         doc = _steps_doc()
         stub_read_markdown.return_value = doc
-        state = StepsLoopState(
-            steps_document=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/steps.md",
+        state = TDDPlanLoopState(
+            tdd_plan=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/tdd_plan.md",
             change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}/slice-one",
             workspace_handle=_handle(),
         )
 
-        result = _steps_over(state)
+        result = _tasks_over(state)
 
-        assert result == doc.steps
+        assert result == doc.tasks

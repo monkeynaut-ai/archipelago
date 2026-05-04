@@ -23,9 +23,9 @@ class TestPublicAPI:
             "FeatureDefinition",
             "FeatureDefinitionFrontmatter",
             "ScopeBoundaries",
-            "StepRef",
-            "StepsDocument",
-            "StepsDocumentFrontmatter",
+            "Task",
+            "TDDPlan",
+            "TDDPlanFrontmatter",
             "UserOutcomes",
             "slugify",
         }

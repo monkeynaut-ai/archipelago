@@ -37,8 +37,8 @@ class TestRunDesignPipeline:
             codebase_source=cs,
             volume_name="archipelago-ws-demo-1",
             designer_output=DesignerOutput(
-                investigation_summary=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
-                design_document=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
+                investigation_summary_path=f"{WORKSPACE_DOCUMENTS_PATH}/investigation.md",
+                design_document_path=f"{WORKSPACE_DOCUMENTS_PATH}/design.md",
             ),
         )
         patched_runner.return_value = final

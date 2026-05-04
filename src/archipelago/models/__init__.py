@@ -28,10 +28,10 @@ from archipelago.models.feature_definition import (
     ScopeBoundaries,
     UserOutcomes,
 )
-from archipelago.models.steps_document import (
-    StepRef,
-    StepsDocument,
-    StepsDocumentFrontmatter,
+from archipelago.models.tdd_plan import (
+    Task,
+    TDDPlan,
+    TDDPlanFrontmatter,
 )
 
 __all__ = [
@@ -50,9 +50,9 @@ __all__ = [
     "FeatureDefinition",
     "FeatureDefinitionFrontmatter",
     "ScopeBoundaries",
-    "StepRef",
-    "StepsDocument",
-    "StepsDocumentFrontmatter",
+    "TDDPlan",
+    "TDDPlanFrontmatter",
+    "Task",
     "UserOutcomes",
     "slugify",
 ]

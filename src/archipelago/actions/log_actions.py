@@ -1,6 +1,6 @@
 """Stdout logging FunctionActions for the topography skeleton.
 
-Transient: these print the current change-set / step name so an operator
+Transient: these print the current change-set / task name so an operator
 can see pipeline progression. They retire when Run Summary lands and
 structured run-event emission replaces stdout logging.
 """
@@ -10,7 +10,7 @@ from __future__ import annotations
 from agent_foundry.primitives.models import FunctionAction
 from pydantic import BaseModel
 
-from archipelago.models import ChangeSetRef, StepRef
+from archipelago.models import ChangeSetRef, Task
 
 
 class LogChangeSetNameInput(BaseModel):
@@ -34,24 +34,24 @@ log_change_set_name = FunctionAction[LogChangeSetNameInput, LogChangeSetNameOutp
 )
 
 
-class LogChangeSetStepNameInput(BaseModel):
-    current_step: StepRef
+class LogTddPlanTaskInput(BaseModel):
+    current_task: Task
 
 
-class LogChangeSetStepNameOutput(BaseModel):
+class LogTddPlanTaskOutput(BaseModel):
     pass
 
 
-def log_change_set_step_name_fn(
-    state: LogChangeSetStepNameInput,
-) -> LogChangeSetStepNameOutput:
+def log_tdd_plan_task_fn(
+    state: LogTddPlanTaskInput,
+) -> LogTddPlanTaskOutput:
     print(
-        f"[step] {state.current_step.title} ({state.current_step.slug})",
+        f"[task] {state.current_task.title} ({state.current_task.slug})",
         flush=True,
     )
-    return LogChangeSetStepNameOutput()
+    return LogTddPlanTaskOutput()
 
 
-log_change_set_step_name = FunctionAction[LogChangeSetStepNameInput, LogChangeSetStepNameOutput](
-    function=log_change_set_step_name_fn
+log_tdd_plan_task = FunctionAction[LogTddPlanTaskInput, LogTddPlanTaskOutput](
+    function=log_tdd_plan_task_fn
 )
