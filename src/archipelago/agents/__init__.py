@@ -8,8 +8,10 @@ from archipelago.agents import (
 from archipelago.agents import (
     designer as designer,
 )
+from archipelago.agents import implementer as implementer
 from archipelago.agents import (
     tdd_planner as tdd_planner,
 )
+from archipelago.agents import tester as tester
 
-__all__ = ["change_set_planner", "designer", "tdd_planner"]
+__all__ = ["change_set_planner", "designer", "implementer", "tdd_planner", "tester"]

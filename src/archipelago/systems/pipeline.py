@@ -40,6 +40,7 @@ from archipelago.actions import (
 from archipelago.agents.change_set_planner import change_set_planner
 from archipelago.agents.designer import designer
 from archipelago.agents.tdd_planner import tdd_planner
+from archipelago.agents.tester import tester
 from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
@@ -109,14 +110,13 @@ class ChangeSetProcessingState(BaseModel):
     # Written by body steps:
     change_set_workspace_path: str | None = None
     tdd_plan_path: str | None = None
-    tdd_plan: str | None = None  # TDD Planner's flat output
 
 
 class TDDPlanLoopState(BaseModel):
     """Inner Loop's view. Includes `workspace_handle` so the `over`
     callable can read tdd_plan.md from the volume."""
 
-    tdd_plan: str
+    tdd_plan_path: str
     change_set_workspace_path: str
     workspace_handle: WorkspaceHandle
 
@@ -127,7 +127,12 @@ class TaskProcessingState(BaseModel):
     change set, etc."""
 
     current_task: Task
+    workspace_handle: WorkspaceHandle
+    design_document_path: str
+    feature_definition: FeatureDefinition
+    current_change_set: ChangeSetRef
     change_set_workspace_path: str
+    tdd_plan_path: str
 
 
 # ============================================================
@@ -145,7 +150,7 @@ def _change_sets_over(state: ChangeSetsLoopState) -> list[ChangeSetRef]:
 
 
 def _tasks_over(state: TDDPlanLoopState) -> list[Task]:
-    return read_markdown(state.workspace_handle, state.tdd_plan, TDDPlan).tasks
+    return read_markdown(state.workspace_handle, state.tdd_plan_path, TDDPlan).tasks
 
 
 # ============================================================
@@ -170,7 +175,7 @@ full_pipeline = Sequence[FullPipelineState, FullPipelineState](
                         over=_tasks_over,
                         item_key="current_task",
                         body=Sequence[TaskProcessingState, TaskProcessingState](
-                            steps=[log_tdd_plan_task],
+                            steps=[log_tdd_plan_task, tester],
                         ),
                     ),
                 ],

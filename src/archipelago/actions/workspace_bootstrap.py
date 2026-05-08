@@ -112,12 +112,15 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
             github_token=github_token,
         )
 
-        # 4. Lock working tree, preserve .git/ writable.
-        _ops.chmod_tree_excluding_git(
+        # 4. Set codebase ownership: GID_CODEBASE owns the bulk, GID_TESTS
+        # owns tests/ (if present). Mode 775 throughout, .git/ preserved.
+        # Implementer agents hold GID_CODEBASE (write to source), tester
+        # agents hold GID_TESTS (write to tests only); both get read access
+        # to the rest via the "other" rx bits.
+        _ops.prepare_codebase_tree(
             client,
             volume_name=state.volume_name,
-            path=WORKSPACE_CODEBASE_PATH,
-            mode="555",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
         )
 
         # 5. Ensure documents dir exists and is writable to the designer UID.

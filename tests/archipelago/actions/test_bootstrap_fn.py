@@ -79,12 +79,12 @@ class TestBootstrapFn:
             github_token=None,
         )
 
-        # 4. chmod_tree_excluding_git on the codebase path, mode 555.
-        ops_mod.chmod_tree_excluding_git.assert_called_once_with(
+        # 4. prepare_codebase_tree splits ownership: GID_CODEBASE for the
+        # bulk, GID_TESTS for tests/, .git/ untouched, mode 775.
+        ops_mod.prepare_codebase_tree.assert_called_once_with(
             client,
             volume_name="archipelago-ws-demo-1",
-            path=WORKSPACE_CODEBASE_PATH,
-            mode="555",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
         )
 
         # 5. Documents dir prepared.
@@ -139,7 +139,7 @@ class TestBootstrapFn:
         ops_mod.clone_and_resolve_ref.side_effect = RuntimeError("clone failed")
         with pytest.raises(RuntimeError, match="clone failed"):
             bootstrap_fn(_input(minimal_feature_definition))
-        ops_mod.chmod_tree_excluding_git.assert_not_called()
+        ops_mod.prepare_codebase_tree.assert_not_called()
         ops_mod.prepare_documents_dir.assert_not_called()
         ops_mod.write_file.assert_not_called()
 

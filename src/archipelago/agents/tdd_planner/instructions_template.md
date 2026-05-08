@@ -147,7 +147,7 @@ If you find issues, fix them inline. No need to re-review -- just fix and move o
 
 When the document is written, emit a **success** outcome with:
 
-- `tdd_plan`: the path you wrote (`{{ tdd_plan_path }}`).
+- `tdd_plan_path`: the path you wrote (`{{ tdd_plan_path }}`).
 
 Before emitting success, verify the file exists at the expected path and contains at least one task.
 

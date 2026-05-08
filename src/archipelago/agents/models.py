@@ -42,7 +42,7 @@ class TDDPlannerInput(AgentInputBase):
 
 
 class TDDPlannerOutput(BaseModel):
-    tdd_plan: Annotated[str, AgentFilePath()]
+    tdd_plan_path: Annotated[str, AgentFilePath()]
 
 
 class TesterInput(AgentInputBase):

@@ -9,7 +9,7 @@ from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
 
 from archipelago.agents.models import ImplementerInput, ImplementerOutput
-from archipelago.constants import GID_DOCUMENTS
+from archipelago.constants import GID_CODEBASE, GID_DOCUMENTS
 from archipelago.models import FeatureDefinition
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
@@ -44,6 +44,6 @@ implementer = AgentAction[ImplementerInput, ImplementerOutput](
     executor=run_agent_in_container,  # type: ignore[arg-type]
     reuse_policy=ContainerReusePolicy.REUSE_NEW_SESSION,
     timeout_seconds=1800,
-    gids=[GID_DOCUMENTS],
+    gids=[GID_DOCUMENTS, GID_CODEBASE],
     skip_permissions=True,
 )

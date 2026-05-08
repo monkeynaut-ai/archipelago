@@ -16,7 +16,7 @@ import docker.errors
 from docker.client import DockerClient
 from docker.models.volumes import Volume
 
-from archipelago.constants import GID_DOCUMENTS, WORKSPACE_ROOT
+from archipelago.constants import GID_CODEBASE, GID_DOCUMENTS, GID_TESTS, WORKSPACE_ROOT
 
 GIT_IMAGE = "alpine/git:v2.47.2"
 ALPINE_IMAGE = "alpine:3.20"
@@ -74,6 +74,11 @@ def clone_and_resolve_ref(
     Uses a throwaway alpine/git container mounting the volume at
     /workspace. .git/ is preserved for Designer's git log / git blame.
 
+    Sets ``core.fileMode = false`` on the cloned repo so the workspace's
+    permission setup (``prepare_codebase_tree`` runs ``chmod 775`` over
+    the tree, which flips the executable bit on every regular file)
+    doesn't pollute every agent-side ``git diff`` with mode-only noise.
+
     If github_token is provided and repo_url is an HTTPS GitHub URL, the
     URL is rewritten to use x-access-token auth for private-repo cloning.
     The original repo_url (without token) is used in error messages.
@@ -83,6 +88,7 @@ def clone_and_resolve_ref(
         f"set -e && "
         f"git clone {effective_url} {codebase_path} && "
         f"git -C {codebase_path} checkout {ref} && "
+        f"git -C {codebase_path} config core.fileMode false && "
         f"git -C {codebase_path} rev-parse HEAD"
     )
     try:
@@ -153,6 +159,43 @@ def chmod_path(
 
 
 DOCUMENTS_DIR_MODE = "775"
+
+
+def prepare_codebase_tree(client: DockerClient, *, volume_name: str, codebase_path: str) -> None:
+    """Set up codebase ownership and permissions after the clone.
+
+    Splits write privileges along the standard layout:
+
+    - Everything under ``codebase_path`` (excluding ``.git/``) is chowned to
+      ``root:GID_CODEBASE`` and chmodded ``775`` so an agent holding
+      ``GID_CODEBASE`` can write source files. Read access for others
+      stays at ``r-x`` so agents without the GID can still read.
+    - ``codebase_path/tests/`` (if it exists) is then re-chowned to
+      ``root:GID_TESTS`` so an agent holding ``GID_TESTS`` (and not
+      ``GID_CODEBASE``) can write tests but cannot modify source.
+    - ``.git/`` keeps its original ownership so git tooling continues
+      to work.
+    """
+    codebase_path = codebase_path.rstrip("/")
+    tests_path = f"{codebase_path}/tests"
+    script = (
+        f"set -e && "
+        f"find {codebase_path} -path '{codebase_path}/.git' -prune -o "
+        f"-exec chown root:{GID_CODEBASE} {{}} + && "
+        f"find {codebase_path} -path '{codebase_path}/.git' -prune -o "
+        f"-exec chmod 775 {{}} + && "
+        f"if [ -d {tests_path} ]; then chown -R root:{GID_TESTS} {tests_path}; fi"
+    )
+    try:
+        client.containers.run(
+            ALPINE_IMAGE,
+            command=["sh", "-c", script],
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"prepare_codebase_tree failed for {codebase_path!r}: {stderr}") from exc
 
 
 def prepare_documents_dir(client: DockerClient, *, volume_name: str, path: str) -> None:

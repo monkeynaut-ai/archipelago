@@ -9,8 +9,8 @@ from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
 
 from archipelago.agents.models import TesterInput, TesterOutput
-from archipelago.constants import GID_DOCUMENTS
-from archipelago.models import FeatureDefinition
+from archipelago.constants import GID_DOCUMENTS, GID_TESTS
+from archipelago.models import TDDPlan
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
 
@@ -18,8 +18,7 @@ _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
 def tester_prompt_builder(state: TesterInput) -> str:
     return (
         f"The workspace is mounted at {state.workspace_handle.root}. "
-        f"Run the test suite for change set '{state.current_change_set.title}' "
-        f"following the steps in {state.tdd_plan_path}."
+        "Follow your instructions to write the failing tests."
     )
 
 
@@ -28,11 +27,10 @@ def tester_instructions_provider(state: TesterInput) -> str:
     return resolve(
         template_text,
         feature=state.feature_definition,
-        workspace_handle=state.workspace_handle,
+        design_document_path=state.design_document_path,
         current_change_set=state.current_change_set,
-        change_set_workspace_path=state.change_set_workspace_path,
         tdd_plan_path=state.tdd_plan_path,
-        FeatureDefinition=FeatureDefinition,
+        TDDPlan=TDDPlan,
     )
 
 
@@ -43,6 +41,6 @@ tester = AgentAction[TesterInput, TesterOutput](
     executor=run_agent_in_container,  # type: ignore[arg-type]
     reuse_policy=ContainerReusePolicy.REUSE_NEW_SESSION,
     timeout_seconds=1800,
-    gids=[GID_DOCUMENTS],
+    gids=[GID_DOCUMENTS, GID_TESTS],
     skip_permissions=True,
 )

@@ -150,7 +150,7 @@ class TestStepsOver:
         stub_read_markdown.return_value = _steps_doc()
         handle = _handle()
         state = TDDPlanLoopState(
-            tdd_plan=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/tdd_plan.md",
+            tdd_plan_path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/tdd_plan.md",
             change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}/slice-one",
             workspace_handle=handle,
         )
@@ -169,7 +169,7 @@ class TestStepsOver:
         doc = _steps_doc()
         stub_read_markdown.return_value = doc
         state = TDDPlanLoopState(
-            tdd_plan=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/tdd_plan.md",
+            tdd_plan_path=f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/slice-one/tdd_plan.md",
             change_set_workspace_path=f"{WORKSPACE_DOCUMENTS_PATH}/{CHANGE_SETS_DIR_NAME}/slice-one",
             workspace_handle=_handle(),
         )
