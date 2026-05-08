@@ -40,6 +40,7 @@ from archipelago.actions import (
 from archipelago.agents.change_set_planner import change_set_planner
 from archipelago.agents.designer import designer
 from archipelago.agents.implementer import implementer
+from archipelago.agents.pr_creator import pr_creator
 from archipelago.agents.tdd_planner import tdd_planner
 from archipelago.agents.tester import tester
 from archipelago.models import (
@@ -84,6 +85,8 @@ class FullPipelineState(BaseModel):
     design_document_path: str | None = None
     # Change Set Planner's flat output:
     change_sets_document_path: str | None = None
+    # PR Creator's flat output:
+    pr_url: str | None = None
 
 
 class ChangeSetsLoopState(BaseModel):
@@ -182,6 +185,7 @@ full_pipeline = Sequence[FullPipelineState, FullPipelineState](
                 ],
             ),
         ),
+        pr_creator,
     ],
 )
 

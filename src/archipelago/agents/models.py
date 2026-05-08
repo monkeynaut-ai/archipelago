@@ -8,7 +8,7 @@ from agent_foundry.models.markers import AgentFilePath
 from pydantic import BaseModel
 
 from archipelago.actions import WorkspaceHandle
-from archipelago.models import ChangeSetRef, FeatureDefinition
+from archipelago.models import ChangeSetRef, CodebaseSource, FeatureDefinition
 
 
 class AgentInputBase(BaseModel):
@@ -67,3 +67,13 @@ class ImplementerInput(AgentInputBase):
 
 class ImplementerOutput(BaseModel):
     pass
+
+
+class PrCreatorInput(AgentInputBase):
+    feature_definition: FeatureDefinition
+    codebase_source: CodebaseSource
+    design_document_path: str | None = None
+
+
+class PrCreatorOutput(BaseModel):
+    pr_url: str | None = None

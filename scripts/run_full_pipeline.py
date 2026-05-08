@@ -93,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Change-sets document: {final.change_sets_document_path}")
     if final.workspace_handle is not None:
         print(f"Workspace volume: {final.workspace_handle.volume_name}")
+    if final.pr_url is not None:
+        print(f"Pull request: {final.pr_url}")
     return 0
 
 
