@@ -94,6 +94,12 @@ class TestBootstrapIntegration:
                 f"stat -c '%a %g {WORKSPACE_CODEBASE_PATH}' {WORKSPACE_CODEBASE_PATH} && "
                 f"stat -c '%a %g {WORKSPACE_CODEBASE_PATH}/tests' "
                 f"{WORKSPACE_CODEBASE_PATH}/tests && "
+                # Verify .git/ is group-writable to GID_CODEBASE so the
+                # implementer can run git add / git commit. The setgid
+                # bit on the directory shows up as the leading '2' in
+                # `stat -c '%a'` (e.g., 2775).
+                f"stat -c '%a %g {WORKSPACE_CODEBASE_PATH}/.git' "
+                f"{WORKSPACE_CODEBASE_PATH}/.git && "
                 # Verify core.fileMode is disabled on the cloned repo so
                 # prepare_codebase_tree's chmod doesn't pollute git diff.
                 "echo '--- git config ---' && "
@@ -110,6 +116,9 @@ class TestBootstrapIntegration:
         assert f"775 {GID_CODEBASE} {WORKSPACE_CODEBASE_PATH}/pyproject.toml" in output
         assert f"775 {GID_CODEBASE} {WORKSPACE_CODEBASE_PATH}" in output
         assert f"775 {GID_TESTS} {WORKSPACE_CODEBASE_PATH}/tests" in output
+        # .git/ is group-writable to GID_CODEBASE with setgid bit set
+        # (mode 2775 in stat output: leading 2 = setgid).
+        assert f"2775 {GID_CODEBASE} {WORKSPACE_CODEBASE_PATH}/.git" in output
         assert "filemode = false" in output.lower()
 
     def test_given_real_repo_when_bootstrap_then_git_log_still_works(

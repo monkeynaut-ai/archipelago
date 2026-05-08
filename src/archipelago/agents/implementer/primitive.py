@@ -10,7 +10,7 @@ from archetype.templating import resolve
 
 from archipelago.agents.models import ImplementerInput, ImplementerOutput
 from archipelago.constants import GID_CODEBASE, GID_DOCUMENTS
-from archipelago.models import FeatureDefinition
+from archipelago.models import TDDPlan
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
 
@@ -18,8 +18,7 @@ _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
 def implementer_prompt_builder(state: ImplementerInput) -> str:
     return (
         f"The workspace is mounted at {state.workspace_handle.root}. "
-        f"Implement change set '{state.current_change_set.title}' "
-        f"following the TDD steps in {state.tdd_plan_path}."
+        "Follow your instructions to implement the change set."
     )
 
 
@@ -28,12 +27,10 @@ def implementer_instructions_provider(state: ImplementerInput) -> str:
     return resolve(
         template_text,
         feature=state.feature_definition,
-        workspace_handle=state.workspace_handle,
-        design_document=state.design_document_path,
+        design_document_path=state.design_document_path,
         current_change_set=state.current_change_set,
-        change_set_workspace_path=state.change_set_workspace_path,
         tdd_plan_path=state.tdd_plan_path,
-        FeatureDefinition=FeatureDefinition,
+        TDDPlan=TDDPlan,
     )
 
 

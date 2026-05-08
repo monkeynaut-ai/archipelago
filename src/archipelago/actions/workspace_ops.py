@@ -173,18 +173,29 @@ def prepare_codebase_tree(client: DockerClient, *, volume_name: str, codebase_pa
     - ``codebase_path/tests/`` (if it exists) is then re-chowned to
       ``root:GID_TESTS`` so an agent holding ``GID_TESTS`` (and not
       ``GID_CODEBASE``) can write tests but cannot modify source.
-    - ``.git/`` keeps its original ownership so git tooling continues
-      to work.
+    - ``.git/`` is chowned to ``root:GID_CODEBASE`` and made
+      group-writable, with the setgid bit on directories so that
+      objects/refs/logs git creates later inherit ``GID_CODEBASE``
+      rather than the agent's primary group. The implementer needs
+      this to run ``git add`` / ``git commit``; agents without
+      ``GID_CODEBASE`` can still read via the "other" ``r-x`` bits.
     """
     codebase_path = codebase_path.rstrip("/")
     tests_path = f"{codebase_path}/tests"
+    git_path = f"{codebase_path}/.git"
     script = (
         f"set -e && "
-        f"find {codebase_path} -path '{codebase_path}/.git' -prune -o "
+        f"find {codebase_path} -path '{git_path}' -prune -o "
         f"-exec chown root:{GID_CODEBASE} {{}} + && "
-        f"find {codebase_path} -path '{codebase_path}/.git' -prune -o "
+        f"find {codebase_path} -path '{git_path}' -prune -o "
         f"-exec chmod 775 {{}} + && "
-        f"if [ -d {tests_path} ]; then chown -R root:{GID_TESTS} {tests_path}; fi"
+        f"if [ -d {tests_path} ]; then chown -R root:{GID_TESTS} {tests_path}; fi && "
+        # .git/: implementer (GID_CODEBASE) needs write for git add/commit.
+        # Setgid on directories so newly-created refs/objects/logs inherit
+        # GID_CODEBASE instead of the agent's primary group.
+        f"chown -R root:{GID_CODEBASE} {git_path} && "
+        f"chmod -R g+w {git_path} && "
+        f"find {git_path} -type d -exec chmod g+s {{}} +"
     )
     try:
         client.containers.run(

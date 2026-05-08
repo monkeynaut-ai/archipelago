@@ -39,6 +39,7 @@ from archipelago.actions import (
 )
 from archipelago.agents.change_set_planner import change_set_planner
 from archipelago.agents.designer import designer
+from archipelago.agents.implementer import implementer
 from archipelago.agents.tdd_planner import tdd_planner
 from archipelago.agents.tester import tester
 from archipelago.models import (
@@ -175,7 +176,7 @@ full_pipeline = Sequence[FullPipelineState, FullPipelineState](
                         over=_tasks_over,
                         item_key="current_task",
                         body=Sequence[TaskProcessingState, TaskProcessingState](
-                            steps=[log_tdd_plan_task, tester],
+                            steps=[log_tdd_plan_task, tester, implementer],
                         ),
                     ),
                 ],
