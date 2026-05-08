@@ -365,6 +365,146 @@ class TestMakeChangeSetSubdir:
         assert path == f"{WORKSPACE_DOCUMENTS_PATH}/change-sets/add-login"
 
 
+class TestListRemoteBranches:
+    def test_given_standard_output_when_list_remote_then_returns_branch_names(self):
+        client = MagicMock()
+        ls_output = b"abc123\trefs/heads/main\ndef456\trefs/heads/feat/login\n"
+        client.containers.run.return_value = ls_output
+
+        result = ops.list_remote_branches(
+            client, volume_name="ws", codebase_path=WORKSPACE_CODEBASE_PATH
+        )
+
+        assert result == {"main", "feat/login"}
+
+    def test_given_empty_output_when_list_remote_then_returns_empty_set(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        result = ops.list_remote_branches(
+            client, volume_name="ws", codebase_path=WORKSPACE_CODEBASE_PATH
+        )
+
+        assert result == set()
+
+    def test_given_container_error_when_list_remote_then_runtime_error_raised(self):
+        import docker.errors
+
+        client = MagicMock()
+        client.containers.run.side_effect = docker.errors.ContainerError(
+            container=MagicMock(),
+            exit_status=1,
+            command="git ls-remote ...",
+            image="alpine/git",
+            stderr=b"fatal: remote error",
+        )
+        with pytest.raises(RuntimeError):
+            ops.list_remote_branches(
+                client, volume_name="ws", codebase_path=WORKSPACE_CODEBASE_PATH
+            )
+
+    def test_given_volume_when_list_remote_then_volume_mounted_at_workspace_root(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.list_remote_branches(client, volume_name="ws", codebase_path=WORKSPACE_CODEBASE_PATH)
+
+        call = client.containers.run.call_args
+        assert call.kwargs["volumes"]["ws"]["bind"] == WORKSPACE_ROOT
+
+    def test_given_client_when_list_remote_then_entrypoint_overridden_to_empty(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.list_remote_branches(client, volume_name="ws", codebase_path=WORKSPACE_CODEBASE_PATH)
+
+        call = client.containers.run.call_args
+        assert call.kwargs.get("entrypoint") == ""
+
+    def test_given_codebase_path_when_list_remote_then_command_targets_origin(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.list_remote_branches(client, volume_name="ws", codebase_path=WORKSPACE_CODEBASE_PATH)
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert WORKSPACE_CODEBASE_PATH in rendered
+        assert "ls-remote" in rendered
+        assert "origin" in rendered
+
+
+class TestCreateAndCheckoutBranch:
+    def test_given_branch_name_when_create_branch_then_checkout_b_called(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.create_and_checkout_branch(
+            client,
+            volume_name="ws",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
+            branch_name="my-feature",
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert "checkout" in rendered
+        assert "-b" in rendered
+        assert "my-feature" in rendered
+        assert WORKSPACE_CODEBASE_PATH in rendered
+
+    def test_given_volume_when_create_branch_then_volume_mounted_rw(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.create_and_checkout_branch(
+            client,
+            volume_name="ws",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
+            branch_name="feat",
+        )
+
+        call = client.containers.run.call_args
+        assert call.kwargs["volumes"]["ws"]["bind"] == WORKSPACE_ROOT
+        assert call.kwargs["volumes"]["ws"]["mode"] == "rw"
+
+    def test_given_container_error_when_create_branch_then_error_contains_branch_name(self):
+        import docker.errors
+
+        client = MagicMock()
+        client.containers.run.side_effect = docker.errors.ContainerError(
+            container=MagicMock(),
+            exit_status=128,
+            command="git checkout -b ...",
+            image="alpine/git",
+            stderr=b"fatal: branch already exists",
+        )
+        with pytest.raises(RuntimeError) as exc:
+            ops.create_and_checkout_branch(
+                client,
+                volume_name="ws",
+                codebase_path=WORKSPACE_CODEBASE_PATH,
+                branch_name="my-branch",
+            )
+        assert "my-branch" in str(exc.value)
+
+    def test_given_client_when_create_branch_then_entrypoint_overridden_to_empty(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+
+        ops.create_and_checkout_branch(
+            client,
+            volume_name="ws",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
+            branch_name="feat",
+        )
+
+        call = client.containers.run.call_args
+        assert call.kwargs.get("entrypoint") == ""
+
+
 class TestWriteFile:
     def test_given_content_when_write_file_then_put_archive_called(self):
         client = MagicMock()

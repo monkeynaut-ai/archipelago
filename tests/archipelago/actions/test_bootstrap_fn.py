@@ -40,6 +40,7 @@ def patched_ops():
         from_env.return_value = client
         ops_mod.clone_and_resolve_ref.return_value = "f" * 40
         ops_mod.create_volume.return_value = MagicMock(name="volume")
+        ops_mod.list_remote_branches.return_value = set()
         ops_mod.GIT_IMAGE = "alpine/git:v2.47.2"
         ops_mod.ALPINE_IMAGE = "alpine:3.20"
         yield ops_mod, client
@@ -79,12 +80,12 @@ class TestBootstrapFn:
             github_token=None,
         )
 
-        # 4. chmod_tree_excluding_git on the codebase path, mode 555.
-        ops_mod.chmod_tree_excluding_git.assert_called_once_with(
+        # 4. prepare_codebase_tree splits ownership: GID_CODEBASE for the
+        # bulk, GID_TESTS for tests/, .git/ untouched, mode 775.
+        ops_mod.prepare_codebase_tree.assert_called_once_with(
             client,
             volume_name="archipelago-ws-demo-1",
-            path=WORKSPACE_CODEBASE_PATH,
-            mode="555",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
         )
 
         # 5. Documents dir prepared.
@@ -139,7 +140,7 @@ class TestBootstrapFn:
         ops_mod.clone_and_resolve_ref.side_effect = RuntimeError("clone failed")
         with pytest.raises(RuntimeError, match="clone failed"):
             bootstrap_fn(_input(minimal_feature_definition))
-        ops_mod.chmod_tree_excluding_git.assert_not_called()
+        ops_mod.prepare_codebase_tree.assert_not_called()
         ops_mod.prepare_documents_dir.assert_not_called()
         ops_mod.write_file.assert_not_called()
 
@@ -190,3 +191,62 @@ class TestBootstrapFn:
         bootstrap_fn(_input(minimal_feature_definition))
         call = ops_mod.clone_and_resolve_ref.call_args
         assert call.kwargs["github_token"] is None
+
+
+class TestBootstrapFnBranchCheckout:
+    def test_given_input_when_bootstrap_then_list_remote_branches_called_after_clone(
+        self, patched_ops, minimal_feature_definition
+    ):
+        ops_mod, _ = patched_ops
+        bootstrap_fn(_input(minimal_feature_definition))
+
+        ops_mod.list_remote_branches.assert_called_once()
+        call = ops_mod.list_remote_branches.call_args
+        assert call.kwargs["volume_name"] == "archipelago-ws-demo-1"
+
+    def test_given_clean_remote_when_bootstrap_then_branch_named_from_title(
+        self, patched_ops, minimal_feature_definition
+    ):
+        # "Demo Feature" → "demo-feature"
+        ops_mod, _ = patched_ops
+        ops_mod.list_remote_branches.return_value = set()
+
+        bootstrap_fn(_input(minimal_feature_definition))
+
+        call = ops_mod.create_and_checkout_branch.call_args
+        assert call.kwargs["branch_name"] == "demo-feature"
+
+    def test_given_input_when_bootstrap_then_create_branch_called_with_correct_name(
+        self, patched_ops, minimal_feature_definition
+    ):
+        ops_mod, _ = patched_ops
+        ops_mod.list_remote_branches.return_value = set()
+
+        bootstrap_fn(_input(minimal_feature_definition))
+
+        ops_mod.create_and_checkout_branch.assert_called_once()
+        call = ops_mod.create_and_checkout_branch.call_args
+        assert call.kwargs["branch_name"] == "demo-feature"
+        assert call.kwargs["volume_name"] == "archipelago-ws-demo-1"
+
+    def test_given_collision_on_base_when_bootstrap_then_branch_gets_suffix(
+        self, patched_ops, minimal_feature_definition
+    ):
+        ops_mod, _ = patched_ops
+        ops_mod.list_remote_branches.return_value = {"demo-feature"}
+
+        bootstrap_fn(_input(minimal_feature_definition))
+
+        call = ops_mod.create_and_checkout_branch.call_args
+        assert call.kwargs["branch_name"] == "demo-feature-1"
+
+    def test_given_branch_failure_when_bootstrap_then_volume_cleaned_up(
+        self, patched_ops, minimal_feature_definition
+    ):
+        ops_mod, client = patched_ops
+        ops_mod.create_and_checkout_branch.side_effect = RuntimeError("branch failed")
+
+        with pytest.raises(RuntimeError, match="branch failed"):
+            bootstrap_fn(_input(minimal_feature_definition))
+
+        client.volumes.get.return_value.remove.assert_called_with(force=True)

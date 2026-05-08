@@ -16,7 +16,7 @@ import docker.errors
 from docker.client import DockerClient
 from docker.models.volumes import Volume
 
-from archipelago.constants import GID_DOCUMENTS, WORKSPACE_ROOT
+from archipelago.constants import GID_CODEBASE, GID_DOCUMENTS, GID_TESTS, WORKSPACE_ROOT
 
 GIT_IMAGE = "alpine/git:v2.47.2"
 ALPINE_IMAGE = "alpine:3.20"
@@ -74,6 +74,11 @@ def clone_and_resolve_ref(
     Uses a throwaway alpine/git container mounting the volume at
     /workspace. .git/ is preserved for Designer's git log / git blame.
 
+    Sets ``core.fileMode = false`` on the cloned repo so the workspace's
+    permission setup (``prepare_codebase_tree`` runs ``chmod 775`` over
+    the tree, which flips the executable bit on every regular file)
+    doesn't pollute every agent-side ``git diff`` with mode-only noise.
+
     If github_token is provided and repo_url is an HTTPS GitHub URL, the
     URL is rewritten to use x-access-token auth for private-repo cloning.
     The original repo_url (without token) is used in error messages.
@@ -83,6 +88,7 @@ def clone_and_resolve_ref(
         f"set -e && "
         f"git clone {effective_url} {codebase_path} && "
         f"git -C {codebase_path} checkout {ref} && "
+        f"git -C {codebase_path} config core.fileMode false && "
         f"git -C {codebase_path} rev-parse HEAD"
     )
     try:
@@ -102,6 +108,64 @@ def clone_and_resolve_ref(
     output = raw.decode("utf-8", errors="replace").strip()
     last_line = next(line.strip() for line in reversed(output.splitlines()) if line.strip())
     return last_line
+
+
+def list_remote_branches(
+    client: DockerClient,
+    *,
+    volume_name: str,
+    codebase_path: str,
+) -> set[str]:
+    """Return the set of branch names on the remote origin of a cloned workspace.
+
+    Runs ``git ls-remote --heads origin`` inside the cloned codebase so the
+    stored remote URL (including any embedded auth token) is reused automatically.
+    The volume is mounted read-only because this operation makes no local changes.
+    """
+    script = f"git -C {codebase_path} ls-remote --heads origin"
+    try:
+        raw = client.containers.run(
+            GIT_IMAGE,
+            command=["sh", "-c", script],
+            entrypoint="",
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
+            remove=True,
+            stdout=True,
+            stderr=False,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"git ls-remote failed: {stderr}") from exc
+
+    output = raw.decode("utf-8", errors="replace").strip()
+    branches: set[str] = set()
+    for line in output.splitlines():
+        parts = line.strip().split("\t")
+        if len(parts) == 2 and parts[1].startswith("refs/heads/"):
+            branches.add(parts[1][len("refs/heads/") :])
+    return branches
+
+
+def create_and_checkout_branch(
+    client: DockerClient,
+    *,
+    volume_name: str,
+    codebase_path: str,
+    branch_name: str,
+) -> None:
+    """Create a new local branch and check it out in the cloned workspace."""
+    script = f"git -C {codebase_path} checkout -b {branch_name}"
+    try:
+        client.containers.run(
+            GIT_IMAGE,
+            command=["sh", "-c", script],
+            entrypoint="",
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"git checkout -b {branch_name!r} failed: {stderr}") from exc
 
 
 def chmod_tree_excluding_git(
@@ -153,6 +217,54 @@ def chmod_path(
 
 
 DOCUMENTS_DIR_MODE = "775"
+
+
+def prepare_codebase_tree(client: DockerClient, *, volume_name: str, codebase_path: str) -> None:
+    """Set up codebase ownership and permissions after the clone.
+
+    Splits write privileges along the standard layout:
+
+    - Everything under ``codebase_path`` (excluding ``.git/``) is chowned to
+      ``root:GID_CODEBASE`` and chmodded ``775`` so an agent holding
+      ``GID_CODEBASE`` can write source files. Read access for others
+      stays at ``r-x`` so agents without the GID can still read.
+    - ``codebase_path/tests/`` (if it exists) is then re-chowned to
+      ``root:GID_TESTS`` so an agent holding ``GID_TESTS`` (and not
+      ``GID_CODEBASE``) can write tests but cannot modify source.
+    - ``.git/`` is chowned to ``root:GID_CODEBASE`` and made
+      group-writable, with the setgid bit on directories so that
+      objects/refs/logs git creates later inherit ``GID_CODEBASE``
+      rather than the agent's primary group. The implementer needs
+      this to run ``git add`` / ``git commit``; agents without
+      ``GID_CODEBASE`` can still read via the "other" ``r-x`` bits.
+    """
+    codebase_path = codebase_path.rstrip("/")
+    tests_path = f"{codebase_path}/tests"
+    git_path = f"{codebase_path}/.git"
+    script = (
+        f"set -e && "
+        f"find {codebase_path} -path '{git_path}' -prune -o "
+        f"-exec chown root:{GID_CODEBASE} {{}} + && "
+        f"find {codebase_path} -path '{git_path}' -prune -o "
+        f"-exec chmod 775 {{}} + && "
+        f"if [ -d {tests_path} ]; then chown -R root:{GID_TESTS} {tests_path}; fi && "
+        # .git/: implementer (GID_CODEBASE) needs write for git add/commit.
+        # Setgid on directories so newly-created refs/objects/logs inherit
+        # GID_CODEBASE instead of the agent's primary group.
+        f"chown -R root:{GID_CODEBASE} {git_path} && "
+        f"chmod -R g+w {git_path} && "
+        f"find {git_path} -type d -exec chmod g+s {{}} +"
+    )
+    try:
+        client.containers.run(
+            ALPINE_IMAGE,
+            command=["sh", "-c", script],
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"prepare_codebase_tree failed for {codebase_path!r}: {stderr}") from exc
 
 
 def prepare_documents_dir(client: DockerClient, *, volume_name: str, path: str) -> None:

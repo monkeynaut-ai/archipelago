@@ -19,6 +19,8 @@ from archipelago.actions import BootstrapInput, BootstrapOutput
 from archipelago.actions.workspace_bootstrap import bootstrap_fn
 from archipelago.constants import (
     FEATURE_DEFINITION_FILENAME,
+    GID_CODEBASE,
+    GID_TESTS,
     WORKSPACE_CODEBASE_PATH,
     WORKSPACE_DOCUMENTS_PATH,
     WORKSPACE_ROOT,
@@ -86,7 +88,22 @@ class TestBootstrapIntegration:
                 "stat -c '%a %n' /workspace/documents && "
                 "test -d /workspace/codebase/.git && echo '.git present' && "
                 "find /workspace/codebase -maxdepth 2 -name pyproject.toml "
-                "-exec stat -c '%a %n' {} +",
+                "-exec stat -c '%a %g %n' {} + && "
+                # Verify split ownership: codebase root → GID_CODEBASE,
+                # tests/ → GID_TESTS, both 775.
+                f"stat -c '%a %g {WORKSPACE_CODEBASE_PATH}' {WORKSPACE_CODEBASE_PATH} && "
+                f"stat -c '%a %g {WORKSPACE_CODEBASE_PATH}/tests' "
+                f"{WORKSPACE_CODEBASE_PATH}/tests && "
+                # Verify .git/ is group-writable to GID_CODEBASE so the
+                # implementer can run git add / git commit. The setgid
+                # bit on the directory shows up as the leading '2' in
+                # `stat -c '%a'` (e.g., 2775).
+                f"stat -c '%a %g {WORKSPACE_CODEBASE_PATH}/.git' "
+                f"{WORKSPACE_CODEBASE_PATH}/.git && "
+                # Verify core.fileMode is disabled on the cloned repo so
+                # prepare_codebase_tree's chmod doesn't pollute git diff.
+                "echo '--- git config ---' && "
+                f"cat {WORKSPACE_CODEBASE_PATH}/.git/config",
             ],
             volumes={result.workspace_handle.volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
             remove=True,
@@ -96,7 +113,13 @@ class TestBootstrapIntegration:
         assert ".git present" in output
         assert f"444 {WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}" in output
         assert f"775 {WORKSPACE_DOCUMENTS_PATH}" in output
-        assert f"555 {WORKSPACE_CODEBASE_PATH}/" in output
+        assert f"775 {GID_CODEBASE} {WORKSPACE_CODEBASE_PATH}/pyproject.toml" in output
+        assert f"775 {GID_CODEBASE} {WORKSPACE_CODEBASE_PATH}" in output
+        assert f"775 {GID_TESTS} {WORKSPACE_CODEBASE_PATH}/tests" in output
+        # .git/ is group-writable to GID_CODEBASE with setgid bit set
+        # (mode 2775 in stat output: leading 2 = setgid).
+        assert f"2775 {GID_CODEBASE} {WORKSPACE_CODEBASE_PATH}/.git" in output
+        assert "filemode = false" in output.lower()
 
     def test_given_real_repo_when_bootstrap_then_git_log_still_works(
         self, docker_client, cleanup_volumes, minimal_feature_definition

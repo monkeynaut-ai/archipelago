@@ -14,6 +14,7 @@ from archipelago.constants import (
 )
 from archipelago.models import CodebaseSource
 from archipelago.systems.design_pipeline import DesignPipelineState, generate_volume_name
+from archipelago.systems.pipeline import FullPipelineState
 
 
 def _handle() -> WorkspaceHandle:
@@ -71,6 +72,23 @@ class TestGenerateVolumeName:
         a = generate_volume_name("demo")
         b = generate_volume_name("demo")
         assert a != b
+
+
+class TestFullPipelineState:
+    def test_given_required_fields_when_constructed_then_pr_url_defaults_to_none(
+        self, minimal_feature_definition
+    ):
+        state = FullPipelineState(
+            feature_definition=minimal_feature_definition,
+            codebase_source=CodebaseSource(repo_url="u", ref="r"),
+            volume_name="archipelago-ws-demo-1",
+        )
+        assert state.pr_url is None
+
+    def test_given_pr_creator_input_fields_when_inspected_then_subset_of_full_pipeline_state(self):
+        from archipelago.agents.models import PrCreatorInput
+
+        assert set(PrCreatorInput.model_fields.keys()) <= set(FullPipelineState.model_fields.keys())
 
 
 class TestStateFieldInvariants:
