@@ -40,6 +40,7 @@ def patched_ops():
         from_env.return_value = client
         ops_mod.clone_and_resolve_ref.return_value = "f" * 40
         ops_mod.create_volume.return_value = MagicMock(name="volume")
+        ops_mod.list_remote_branches.return_value = set()
         ops_mod.GIT_IMAGE = "alpine/git:v2.47.2"
         ops_mod.ALPINE_IMAGE = "alpine:3.20"
         yield ops_mod, client
@@ -190,3 +191,62 @@ class TestBootstrapFn:
         bootstrap_fn(_input(minimal_feature_definition))
         call = ops_mod.clone_and_resolve_ref.call_args
         assert call.kwargs["github_token"] is None
+
+
+class TestBootstrapFnBranchCheckout:
+    def test_given_input_when_bootstrap_then_list_remote_branches_called_after_clone(
+        self, patched_ops, minimal_feature_definition
+    ):
+        ops_mod, _ = patched_ops
+        bootstrap_fn(_input(minimal_feature_definition))
+
+        ops_mod.list_remote_branches.assert_called_once()
+        call = ops_mod.list_remote_branches.call_args
+        assert call.kwargs["volume_name"] == "archipelago-ws-demo-1"
+
+    def test_given_clean_remote_when_bootstrap_then_branch_named_from_title(
+        self, patched_ops, minimal_feature_definition
+    ):
+        # "Demo Feature" → "demo-feature"
+        ops_mod, _ = patched_ops
+        ops_mod.list_remote_branches.return_value = set()
+
+        bootstrap_fn(_input(minimal_feature_definition))
+
+        call = ops_mod.create_and_checkout_branch.call_args
+        assert call.kwargs["branch_name"] == "demo-feature"
+
+    def test_given_input_when_bootstrap_then_create_branch_called_with_correct_name(
+        self, patched_ops, minimal_feature_definition
+    ):
+        ops_mod, _ = patched_ops
+        ops_mod.list_remote_branches.return_value = set()
+
+        bootstrap_fn(_input(minimal_feature_definition))
+
+        ops_mod.create_and_checkout_branch.assert_called_once()
+        call = ops_mod.create_and_checkout_branch.call_args
+        assert call.kwargs["branch_name"] == "demo-feature"
+        assert call.kwargs["volume_name"] == "archipelago-ws-demo-1"
+
+    def test_given_collision_on_base_when_bootstrap_then_branch_gets_suffix(
+        self, patched_ops, minimal_feature_definition
+    ):
+        ops_mod, _ = patched_ops
+        ops_mod.list_remote_branches.return_value = {"demo-feature"}
+
+        bootstrap_fn(_input(minimal_feature_definition))
+
+        call = ops_mod.create_and_checkout_branch.call_args
+        assert call.kwargs["branch_name"] == "demo-feature-1"
+
+    def test_given_branch_failure_when_bootstrap_then_volume_cleaned_up(
+        self, patched_ops, minimal_feature_definition
+    ):
+        ops_mod, client = patched_ops
+        ops_mod.create_and_checkout_branch.side_effect = RuntimeError("branch failed")
+
+        with pytest.raises(RuntimeError, match="branch failed"):
+            bootstrap_fn(_input(minimal_feature_definition))
+
+        client.volumes.get.return_value.remove.assert_called_with(force=True)

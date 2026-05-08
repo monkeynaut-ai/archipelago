@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 
 import docker
 from agent_foundry.primitives.models import FunctionAction
@@ -30,6 +31,32 @@ from archipelago.constants import (
     WORKSPACE_ROOT,
 )
 from archipelago.models import CodebaseSource, FeatureDefinition
+
+_BRANCH_UNSAFE = re.compile(r"[^a-z0-9-]+")
+
+
+def _slugify_branch(title: str) -> str:
+    """Lowercase, hyphen-separated, alphanumerics-only branch slug."""
+    cleaned = _BRANCH_UNSAFE.sub("-", title.lower()).strip("-")
+    return cleaned or "unnamed"
+
+
+def _unique_branch_name(title: str, remote_branches: set[str]) -> str:
+    """Return a branch name derived from title that is not in remote_branches.
+
+    First try: the full slug truncated to 24 chars.
+    On collision: shorten base to 21 chars and append -1, -2, … up to -99.
+    """
+    slug = _slugify_branch(title)
+    candidate = slug[:24].rstrip("-")
+    if candidate not in remote_branches:
+        return candidate
+    base = slug[:21].rstrip("-")
+    for i in range(1, 100):
+        candidate = f"{base}-{i}"
+        if candidate not in remote_branches:
+            return candidate
+    raise RuntimeError(f"No unique branch name found for title {title!r}")
 
 
 class WorkspaceHandle(BaseModel):
@@ -110,6 +137,25 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
             ref=state.codebase_source.ref,
             codebase_path=WORKSPACE_CODEBASE_PATH,
             github_token=github_token,
+        )
+
+        # 3b. Determine a unique feature branch name from the feature title.
+        remote_branches = _ops.list_remote_branches(
+            client,
+            volume_name=state.volume_name,
+            codebase_path=WORKSPACE_CODEBASE_PATH,
+        )
+        branch_name = _unique_branch_name(
+            state.feature_definition.title,
+            remote_branches,
+        )
+
+        # 3c. Create and check out the feature branch in the cloned workspace.
+        _ops.create_and_checkout_branch(
+            client,
+            volume_name=state.volume_name,
+            codebase_path=WORKSPACE_CODEBASE_PATH,
+            branch_name=branch_name,
         )
 
         # 4. Set codebase ownership: GID_CODEBASE owns the bulk, GID_TESTS

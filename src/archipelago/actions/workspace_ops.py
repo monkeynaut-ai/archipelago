@@ -110,6 +110,64 @@ def clone_and_resolve_ref(
     return last_line
 
 
+def list_remote_branches(
+    client: DockerClient,
+    *,
+    volume_name: str,
+    codebase_path: str,
+) -> set[str]:
+    """Return the set of branch names on the remote origin of a cloned workspace.
+
+    Runs ``git ls-remote --heads origin`` inside the cloned codebase so the
+    stored remote URL (including any embedded auth token) is reused automatically.
+    The volume is mounted read-only because this operation makes no local changes.
+    """
+    script = f"git -C {codebase_path} ls-remote --heads origin"
+    try:
+        raw = client.containers.run(
+            GIT_IMAGE,
+            command=["sh", "-c", script],
+            entrypoint="",
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
+            remove=True,
+            stdout=True,
+            stderr=False,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"git ls-remote failed: {stderr}") from exc
+
+    output = raw.decode("utf-8", errors="replace").strip()
+    branches: set[str] = set()
+    for line in output.splitlines():
+        parts = line.strip().split("\t")
+        if len(parts) == 2 and parts[1].startswith("refs/heads/"):
+            branches.add(parts[1][len("refs/heads/") :])
+    return branches
+
+
+def create_and_checkout_branch(
+    client: DockerClient,
+    *,
+    volume_name: str,
+    codebase_path: str,
+    branch_name: str,
+) -> None:
+    """Create a new local branch and check it out in the cloned workspace."""
+    script = f"git -C {codebase_path} checkout -b {branch_name}"
+    try:
+        client.containers.run(
+            GIT_IMAGE,
+            command=["sh", "-c", script],
+            entrypoint="",
+            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
+            remove=True,
+        )
+    except docker.errors.ContainerError as exc:
+        stderr = _decode_container_stderr(exc)
+        raise RuntimeError(f"git checkout -b {branch_name!r} failed: {stderr}") from exc
+
+
 def chmod_tree_excluding_git(
     client: DockerClient,
     *,
