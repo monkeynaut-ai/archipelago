@@ -9,6 +9,7 @@ from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
 
 from archipelago.agents.models import PrCreatorInput, PrCreatorOutput
+from archipelago.config import PR_CREATOR_MODEL
 from archipelago.constants import GID_CODEBASE, GID_DOCUMENTS
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
@@ -41,4 +42,5 @@ pr_creator = AgentAction[PrCreatorInput, PrCreatorOutput](
     timeout_seconds=1800,
     gids=[GID_DOCUMENTS, GID_CODEBASE],
     skip_permissions=True,
+    model=PR_CREATOR_MODEL,
 )
