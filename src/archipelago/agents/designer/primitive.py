@@ -17,7 +17,7 @@ from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
 
 from archipelago.agents.models import DesignerInput, DesignerOutput
-from archipelago.config import DESIGNER_MODEL
+from archipelago.config import DESIGNER_EFFORT, DESIGNER_MODEL
 from archipelago.constants import GID_DOCUMENTS
 from archipelago.models import DesignDocument, FeatureDefinition
 
@@ -52,4 +52,5 @@ designer = AgentAction[DesignerInput, DesignerOutput](
     gids=[GID_DOCUMENTS],
     skip_permissions=True,
     model=DESIGNER_MODEL,
+    effort=DESIGNER_EFFORT,
 )

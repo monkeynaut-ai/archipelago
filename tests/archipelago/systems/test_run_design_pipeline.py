@@ -75,16 +75,17 @@ class TestRunDesignPipeline:
         responder = kwargs["responder_provider"]()
         assert isinstance(responder, StdinResponder)
 
-        # artifacts_dir is a Path under cwd/runs/ with a timestamp name.
+        # artifacts_dir is the cwd/runs parent; run_id is the timestamp.
+        # ``agent_foundry`` creates ``<artifacts_dir>/<run_id>/``, so
+        # this shape collapses to ``runs/<timestamp>/`` as a single layer.
         artifacts_dir = kwargs["artifacts_dir"]
         assert isinstance(artifacts_dir, Path)
-        assert artifacts_dir.parent.name == "runs"
+        assert artifacts_dir.name == "runs"
         # YYYY-MM-DD-HH-MM-SS — second-resolution timestamp.
         import re
 
-        assert re.match(r"^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$", artifacts_dir.name), (
-            artifacts_dir.name
-        )
+        run_id = kwargs["run_id"]
+        assert re.match(r"^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$", run_id), run_id
 
     @pytest.mark.asyncio
     async def test_given_plan_raises_when_run_then_error_propagates(

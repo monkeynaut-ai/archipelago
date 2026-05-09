@@ -26,6 +26,7 @@ from archipelago.actions import workspace_ops as _ops
 from archipelago.constants import (
     CHANGE_SETS_DIR_NAME,
     FEATURE_DEFINITION_FILENAME,
+    LESSONS_LEARNED_FILENAME,
     WORKSPACE_CODEBASE_PATH,
     WORKSPACE_DOCUMENTS_PATH,
     WORKSPACE_ROOT,
@@ -92,6 +93,10 @@ class WorkspaceHandle(BaseModel):
     @property
     def investigation_document_path(self) -> str:
         return f"{self.documents_path}/investigation.md"
+
+    @property
+    def lessons_learned_path(self) -> str:
+        return f"{self.documents_path}/{LESSONS_LEARNED_FILENAME}"
 
     def tdd_plan_path(self, change_set_slug: str) -> str:
         return f"{self.change_sets_dir}/{change_set_slug}/tdd_plan.md"

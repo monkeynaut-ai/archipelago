@@ -20,7 +20,8 @@ from pydantic import BaseModel
 from archipelago.actions import WorkspaceHandle, workspace_bootstrap
 from archipelago.agents.designer import DesignerOutput, designer
 from archipelago.models import CodebaseSource, FeatureDefinition
-from archipelago.systems._artifacts import artifacts_dir_for_run as _artifacts_dir_for_run
+from archipelago.systems._artifacts import run_artifacts_layout as _run_artifacts_layout
+from archipelago.systems._lessons_learned import make_lessons_learned_hook
 
 # Base image for AgentAction containers. Hardcoded for Phase 2; sourced
 # from Phase 3's published image once that ships. If the tag needs to
@@ -88,13 +89,16 @@ async def run_design_pipeline(
         codebase_source=codebase_source,
         volume_name=volume_name,
     )
+    artifacts_parent, run_id = _run_artifacts_layout()
     final = await run_primitive_plan(
         PrimitivePlan(root=design_pipeline),
         initial_state=initial_state,
-        artifacts_dir=_artifacts_dir_for_run(),
+        artifacts_dir=artifacts_parent,
+        run_id=run_id,
         workspace_volume=volume_name,
         base_image_tag=BASE_IMAGE_TAG,
         responder_provider=static_provider(StdinResponder()),
+        on_run_ended=[make_lessons_learned_hook(volume_name)],
     )
     assert isinstance(final, DesignPipelineState), (
         f"run_primitive_plan returned {type(final).__name__}, expected DesignPipelineState"
