@@ -20,6 +20,7 @@ from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
 
 from archipelago.agents.models import ChangeSetPlannerInput, ChangeSetPlannerOutput
+from archipelago.config import CHANGE_SET_PLANNER_EFFORT, CHANGE_SET_PLANNER_MODEL
 from archipelago.constants import GID_DOCUMENTS
 from archipelago.models import ChangeSetsDocument, FeatureDefinition
 
@@ -54,4 +55,6 @@ change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](
     timeout_seconds=1800,
     gids=[GID_DOCUMENTS],
     skip_permissions=True,
+    model=CHANGE_SET_PLANNER_MODEL,
+    effort=CHANGE_SET_PLANNER_EFFORT,
 )

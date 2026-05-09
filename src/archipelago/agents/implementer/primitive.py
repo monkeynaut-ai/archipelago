@@ -9,6 +9,7 @@ from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
 
 from archipelago.agents.models import ImplementerInput, ImplementerOutput
+from archipelago.config import IMPLEMENTER_MODEL
 from archipelago.constants import GID_CODEBASE, GID_DOCUMENTS
 from archipelago.models import TDDPlan
 
@@ -43,4 +44,5 @@ implementer = AgentAction[ImplementerInput, ImplementerOutput](
     timeout_seconds=1800,
     gids=[GID_DOCUMENTS, GID_CODEBASE],
     skip_permissions=True,
+    model=IMPLEMENTER_MODEL,
 )
