@@ -35,6 +35,7 @@ from archipelago.actions import (
     log_tdd_plan_task,
     prepare_change_set_workspace,
     read_markdown,
+    setup_python_workspace,
     workspace_bootstrap,
 )
 from archipelago.agents.change_set_planner import change_set_planner
@@ -80,6 +81,7 @@ class FullPipelineState(BaseModel):
     feature_definition: FeatureDefinition
     codebase_source: CodebaseSource
     volume_name: str
+    base_image_tag: str
     workspace_handle: WorkspaceHandle | None = None
     # Designer's flat output:
     investigation_summary_path: str | None = None
@@ -172,6 +174,7 @@ def _tasks_over(state: TDDPlanLoopState) -> list[Task]:
 full_pipeline = Sequence[FullPipelineState, FullPipelineState](
     steps=[
         workspace_bootstrap,
+        setup_python_workspace,
         designer,
         change_set_planner,
         Loop[ChangeSetsLoopState, ChangeSetsLoopState](
@@ -224,6 +227,7 @@ async def run_full_pipeline(
         feature_definition=feature_definition,
         codebase_source=codebase_source,
         volume_name=volume_name,
+        base_image_tag=BASE_IMAGE_TAG,
     )
     artifacts_parent, run_id = _run_artifacts_layout()
     final = await run_primitive_plan(
