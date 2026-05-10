@@ -41,4 +41,3 @@ PYTHONPATH=src pdm run python scripts/run_full_pipeline.py \
     --repo https://github.com/730alchemy/agent-foundry.git \
     --ref "$ref"
 
-# 66d4aca as ref for fix-summary work

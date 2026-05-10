@@ -2,13 +2,10 @@
 
 Spawns a throwaway container from the run's base image, mounts the
 workspace volume, and runs `pdm install` against the cloned codebase.
-The resulting `.venv` is written into the shared volume, so every
-agent container that mounts it later sees a ready-to-use Python
-environment without re-bootstrapping.
-
-Skips silently if the cloned codebase has no `pyproject.toml` — keeps
-the pipeline usable for non-Python target repos as a no-op rather
-than a failure.
+Skips silently if the codebase has no `pyproject.toml`, keeping the
+pipeline usable for non-Python repos. The resulting `.venv` is written
+into the shared volume so every agent container that mounts it later
+sees a ready-to-use Python environment without re-bootstrapping.
 """
 
 from __future__ import annotations
@@ -46,22 +43,6 @@ class SetupPythonWorkspaceOutput(BaseModel):
 _WORKSPACE_GIDS: list[int] = [GID_DOCUMENTS, GID_CODEBASE, GID_TESTS]
 
 
-def _has_pyproject(client: docker.DockerClient, *, image: str, volume_name: str) -> bool:
-    """Return True iff /workspace/codebase/pyproject.toml exists in the volume."""
-    try:
-        client.containers.run(
-            image,
-            command=["sh", "-c", f"test -f {WORKSPACE_CODEBASE_PATH}/pyproject.toml"],
-            entrypoint="",
-            volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
-            remove=True,
-            user="claude",
-        )
-        return True
-    except docker.errors.ContainerError:
-        return False
-
-
 def setup_python_workspace_fn(
     state: SetupPythonWorkspaceInput,
 ) -> SetupPythonWorkspaceOutput:
@@ -71,17 +52,24 @@ def setup_python_workspace_fn(
     volume = state.workspace_handle.volume_name
     image = state.base_image_tag
 
-    if not _has_pyproject(client, image=image, volume_name=volume):
-        return SetupPythonWorkspaceOutput()
-
-    # Run pdm install. --skip post_install bypasses pdm scripts named
-    # post_install — agent-foundry's pyproject.toml defines that as
-    # `pre-commit install`, which would try to write `.git/hooks/pre-commit`,
-    # but workspace_bootstrap leaves `.git/` root-owned (prepare_codebase_tree
+    # Skip silently for non-Python repos. The pyproject.toml check and the
+    # install are combined in one container run: if pyproject.toml is absent
+    # the script exits 0 without installing anything.
+    #
+    # -G :all installs optional dependency groups (e.g. agent-foundry's
+    # `mlflow` extra) so agents running the full test suite don't hit
+    # ImportError on optional extras.
+    #
+    # --skip post_install bypasses pdm scripts named post_install —
+    # agent-foundry's pyproject.toml defines that as `pre-commit install`,
+    # which would try to write `.git/hooks/pre-commit`, but
+    # workspace_bootstrap leaves `.git/` root-owned (prepare_codebase_tree
     # explicitly excludes it from chmod), so the claude user can't write
-    # there. Pre-commit hooks aren't needed for agent commits; agents run
-    # tests directly, not via the human-dev hook chain.
-    script = f"cd {WORKSPACE_CODEBASE_PATH} && pdm install --skip post_install"
+    # there. The hook chain is for human-dev commits, not agent commits.
+    script = (
+        f"test -f {WORKSPACE_CODEBASE_PATH}/pyproject.toml || exit 0"
+        f" && cd {WORKSPACE_CODEBASE_PATH} && pdm install -G :all --skip post_install"
+    )
     try:
         client.containers.run(
             image,
@@ -93,6 +81,7 @@ def setup_python_workspace_fn(
             # Grant the workspace GIDs so claude can write into the
             # bootstrap-prepared codebase tree (mode 775, group-owned).
             group_add=_WORKSPACE_GIDS,
+            healthcheck={"test": ["NONE"]},
         )
     except docker.errors.ContainerError as exc:
         stderr = _decode_container_stderr(exc)

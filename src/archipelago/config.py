@@ -1,6 +1,6 @@
 from agent_foundry.primitives import ClaudeEffort, ClaudeModel
 
-DESIGNER_MODEL: ClaudeModel = ClaudeModel.OPUS_4_7
+DESIGNER_MODEL: ClaudeModel = ClaudeModel.OPUS_4_6
 DESIGNER_EFFORT: ClaudeEffort = ClaudeEffort.HIGH
 CHANGE_SET_PLANNER_MODEL: ClaudeModel = ClaudeModel.SONNET_4_6
 CHANGE_SET_PLANNER_EFFORT: ClaudeEffort = ClaudeEffort.HIGH
