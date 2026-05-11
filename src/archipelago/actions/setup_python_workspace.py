@@ -60,15 +60,14 @@ def setup_python_workspace_fn(
     # `mlflow` extra) so agents running the full test suite don't hit
     # ImportError on optional extras.
     #
-    # --skip post_install bypasses pdm scripts named post_install —
-    # agent-foundry's pyproject.toml defines that as `pre-commit install`,
-    # which would try to write `.git/hooks/pre-commit`, but
-    # workspace_bootstrap leaves `.git/` root-owned (prepare_codebase_tree
-    # explicitly excludes it from chmod), so the claude user can't write
-    # there. The hook chain is for human-dev commits, not agent commits.
+    # post_install runs `pre-commit install`, which writes .git/hooks/pre-commit
+    # so that agent commits are gated by the project's full pre-commit suite.
+    # .git/ is owned root:GID_CODEBASE with g+w (set by prepare_codebase_tree),
+    # and this container runs with GID_CODEBASE in its supplementary groups,
+    # so the write succeeds.
     script = (
         f"test -f {WORKSPACE_CODEBASE_PATH}/pyproject.toml || exit 0"
-        f" && cd {WORKSPACE_CODEBASE_PATH} && pdm install -G :all --skip post_install"
+        f" && cd {WORKSPACE_CODEBASE_PATH} && pdm install -G :all"
     )
     try:
         client.containers.run(
