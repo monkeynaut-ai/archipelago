@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from agent_foundry.agents.lifecycle import ContainerConfig
 from agent_foundry.orchestration.container_executor import run_agent_in_container
 from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
@@ -57,5 +58,6 @@ change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](
     skip_permissions=True,
     model=CHANGE_SET_PLANNER_MODEL,
     effort=CHANGE_SET_PLANNER_EFFORT,
+    container_config=ContainerConfig(mem_limit_mb=3072),
     cwd="/workspace/codebase",
 )

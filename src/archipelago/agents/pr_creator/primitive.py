@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from agent_foundry.agents.lifecycle import ContainerConfig
 from agent_foundry.orchestration.container_executor import run_agent_in_container
 from agent_foundry.primitives.models import AgentAction, ContainerReusePolicy
 from archetype.templating import resolve
@@ -43,5 +44,6 @@ pr_creator = AgentAction[PrCreatorInput, PrCreatorOutput](
     gids=[GID_DOCUMENTS, GID_CODEBASE],
     skip_permissions=True,
     model=PR_CREATOR_MODEL,
+    container_config=ContainerConfig(mem_limit_mb=3072),
     cwd="/workspace/codebase",
 )
