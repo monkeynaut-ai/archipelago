@@ -47,4 +47,5 @@ implementer = AgentAction[ImplementerInput, ImplementerOutput](
     skip_permissions=True,
     model=IMPLEMENTER_MODEL,
     container_config=ContainerConfig(mem_limit_mb=3072),
+    cwd="/workspace/codebase",
 )

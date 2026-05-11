@@ -54,4 +54,5 @@ tdd_planner = AgentAction[TDDPlannerInput, TDDPlannerOutput](
     gids=[GID_DOCUMENTS],
     skip_permissions=True,
     model=TDD_PLANNER_MODEL,
+    cwd="/workspace/codebase",
 )

@@ -43,4 +43,5 @@ pr_creator = AgentAction[PrCreatorInput, PrCreatorOutput](
     gids=[GID_DOCUMENTS, GID_CODEBASE],
     skip_permissions=True,
     model=PR_CREATOR_MODEL,
+    cwd="/workspace/codebase",
 )

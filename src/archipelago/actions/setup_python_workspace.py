@@ -67,6 +67,7 @@ def setup_python_workspace_fn(
     # so the write succeeds.
     script = (
         f"test -f {WORKSPACE_CODEBASE_PATH}/pyproject.toml || exit 0"
+        f" && git config --global --add safe.directory {WORKSPACE_CODEBASE_PATH}"
         f" && cd {WORKSPACE_CODEBASE_PATH} && pdm install -G :all"
     )
     try:

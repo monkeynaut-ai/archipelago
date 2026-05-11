@@ -53,4 +53,5 @@ designer = AgentAction[DesignerInput, DesignerOutput](
     skip_permissions=True,
     model=DESIGNER_MODEL,
     effort=DESIGNER_EFFORT,
+    cwd="/workspace/codebase",
 )

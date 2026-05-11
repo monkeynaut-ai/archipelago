@@ -57,4 +57,5 @@ change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](
     skip_permissions=True,
     model=CHANGE_SET_PLANNER_MODEL,
     effort=CHANGE_SET_PLANNER_EFFORT,
+    cwd="/workspace/codebase",
 )

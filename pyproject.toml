@@ -41,13 +41,13 @@ distribution = false
 
 [tool.pdm.scripts]
 post_install.cmd = "pre-commit install"
-test-unit.cmd = "pytest tests/ -m 'not integration and not benchmark and not e2e'"
+test-unit.cmd = "pytest {args:tests/} -m 'not integration and not benchmark and not e2e'"
 test-unit.env = {PYTHONPATH = "src"}
-test-integration.cmd = "pytest tests/ -m 'integration and not e2e'"
+test-integration.cmd = "pytest {args:tests/} -m 'integration and not e2e'"
 test-integration.env = {PYTHONPATH = "src"}
 test-all.cmd = "pytest tests/ -m 'not benchmark and not e2e'"
 test-all.env = {PYTHONPATH = "src"}
-test-e2e.cmd = "pytest tests/ -m 'e2e'"
+test-e2e.cmd = "pytest {args:tests/} -m 'e2e'"
 test-e2e.env = {PYTHONPATH = "src"}
 lint.cmd = "ruff check src/ tests/"
 lint.env = {PYTHONPATH = "src"}

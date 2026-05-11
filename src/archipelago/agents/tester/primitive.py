@@ -47,4 +47,5 @@ tester = AgentAction[TesterInput, TesterOutput](
     skip_permissions=True,
     model=TESTER_MODEL,
     container_config=ContainerConfig(mem_limit_mb=3072),
+    cwd="/workspace/codebase",
 )
