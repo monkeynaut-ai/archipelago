@@ -26,7 +26,7 @@ from archipelago.systems._lessons_learned import make_lessons_learned_hook
 # Base image for AgentAction containers. Hardcoded for Phase 2; sourced
 # from Phase 3's published image once that ships. If the tag needs to
 # change, update here and redeploy.
-BASE_IMAGE_TAG = "agent-worker:latest"
+BASE_IMAGE_TAG = "agent-worker-foundry-dev:latest"
 
 
 _VOLUME_NAME_UNSAFE = re.compile(r"[^a-zA-Z0-9._-]+")

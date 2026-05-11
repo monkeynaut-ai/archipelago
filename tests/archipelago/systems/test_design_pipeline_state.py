@@ -82,6 +82,7 @@ class TestFullPipelineState:
             feature_definition=minimal_feature_definition,
             codebase_source=CodebaseSource(repo_url="u", ref="r"),
             volume_name="archipelago-ws-demo-1",
+            base_image_tag="agent-worker:latest",
         )
         assert state.pr_url is None
 

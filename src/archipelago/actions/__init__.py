@@ -24,6 +24,11 @@ from archipelago.actions.prepare_change_set_workspace import (
     PrepareChangeSetWorkspaceOutput,
     prepare_change_set_workspace,
 )
+from archipelago.actions.setup_python_workspace import (
+    SetupPythonWorkspaceInput,
+    SetupPythonWorkspaceOutput,
+    setup_python_workspace,
+)
 from archipelago.actions.workspace_bootstrap import (
     BootstrapInput,
     BootstrapOutput,
@@ -41,11 +46,14 @@ __all__ = [
     "LogTddPlanTaskOutput",
     "PrepareChangeSetWorkspaceInput",
     "PrepareChangeSetWorkspaceOutput",
+    "SetupPythonWorkspaceInput",
+    "SetupPythonWorkspaceOutput",
     "WorkspaceHandle",
     "log_change_set_name",
     "log_tdd_plan_task",
     "prepare_change_set_workspace",
     "read_markdown",
+    "setup_python_workspace",
     "workspace_bootstrap",
     "workspace_io",
     "workspace_ops",
