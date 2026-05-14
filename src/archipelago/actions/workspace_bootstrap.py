@@ -101,6 +101,10 @@ class WorkspaceHandle(BaseModel):
     def tdd_plan_path(self, change_set_slug: str) -> str:
         return f"{self.change_sets_dir}/{change_set_slug}/tdd_plan.md"
 
+    @property
+    def current_task_path(self) -> str:
+        return f"{self.documents_path}/current-task.md"
+
 
 class BootstrapInput(BaseModel):
     feature_definition: FeatureDefinition

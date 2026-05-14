@@ -32,11 +32,11 @@ from pydantic import BaseModel
 from archipelago.actions import (
     WorkspaceHandle,
     log_change_set_name,
-    log_tdd_plan_task,
     prepare_change_set_workspace,
     read_markdown,
     setup_python_workspace,
     workspace_bootstrap,
+    write_task_context,
 )
 from archipelago.agents.change_set_planner import change_set_planner
 from archipelago.agents.designer import designer
@@ -189,7 +189,7 @@ full_pipeline = Sequence[FullPipelineState, FullPipelineState](
                         over=_tasks_over,
                         item_key="current_task",
                         body=Sequence[TaskProcessingState, TaskProcessingState](
-                            steps=[log_tdd_plan_task, tester, implementer],
+                            steps=[write_task_context, tester, implementer],
                         ),
                     ),
                 ],

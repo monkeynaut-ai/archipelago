@@ -46,11 +46,7 @@ class TDDPlannerOutput(BaseModel):
 
 
 class TesterInput(AgentInputBase):
-    design_document_path: str
-    feature_definition: FeatureDefinition
-    current_change_set: ChangeSetRef
-    change_set_workspace_path: str
-    tdd_plan_path: str
+    pass
 
 
 class TesterOutput(BaseModel):
@@ -58,11 +54,7 @@ class TesterOutput(BaseModel):
 
 
 class ImplementerInput(AgentInputBase):
-    design_document_path: str
-    feature_definition: FeatureDefinition
-    current_change_set: ChangeSetRef
-    change_set_workspace_path: str
-    tdd_plan_path: str
+    pass
 
 
 class ImplementerOutput(BaseModel):
