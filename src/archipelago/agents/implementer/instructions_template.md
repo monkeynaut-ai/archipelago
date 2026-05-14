@@ -41,6 +41,7 @@ For the task named in `/workspace/documents/current-task.md`:
 - **Do not exceed the task's scope.** Only the files listed under the task's `Files:` heading. No drive-by refactors, no formatting changes to unrelated lines, no new abstractions the plan didn't ask for.
 - **Do not skip commits.** Each task ends with a commit; don't batch multiple tasks into one commit.
 - **Do not push.** Committing locally is enough; push is a downstream step.
+- **Never use `--no-verify` on commits.** If a pre-commit hook fails, fix the underlying issue and re-run — do not bypass the hook.
 
 ## Output protocol
 
