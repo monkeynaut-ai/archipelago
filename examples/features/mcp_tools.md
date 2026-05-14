@@ -1,9 +1,9 @@
 ---
-feature_slug: mcp-tools
+feature_slug: enable-mcp-tools
 created_at: 2026-05-04
 ---
 
-# Run Observability
+# Enable MCP tools
 
 ## Problem statement
 

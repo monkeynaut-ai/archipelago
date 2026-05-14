@@ -8,6 +8,8 @@ Construct the implementation plan for this change set
 
 > {{ current_change_set }}
 
+If the project contains an agent instruction file (e.g. claude.md), read the file and ensure the plan you generate follows its guidelines. If the project contains a project configuration file (e.g. pyproject.toml, package.json) reference it for commands you can use in the plan.
+
 ## Your output
 
 The TDD implemnation plan you generate is composed of a sequence of tasks. Each task must be self-contained, meaning that when the task is completed all tests pass and the task can be committed to the repo branch. These tasks, when executed in order, implement the entire change set.
@@ -54,6 +56,8 @@ Task N: [Component Name]
 // Test code here -- complete, runnable, no placeholders
 ```
 
+The scope of Step 1 is limited in `tests/` and its subfolders. Do NOT include instructions to create, modify, or delete files or folders in `src/` or its subfolders. Only files and folders in `tests/` and its subfolders can be created, modifed, or deleted. If the tests you generate require files that do not exist yet under `src/`, you must allow the tests to fail. The tests will be turned green in Step 3.
+
 - **Step 2: Run test to verify it fails**
 
 Run: `<exact test command>`
@@ -85,6 +89,7 @@ git commit -m "<message following project commit convention>"
 - **Exact commands** -- with expected output. The engineer should know what success looks like.
 - **Dependencies declared** -- if Task N requires Task M, say so with `blockedBy` or `Dependencies`.
 - **Commit messages** -- follow the project's commit convention from `jig.config.md`.
+- **Step 1 files must be under `tests/`** -- the tester agent only has write permission to `tests/`. Never include source files (`src/` or any path outside `tests/`) in Step 1.
 
 ## No Placeholders
 
@@ -142,6 +147,7 @@ If you find issues, fix them inline. No need to re-review -- just fix and move o
 | Missing dependencies | Task fails because prerequisite not built | Declare `blockedBy` for every dependent task |
 | Inconsistent naming across tasks | Runtime errors, undefined references | Self-review checks type consistency |
 | Skipping self-review | Spec gaps ship, plans have contradictions | Always run the 5-point self-review |
+| Source files in Step 1 | Tester lacks write permission to `src/`; run fails with PermissionError | Step 1 writes only to `tests/`; `ModuleNotFoundError` is a valid red state for greenfield packages |
 
 ## Output protocol
 
