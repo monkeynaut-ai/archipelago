@@ -14,10 +14,7 @@ from archipelago.actions import workspace_io, workspace_ops
 from archipelago.actions.log_actions import (
     LogChangeSetNameInput,
     LogChangeSetNameOutput,
-    LogTddPlanTaskInput,
-    LogTddPlanTaskOutput,
     log_change_set_name,
-    log_tdd_plan_task,
 )
 from archipelago.actions.prepare_change_set_workspace import (
     PrepareChangeSetWorkspaceInput,
@@ -36,25 +33,30 @@ from archipelago.actions.workspace_bootstrap import (
     workspace_bootstrap,
 )
 from archipelago.actions.workspace_io import read_markdown
+from archipelago.actions.write_task_context import (
+    WriteTaskContextInput,
+    WriteTaskContextOutput,
+    write_task_context,
+)
 
 __all__ = [
     "BootstrapInput",
     "BootstrapOutput",
     "LogChangeSetNameInput",
     "LogChangeSetNameOutput",
-    "LogTddPlanTaskInput",
-    "LogTddPlanTaskOutput",
     "PrepareChangeSetWorkspaceInput",
     "PrepareChangeSetWorkspaceOutput",
     "SetupPythonWorkspaceInput",
     "SetupPythonWorkspaceOutput",
     "WorkspaceHandle",
+    "WriteTaskContextInput",
+    "WriteTaskContextOutput",
     "log_change_set_name",
-    "log_tdd_plan_task",
     "prepare_change_set_workspace",
     "read_markdown",
     "setup_python_workspace",
     "workspace_bootstrap",
     "workspace_io",
     "workspace_ops",
+    "write_task_context",
 ]
