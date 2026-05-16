@@ -1,9 +1,10 @@
 # Project specific
-output/
-logs/
-.obsidian/
 */hide
+.obsidian/
+logs/
+output/
 runs/
+secrets/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

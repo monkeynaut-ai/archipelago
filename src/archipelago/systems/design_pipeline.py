@@ -22,6 +22,7 @@ from archipelago.agents.designer import DesignerOutput, designer
 from archipelago.models import CodebaseSource, FeatureDefinition
 from archipelago.systems._artifacts import run_artifacts_layout as _run_artifacts_layout
 from archipelago.systems._lessons_learned import make_lessons_learned_hook
+from archipelago.systems._proxy_config import build_proxy_wiring
 
 # Base image for AgentAction containers. Hardcoded for Phase 2; sourced
 # from Phase 3's published image once that ships. If the tag needs to
@@ -90,6 +91,7 @@ async def run_design_pipeline(
         volume_name=volume_name,
     )
     artifacts_parent, run_id = _run_artifacts_layout()
+    extra_env, extra_volumes = build_proxy_wiring()
     final = await run_primitive_plan(
         PrimitivePlan(root=design_pipeline),
         initial_state=initial_state,
@@ -99,6 +101,8 @@ async def run_design_pipeline(
         base_image_tag=BASE_IMAGE_TAG,
         responder_provider=static_provider(StdinResponder()),
         on_run_ended=[make_lessons_learned_hook(volume_name)],
+        extra_env=extra_env,
+        extra_volumes=extra_volumes,
     )
     assert isinstance(final, DesignPipelineState), (
         f"run_primitive_plan returned {type(final).__name__}, expected DesignPipelineState"

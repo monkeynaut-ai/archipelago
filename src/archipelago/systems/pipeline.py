@@ -54,6 +54,7 @@ from archipelago.models import (
 )
 from archipelago.systems._artifacts import run_artifacts_layout as _run_artifacts_layout
 from archipelago.systems._lessons_learned import make_lessons_learned_hook
+from archipelago.systems._proxy_config import build_proxy_wiring
 from archipelago.systems.design_pipeline import (
     BASE_IMAGE_TAG,
     generate_volume_name,
@@ -230,6 +231,7 @@ async def run_full_pipeline(
         base_image_tag=BASE_IMAGE_TAG,
     )
     artifacts_parent, run_id = _run_artifacts_layout()
+    extra_env, extra_volumes = build_proxy_wiring()
     final = await run_primitive_plan(
         PrimitivePlan(root=full_pipeline),
         initial_state=initial_state,
@@ -241,6 +243,8 @@ async def run_full_pipeline(
         telemetry=telemetry_configuration,
         on_run_starting=[attach_mlflow_adapter],
         on_run_ended=[make_lessons_learned_hook(volume_name)],
+        extra_env=extra_env,
+        extra_volumes=extra_volumes,
     )
     assert isinstance(final, FullPipelineState), (
         f"run_primitive_plan returned {type(final).__name__}, expected FullPipelineState"
