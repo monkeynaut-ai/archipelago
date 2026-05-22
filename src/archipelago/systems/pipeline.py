@@ -53,8 +53,8 @@ from archipelago.models import (
     TDDPlan,
 )
 from archipelago.systems._artifacts import run_artifacts_layout as _run_artifacts_layout
+from archipelago.systems._container_extras import build_extra_env, build_extra_volumes
 from archipelago.systems._lessons_learned import make_lessons_learned_hook
-from archipelago.systems._proxy_config import build_proxy_wiring
 from archipelago.systems.design_pipeline import (
     BASE_IMAGE_TAG,
     generate_volume_name,
@@ -231,7 +231,8 @@ async def run_full_pipeline(
         base_image_tag=BASE_IMAGE_TAG,
     )
     artifacts_parent, run_id = _run_artifacts_layout()
-    extra_env, extra_volumes = build_proxy_wiring()
+    extra_env = build_extra_env()
+    extra_volumes = build_extra_volumes()
     final = await run_primitive_plan(
         PrimitivePlan(root=full_pipeline),
         initial_state=initial_state,
