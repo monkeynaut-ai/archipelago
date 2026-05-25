@@ -6,9 +6,8 @@ feature-definition file (read-only). The writable documents directory
 is owned by root:GID_DOCUMENTS (mode 775) so any agent holding that
 supplementary GID can write there.
 
-The caller (run_design_pipeline) supplies the volume name so the
-container registry and bootstrap agree on it. bootstrap_fn does not
-generate names itself.
+The caller supplies the volume name so the container registry and
+bootstrap agree on it. bootstrap_fn does not generate names itself.
 """
 
 from __future__ import annotations
@@ -121,8 +120,8 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
 
     Pre-pulls both throwaway-container images before touching any state,
     so a broken network fails fast and doesn't leave an orphan volume.
-    The volume name is supplied by the caller (run_design_pipeline) —
-    bootstrap_fn never generates names.
+    The volume name is supplied by the caller — bootstrap_fn never
+    generates names.
     """
     client = docker.from_env()
     github_token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")

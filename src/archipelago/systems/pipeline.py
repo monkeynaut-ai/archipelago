@@ -14,10 +14,6 @@ State scope (per topography design §5):
 
 Per-loop scope is the state model — each primitive declares only the
 fields it needs; the platform projects via field-level slicing.
-
-`design_pipeline` is preserved (in `archipelago.systems.design_pipeline`)
-for design-only smoke runs; this module is independent of it and adds
-its own composition.
 """
 
 from __future__ import annotations
@@ -55,10 +51,7 @@ from archipelago.models import (
 from archipelago.systems._artifacts import run_artifacts_layout as _run_artifacts_layout
 from archipelago.systems._container_extras import build_extra_env, build_extra_volumes
 from archipelago.systems._lessons_learned import make_lessons_learned_hook
-from archipelago.systems.design_pipeline import (
-    BASE_IMAGE_TAG,
-    generate_volume_name,
-)
+from archipelago.systems._workspace import BASE_IMAGE_TAG, generate_volume_name
 from archipelago.telemetry import attach_mlflow_adapter, telemetry_configuration
 
 # ============================================================

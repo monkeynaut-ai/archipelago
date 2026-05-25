@@ -11,14 +11,11 @@ class TestPublicAPI:
             "BASE_IMAGE_TAG",
             "ChangeSetProcessingState",
             "ChangeSetsLoopState",
-            "DesignPipelineState",
             "FullPipelineState",
             "TaskProcessingState",
             "TDDPlanLoopState",
-            "design_pipeline",
             "full_pipeline",
             "generate_volume_name",
-            "run_design_pipeline",
             "run_full_pipeline",
         }
 

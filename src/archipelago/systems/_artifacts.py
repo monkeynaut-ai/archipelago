@@ -1,6 +1,6 @@
 """Shared artifacts-directory helper for runnable Archipelago systems.
 
-Both `design_pipeline` and `full_pipeline` land per-run artifacts under
+Runnable systems land per-run artifacts under
 `cwd/runs/<YYYY-MM-DD-HH-MM-SS>/`. Centralizing here keeps the layout
 consistent across pipelines so a developer can grep `runs/` confidently.
 The leading-underscore module name marks this as intra-package shared
