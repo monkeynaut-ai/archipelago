@@ -16,6 +16,14 @@ from archipelago.actions.aggregate_design_verdict import (
     AggregateDesignVerdictOutput,
     aggregate_design_verdict,
 )
+from archipelago.actions.load_review_inputs import (
+    LoadDesignInput,
+    LoadDesignOutput,
+    LoadInvestigationInput,
+    LoadInvestigationOutput,
+    load_design_into_state,
+    load_investigation_into_state,
+)
 from archipelago.actions.log_actions import (
     LogChangeSetNameInput,
     LogChangeSetNameOutput,
@@ -37,7 +45,7 @@ from archipelago.actions.workspace_bootstrap import (
     WorkspaceHandle,
     workspace_bootstrap,
 )
-from archipelago.actions.workspace_io import read_markdown
+from archipelago.actions.workspace_io import read_markdown, read_workspace_file
 from archipelago.actions.write_task_context import (
     WriteTaskContextInput,
     WriteTaskContextOutput,
@@ -49,6 +57,10 @@ __all__ = [
     "AggregateDesignVerdictOutput",
     "BootstrapInput",
     "BootstrapOutput",
+    "LoadDesignInput",
+    "LoadDesignOutput",
+    "LoadInvestigationInput",
+    "LoadInvestigationOutput",
     "LogChangeSetNameInput",
     "LogChangeSetNameOutput",
     "PrepareChangeSetWorkspaceInput",
@@ -59,9 +71,12 @@ __all__ = [
     "WriteTaskContextInput",
     "WriteTaskContextOutput",
     "aggregate_design_verdict",
+    "load_design_into_state",
+    "load_investigation_into_state",
     "log_change_set_name",
     "prepare_change_set_workspace",
     "read_markdown",
+    "read_workspace_file",
     "setup_python_workspace",
     "workspace_bootstrap",
     "workspace_io",
