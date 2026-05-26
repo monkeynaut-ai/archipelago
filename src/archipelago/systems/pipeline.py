@@ -19,14 +19,18 @@ fields it needs; the platform projects via field-level slicing.
 from __future__ import annotations
 
 from agent_foundry.orchestration import run_primitive_plan
-from agent_foundry.primitives.models import Loop, Sequence
+from agent_foundry.primitives.models import Loop, Retry, Sequence
 from agent_foundry.primitives.plan import PrimitivePlan
+from agent_foundry.primitives.retry_types import RetryExhaustion
 from agent_foundry.responders.protocol import static_provider
 from agent_foundry.responders.stdin import StdinResponder
 from pydantic import BaseModel
 
 from archipelago.actions import (
     WorkspaceHandle,
+    aggregate_design_verdict,
+    load_design_into_state,
+    load_investigation_into_state,
     log_change_set_name,
     prepare_change_set_workspace,
     read_markdown,
@@ -35,6 +39,7 @@ from archipelago.actions import (
     write_task_context,
 )
 from archipelago.agents.change_set_planner import change_set_planner
+from archipelago.agents.design_review import design_correctness_review, design_quality_review
 from archipelago.agents.designer import designer
 from archipelago.agents.implementer import implementer
 from archipelago.agents.pr_creator import pr_creator
@@ -44,11 +49,13 @@ from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
     CodebaseSource,
+    DesignDocument,
     DesignReviewVerdict,
     FeatureDefinition,
     Task,
     TDDPlan,
 )
+from archipelago.models.design_review import CorrectnessVerdict, QualityVerdict
 from archipelago.systems._artifacts import run_artifacts_layout as _run_artifacts_layout
 from archipelago.systems._container_extras import build_extra_env, build_extra_volumes
 from archipelago.systems._lessons_learned import make_lessons_learned_hook
@@ -68,9 +75,11 @@ class FullPipelineState(BaseModel):
     AgentAction compiler returns ``typed.model_dump()``), so this
     model carries each agent's output fields directly rather than
     nesting them under a wrapper. For Designer this means
-    ``investigation_summary_path`` and ``design_document`` (DesignerOutput's
-    fields) appear here as top-level optional strings; same shape for
-    Change Set Planner's ``change_sets_document``.
+    ``investigation_summary_path`` and ``design_document_path`` (string
+    paths written to disk, from DesignerOutput) appear here as top-level
+    optional strings; ``design_document`` is the parsed DesignDocument object
+    populated by ``load_design_into_state`` after the path is available.
+    Same flat shape for Change Set Planner's ``change_sets_document``.
     """
 
     feature_definition: FeatureDefinition
@@ -82,7 +91,12 @@ class FullPipelineState(BaseModel):
     investigation_summary_path: str | None = None
     design_document_path: str | None = None
     # Design review's flat output (populated on revision passes):
+    design_document: DesignDocument | None = None
+    investigation_summary_text: str | None = None
+    correctness_verdict: CorrectnessVerdict | None = None
+    quality_verdict: QualityVerdict | None = None
     design_review_verdict: DesignReviewVerdict | None = None
+    design_review_history: list[DesignReviewVerdict] = []
     # Change Set Planner's flat output:
     change_sets_document_path: str | None = None
     # PR Creator's flat output:
@@ -158,6 +172,67 @@ def _tasks_over(state: TDDPlanLoopState) -> list[Task]:
 
 
 # ============================================================
+# Design-review Retry scope
+# ============================================================
+
+
+class DesignReviewState(BaseModel):
+    """Retry I/O + body Sequence I/O for the design-review loop.
+
+    Carries Designer's inputs (feature_definition, workspace_handle), its
+    on-disk outputs (the two paths), the in-process review inputs loaded from
+    disk, the two reviewer verdicts, and the aggregated verdict + history the
+    Retry condition gates on.
+
+    `design_document_path` is typed Optional here — NOT because it is
+    semantically optional, but because the body Sequence's `_scope_in`
+    eagerly validates this model at body entry, before Designer has written
+    the path on the first attempt; a required field would fail scope-in.
+    Its requiredness is enforced downstream: `ChangeSetsLoopState.design_document_path`
+    is a required `str`, so a None-valued exit from this loop aborts loudly at
+    the change-sets boundary. And by construction the loop only exits
+    successfully when `design_review_verdict.passed`, which requires a design
+    that was loaded from this path — so a passing exit always carries a real
+    path. The only None-exit is `on_exhaustion`, which raises.
+    """
+
+    feature_definition: FeatureDefinition
+    workspace_handle: WorkspaceHandle
+    design_document_path: str | None = None
+    investigation_summary_path: str | None = None
+    design_document: DesignDocument | None = None
+    investigation_summary_text: str | None = None
+    correctness_verdict: CorrectnessVerdict | None = None
+    quality_verdict: QualityVerdict | None = None
+    design_review_verdict: DesignReviewVerdict | None = None
+    design_review_history: list[DesignReviewVerdict] = []
+
+
+class DesignReviewNotApprovedError(RuntimeError):
+    """Raised when the design-review Retry exhausts all attempts without the
+    design passing. Carries the per-attempt verdict history for diagnosis."""
+
+    def __init__(self, history: list[DesignReviewVerdict], max_attempts: int) -> None:
+        self.history = history
+        super().__init__(
+            f"Design review did not pass after {max_attempts} attempts. "
+            f"Final verdict attempt_number="
+            f"{history[-1].attempt_number if history else 'unknown'}."
+        )
+
+
+def _design_review_passed(state: DesignReviewState) -> bool:
+    return state.design_review_verdict is not None and state.design_review_verdict.passed
+
+
+def _design_review_exhausted(exhaustion: RetryExhaustion[DesignReviewState]) -> DesignReviewState:
+    raise DesignReviewNotApprovedError(
+        history=exhaustion.last_state.design_review_history,
+        max_attempts=exhaustion.max_attempts,
+    )
+
+
+# ============================================================
 # Composed topology
 # ============================================================
 
@@ -168,11 +243,27 @@ def _tasks_over(state: TDDPlanLoopState) -> list[Task]:
 #     ],
 # )
 
+design_review_loop = Retry[DesignReviewState, DesignReviewState](
+    max_attempts=3,
+    until=_design_review_passed,
+    on_exhaustion=_design_review_exhausted,
+    body=Sequence[DesignReviewState, DesignReviewState](
+        steps=[
+            designer,
+            load_design_into_state,
+            load_investigation_into_state,
+            design_correctness_review,
+            design_quality_review,
+            aggregate_design_verdict,
+        ],
+    ),
+)
+
 full_pipeline = Sequence[FullPipelineState, FullPipelineState](
     steps=[
         workspace_bootstrap,
         setup_python_workspace,
-        designer,
+        design_review_loop,
         change_set_planner,
         Loop[ChangeSetsLoopState, ChangeSetsLoopState](
             over=_change_sets_over,
