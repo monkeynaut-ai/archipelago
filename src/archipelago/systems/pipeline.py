@@ -44,6 +44,7 @@ from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
     CodebaseSource,
+    DesignReviewVerdict,
     FeatureDefinition,
     Task,
     TDDPlan,
@@ -80,6 +81,8 @@ class FullPipelineState(BaseModel):
     # Designer's flat output:
     investigation_summary_path: str | None = None
     design_document_path: str | None = None
+    # Design review's flat output (populated on revision passes):
+    design_review_verdict: DesignReviewVerdict | None = None
     # Change Set Planner's flat output:
     change_sets_document_path: str | None = None
     # PR Creator's flat output:

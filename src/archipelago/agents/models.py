@@ -8,7 +8,12 @@ from agent_foundry.models.markers import AgentFilePath
 from pydantic import BaseModel
 
 from archipelago.actions import WorkspaceHandle
-from archipelago.models import ChangeSetRef, CodebaseSource, FeatureDefinition
+from archipelago.models import (
+    ChangeSetRef,
+    CodebaseSource,
+    DesignReviewVerdict,
+    FeatureDefinition,
+)
 
 
 class AgentInputBase(BaseModel):
@@ -17,6 +22,10 @@ class AgentInputBase(BaseModel):
 
 class DesignerInput(AgentInputBase):
     feature_definition: FeatureDefinition
+    # Present on revision passes (populated by the prior Retry iteration); None
+    # on the first pass. Drives designer_prompt_builder's revise-vs-fresh branch.
+    design_review_verdict: DesignReviewVerdict | None = None
+    design_document_path: str | None = None
 
 
 class DesignerOutput(BaseModel):
