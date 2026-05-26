@@ -25,6 +25,9 @@ class TestWorkspaceBootstrapPrimitive:
 class TestPublicAPI:
     def test_given_actions_package_when_imported_then_all_matches_expected(self):
         assert set(actions_pkg.__all__) == {
+            "AggregateDesignVerdictInput",
+            "AggregateDesignVerdictOutput",
+            "aggregate_design_verdict",
             "BootstrapInput",
             "BootstrapOutput",
             "LogChangeSetNameInput",

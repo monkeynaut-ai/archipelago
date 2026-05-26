@@ -11,6 +11,11 @@ clone, etc.); `workspace_io` exposes higher-level typed helpers like
 from __future__ import annotations
 
 from archipelago.actions import workspace_io, workspace_ops
+from archipelago.actions.aggregate_design_verdict import (
+    AggregateDesignVerdictInput,
+    AggregateDesignVerdictOutput,
+    aggregate_design_verdict,
+)
 from archipelago.actions.log_actions import (
     LogChangeSetNameInput,
     LogChangeSetNameOutput,
@@ -40,6 +45,8 @@ from archipelago.actions.write_task_context import (
 )
 
 __all__ = [
+    "AggregateDesignVerdictInput",
+    "AggregateDesignVerdictOutput",
     "BootstrapInput",
     "BootstrapOutput",
     "LogChangeSetNameInput",
@@ -51,6 +58,7 @@ __all__ = [
     "WorkspaceHandle",
     "WriteTaskContextInput",
     "WriteTaskContextOutput",
+    "aggregate_design_verdict",
     "log_change_set_name",
     "prepare_change_set_workspace",
     "read_markdown",
