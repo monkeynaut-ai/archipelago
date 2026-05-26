@@ -32,6 +32,7 @@ def load_design_into_state_fn(state: LoadDesignInput) -> LoadDesignOutput:
 
 load_design_into_state = FunctionAction[LoadDesignInput, LoadDesignOutput](
     function=load_design_into_state_fn,
+    name="load_design_into_state",
 )
 
 
@@ -51,4 +52,5 @@ def load_investigation_into_state_fn(state: LoadInvestigationInput) -> LoadInves
 
 load_investigation_into_state = FunctionAction[LoadInvestigationInput, LoadInvestigationOutput](
     function=load_investigation_into_state_fn,
+    name="load_investigation_into_state",
 )

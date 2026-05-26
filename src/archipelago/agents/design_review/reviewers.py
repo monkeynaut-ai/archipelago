@@ -29,6 +29,7 @@ _REVIEW_PARAMETERS = InferenceParameters(temperature=0.0, max_tokens=8_000)
 
 
 design_correctness_review = AICall[DesignReviewInput, CorrectnessReviewOutput](
+    name="design_correctness_review",
     model_input=ModelInput[DesignReviewInput](
         instructions=correctness_instructions,
         prompt=correctness_prompt,
@@ -39,6 +40,7 @@ design_correctness_review = AICall[DesignReviewInput, CorrectnessReviewOutput](
 )
 
 design_quality_review = AICall[DesignReviewInput, QualityReviewOutput](
+    name="design_quality_review",
     model_input=ModelInput[DesignReviewInput](
         instructions=quality_instructions,
         prompt=quality_prompt,

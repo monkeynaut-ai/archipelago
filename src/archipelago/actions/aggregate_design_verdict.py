@@ -64,4 +64,4 @@ def aggregate_design_verdict_fn(
 
 aggregate_design_verdict = FunctionAction[
     AggregateDesignVerdictInput, AggregateDesignVerdictOutput
-](function=aggregate_design_verdict_fn)
+](function=aggregate_design_verdict_fn, name="aggregate_design_verdict")
