@@ -10,6 +10,7 @@ from archipelago.models.design_review import (
     CorrectnessDimension,
     CorrectnessMustFixFinding,
     CorrectnessVerdict,
+    DesignReviewVerdict,
     DimensionScore,
     QualityDimension,
     QualityVerdict,
@@ -128,6 +129,7 @@ def test_attempt_number_increments_with_history() -> None:
 
 def test_emits_step_completed_event() -> None:
     with patch("archipelago.actions.aggregate_design_verdict.runtime") as rt:
+        rt.artifacts_dir.return_value = None
         aggregate_design_verdict_fn(
             AggregateDesignVerdictInput(
                 correctness_verdict=_correctness(),
@@ -137,3 +139,54 @@ def test_emits_step_completed_event() -> None:
         )
     rt.emit.assert_called_once()
     assert rt.emit.call_args.args[0] == "step_completed"
+
+
+def test_writes_per_attempt_verdict_artifact(tmp_path) -> None:
+    with patch("archipelago.actions.aggregate_design_verdict.runtime") as rt:
+        rt.artifacts_dir.return_value = tmp_path
+        aggregate_design_verdict_fn(
+            AggregateDesignVerdictInput(
+                correctness_verdict=_correctness(),
+                quality_verdict=_quality(),
+                design_review_history=[],
+            )
+        )
+    artifact = tmp_path / "design-review" / "attempt-1.json"
+    assert artifact.exists()
+    written = DesignReviewVerdict.model_validate_json(artifact.read_text())
+    assert written.attempt_number == 1
+    assert written.passed is True
+
+
+def test_artifact_filename_tracks_attempt_number(tmp_path) -> None:
+    with patch("archipelago.actions.aggregate_design_verdict.runtime") as rt:
+        rt.artifacts_dir.return_value = tmp_path
+        first = aggregate_design_verdict_fn(
+            AggregateDesignVerdictInput(
+                correctness_verdict=_correctness(),
+                quality_verdict=_quality(),
+                design_review_history=[],
+            )
+        )
+        aggregate_design_verdict_fn(
+            AggregateDesignVerdictInput(
+                correctness_verdict=_correctness(),
+                quality_verdict=_quality(),
+                design_review_history=first.design_review_history,
+            )
+        )
+    assert (tmp_path / "design-review" / "attempt-1.json").exists()
+    assert (tmp_path / "design-review" / "attempt-2.json").exists()
+
+
+def test_no_artifacts_dir_is_noop(tmp_path) -> None:
+    with patch("archipelago.actions.aggregate_design_verdict.runtime") as rt:
+        rt.artifacts_dir.return_value = None
+        aggregate_design_verdict_fn(
+            AggregateDesignVerdictInput(
+                correctness_verdict=_correctness(),
+                quality_verdict=_quality(),
+                design_review_history=[],
+            )
+        )
+    assert list(tmp_path.iterdir()) == []

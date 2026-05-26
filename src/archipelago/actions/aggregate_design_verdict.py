@@ -40,6 +40,23 @@ def _passed(correctness: CorrectnessVerdict, quality: QualityVerdict) -> bool:
     return no_inadequate and no_findings
 
 
+def _write_verdict_artifact(verdict: DesignReviewVerdict) -> None:
+    """Persist the attempt's verdict as a per-attempt JSON artifact.
+
+    The reviewers are plain AICalls on the default path, so they leave no
+    record of their own; the aggregator already holds both verdicts, so it
+    writes the durable record here. No-op outside a run (artifacts_dir None).
+    """
+    artifacts_dir = runtime.artifacts_dir()
+    if artifacts_dir is None:
+        return
+    review_dir = artifacts_dir / "design-review"
+    review_dir.mkdir(parents=True, exist_ok=True)
+    (review_dir / f"attempt-{verdict.attempt_number}.json").write_text(
+        verdict.model_dump_json(indent=2), encoding="utf-8"
+    )
+
+
 def aggregate_design_verdict_fn(
     state: AggregateDesignVerdictInput,
 ) -> AggregateDesignVerdictOutput:
@@ -50,6 +67,7 @@ def aggregate_design_verdict_fn(
         attempt_number=len(state.design_review_history) + 1,
     )
     history = [*state.design_review_history, verdict]
+    _write_verdict_artifact(verdict)
     runtime.emit(
         "step_completed",
         step="aggregate_design_verdict",
