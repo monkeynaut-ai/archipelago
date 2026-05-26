@@ -86,7 +86,6 @@ def test_inadequate_dimension_blocks() -> None:
 
 def test_must_fix_finding_with_meets_bar_still_blocks() -> None:
     scores = {d: DimensionScore.MEETS_BAR for d in CorrectnessDimension}
-    scores[CorrectnessDimension.INTERFACE_FIDELITY] = DimensionScore.NEEDS_IMPROVEMENT
     correctness = CorrectnessVerdict(
         dimension_scores=scores,
         must_fix_findings=[
