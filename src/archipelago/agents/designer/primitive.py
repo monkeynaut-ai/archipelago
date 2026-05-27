@@ -21,14 +21,40 @@ from archipelago.agents.models import DesignerInput, DesignerOutput
 from archipelago.config import DESIGNER_EFFORT, DESIGNER_MODEL
 from archipelago.constants import GID_DOCUMENTS
 from archipelago.models import DesignDocument, FeatureDefinition
+from archipelago.models.design_review import DimensionScore
 
 _TEMPLATE_PATH = Path(__file__).parent / "instructions_template.md"
 
 
 def designer_prompt_builder(state: DesignerInput) -> str:
+    if state.design_review_verdict is None:
+        return (
+            f"The workspace is mounted at {state.workspace_handle.root}. "
+            f"Follow your instructions to produce the design document."
+        )
+
+    verdict = state.design_review_verdict
+    assert state.design_document_path is not None, (
+        "design_document_path must be set on a revision pass (a verdict implies "
+        "a prior Designer run wrote the design)."
+    )
+    findings = [*verdict.correctness.must_fix_findings, *verdict.quality.must_fix_findings]
+    findings_text = "\n".join(
+        f"- [{f.dimension.value}] {f.description} — {f.suggested_resolution}" for f in findings
+    )
+    inadequate = [
+        d.value
+        for scores in (verdict.correctness.dimension_scores, verdict.quality.dimension_scores)
+        for d, s in scores.items()
+        if s == DimensionScore.INADEQUATE
+    ]
     return (
         f"The workspace is mounted at {state.workspace_handle.root}. "
-        f"Follow your instructions to produce the design document."
+        f"Your prior design at {state.design_document_path} did not pass review "
+        f"(attempt {verdict.attempt_number}). Read it, then revise it in place to "
+        f"resolve the following must-fix findings:\n\n{findings_text}\n\n"
+        f"Dimensions scored INADEQUATE: {', '.join(inadequate)}. "
+        f"Write the revised design document to the same path."
     )
 
 

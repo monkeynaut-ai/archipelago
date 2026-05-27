@@ -42,3 +42,18 @@ def read_markdown[T: MarkdownHeader](
         path=path,
     )
     return validate_markdown(text, model_type)
+
+
+def read_workspace_file(workspace_handle: WorkspaceHandle, path: str) -> str:
+    """Read a file from the workspace volume as raw UTF-8 text.
+
+    The freeform-text counterpart to `read_markdown`: no model validation,
+    for content (like the Designer investigation summary) that has no
+    canonical document schema.
+    """
+    client = docker.from_env()
+    return workspace_ops.read_file(
+        client,
+        volume_name=workspace_handle.volume_name,
+        path=path,
+    )

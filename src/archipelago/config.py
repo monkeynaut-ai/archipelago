@@ -1,3 +1,4 @@
+from agent_foundry.ai_models.model import Model
 from agent_foundry.primitives import ClaudeEffort, ClaudeModel
 
 DESIGNER_MODEL: ClaudeModel = ClaudeModel.OPUS_4_6
@@ -8,3 +9,4 @@ TDD_PLANNER_MODEL: ClaudeModel = ClaudeModel.SONNET_4_6
 TESTER_MODEL: ClaudeModel = ClaudeModel.HAIKU_4_5
 IMPLEMENTER_MODEL: ClaudeModel = ClaudeModel.SONNET_4_6
 PR_CREATOR_MODEL: ClaudeModel = ClaudeModel.HAIKU_4_5
+DESIGN_REVIEW_MODEL = Model.CLAUDE_SONNET_4_6

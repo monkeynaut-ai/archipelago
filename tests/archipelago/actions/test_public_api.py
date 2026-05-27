@@ -25,8 +25,17 @@ class TestWorkspaceBootstrapPrimitive:
 class TestPublicAPI:
     def test_given_actions_package_when_imported_then_all_matches_expected(self):
         assert set(actions_pkg.__all__) == {
+            "AggregateDesignVerdictInput",
+            "AggregateDesignVerdictOutput",
+            "aggregate_design_verdict",
             "BootstrapInput",
             "BootstrapOutput",
+            "LoadDesignInput",
+            "LoadDesignOutput",
+            "LoadInvestigationInput",
+            "LoadInvestigationOutput",
+            "load_design_into_state",
+            "load_investigation_into_state",
             "LogChangeSetNameInput",
             "LogChangeSetNameOutput",
             "PrepareChangeSetWorkspaceInput",
@@ -39,6 +48,7 @@ class TestPublicAPI:
             "log_change_set_name",
             "prepare_change_set_workspace",
             "read_markdown",
+            "read_workspace_file",
             "setup_python_workspace",
             "workspace_bootstrap",
             "workspace_io",
