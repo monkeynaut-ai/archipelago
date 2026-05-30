@@ -1,7 +1,6 @@
 """CurrentTaskDocument — the per-iteration task-context artifact.
 
-Written to `/workspace/documents/current-task.md` before each tester /
-implementer invocation. Embeds the active task in full plus a trimmed view of
+Embeds the active task in full plus a trimmed view of
 its change set (purpose and acceptance criteria — the goal context, without
 the full file list and change details that belong to the whole change set
 rather than this one task). The frontmatter slugs give a re-invoked agent a
