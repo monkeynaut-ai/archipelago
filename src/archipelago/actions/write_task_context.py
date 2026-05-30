@@ -12,12 +12,22 @@ Also logs the task name for operator visibility (absorbing log_tdd_plan_task).
 from __future__ import annotations
 
 import docker
+import structlog
 from agent_foundry.primitives.models import FunctionAction
+from archetype.markdown import render_instance
 from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops
 from archipelago.actions.workspace_bootstrap import WorkspaceHandle
-from archipelago.models import ChangeSetRef, Task
+from archipelago.models import (
+    ChangeSetContext,
+    ChangeSetRef,
+    CurrentTaskDocument,
+    CurrentTaskFrontmatter,
+    Task,
+)
+
+_log = structlog.get_logger(__name__)
 
 
 class WriteTaskContextInput(BaseModel):
@@ -32,21 +42,29 @@ class WriteTaskContextOutput(BaseModel):
 
 
 def write_task_context_fn(state: WriteTaskContextInput) -> WriteTaskContextOutput:
-    print(
-        f"[task] {state.current_task.title} ({state.current_task.slug})",
-        flush=True,
+    _log.info(
+        "task",
+        title=state.current_task.title,
+        slug=state.current_task.slug,
     )
-    content = (
-        f"# Current Task\n\n"
-        f"**Change set:** {state.current_change_set.title}\n"
-        f"**TDD plan:** {state.tdd_plan_path}\n"
-        f"**Task:** {state.current_task.title}\n"
+    document = CurrentTaskDocument(
+        frontmatter=CurrentTaskFrontmatter(
+            change_set_slug=state.current_change_set.slug,
+            task_slug=state.current_task.slug,
+            tdd_plan_path=state.tdd_plan_path,
+        ),
+        change_set=ChangeSetContext(
+            title=state.current_change_set.title,
+            purpose=state.current_change_set.purpose,
+            acceptance_criteria=state.current_change_set.acceptance_criteria,
+        ),
+        task=state.current_task,
     )
     _ops.write_file(
         docker.from_env(),
         volume_name=state.workspace_handle.volume_name,
         path=state.workspace_handle.current_task_path,
-        content=content,
+        content=render_instance(document),
     )
     return WriteTaskContextOutput()
 

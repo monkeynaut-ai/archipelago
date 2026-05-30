@@ -12,6 +12,11 @@ from archipelago.models.change_sets_document import (
     slugify,
 )
 from archipelago.models.codebase_source import CodebaseSource
+from archipelago.models.current_task_document import (
+    ChangeSetContext,
+    CurrentTaskDocument,
+    CurrentTaskFrontmatter,
+)
 from archipelago.models.design_document import (
     DesignDocument,
     DesignDocumentFrontmatter,
@@ -51,6 +56,7 @@ __all__ = [
     "AcceptanceCriteria",
     "Assumptions",
     "BusinessOutcomes",
+    "ChangeSetContext",
     "ChangeSetRef",
     "ChangeSetsDocument",
     "ChangeSetsDocumentFrontmatter",
@@ -60,6 +66,8 @@ __all__ = [
     "CorrectnessMustFixFinding",
     "CorrectnessReviewOutput",
     "CorrectnessVerdict",
+    "CurrentTaskDocument",
+    "CurrentTaskFrontmatter",
     "Dependencies",
     "DesignDocument",
     "DesignDocumentFrontmatter",

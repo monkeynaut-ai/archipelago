@@ -1,16 +1,19 @@
-"""Stdout logging FunctionActions for the topography skeleton.
+"""Logging FunctionActions for the topography skeleton.
 
-Transient: these print the current change-set / task name so an operator
+Transient: these log the current change-set / task name so an operator
 can see pipeline progression. They retire when Run Summary lands and
-structured run-event emission replaces stdout logging.
+structured run-event emission replaces this logging.
 """
 
 from __future__ import annotations
 
+import structlog
 from agent_foundry.primitives.models import FunctionAction
 from pydantic import BaseModel
 
 from archipelago.models import ChangeSetRef, Task
+
+_log = structlog.get_logger(__name__)
 
 
 class LogChangeSetNameInput(BaseModel):
@@ -22,9 +25,10 @@ class LogChangeSetNameOutput(BaseModel):
 
 
 def log_change_set_name_fn(state: LogChangeSetNameInput) -> LogChangeSetNameOutput:
-    print(
-        f"[change set] {state.current_change_set.title} ({state.current_change_set.slug})",
-        flush=True,
+    _log.info(
+        "change_set",
+        title=state.current_change_set.title,
+        slug=state.current_change_set.slug,
     )
     return LogChangeSetNameOutput()
 
@@ -45,9 +49,10 @@ class LogTddPlanTaskOutput(BaseModel):
 def log_tdd_plan_task_fn(
     state: LogTddPlanTaskInput,
 ) -> LogTddPlanTaskOutput:
-    print(
-        f"[task] {state.current_task.title} ({state.current_task.slug})",
-        flush=True,
+    _log.info(
+        "task",
+        title=state.current_task.title,
+        slug=state.current_task.slug,
     )
     return LogTddPlanTaskOutput()
 
