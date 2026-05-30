@@ -21,6 +21,12 @@ from archipelago.constants import GID_CODEBASE, GID_DOCUMENTS, GID_TESTS, WORKSP
 GIT_IMAGE = "alpine/git:v2.47.2"
 ALPINE_IMAGE = "alpine:3.20"
 
+# alpine/git declares `VOLUME /git`. Without a mount over that path, every
+# `containers.run(GIT_IMAGE, ..., remove=True)` leaks an anonymous volume —
+# remove=True reaps the container but not its anonymous volumes. A tmpfs at
+# /git satisfies the mount so no anonymous volume is created.
+_GIT_VOLUME_TMPFS = {"/git": ""}
+
 _GITHUB_HTTPS_PREFIX = "https://github.com/"
 
 
@@ -97,6 +103,7 @@ def clone_and_resolve_ref(
             command=["sh", "-c", script],
             entrypoint="",
             volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
+            tmpfs=_GIT_VOLUME_TMPFS,
             remove=True,
             stdout=True,
             stderr=False,
@@ -129,6 +136,7 @@ def list_remote_branches(
             command=["sh", "-c", script],
             entrypoint="",
             volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "ro"}},
+            tmpfs=_GIT_VOLUME_TMPFS,
             remove=True,
             stdout=True,
             stderr=False,
@@ -161,6 +169,7 @@ def create_and_checkout_branch(
             command=["sh", "-c", script],
             entrypoint="",
             volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
+            tmpfs=_GIT_VOLUME_TMPFS,
             remove=True,
         )
     except docker.errors.ContainerError as exc:

@@ -568,3 +568,31 @@ class TestWriteFile:
             content="content",
         )
         assert helper.remove.called
+
+
+class TestGitContainersAvoidAnonymousVolume:
+    """alpine/git declares `VOLUME /git`; without an explicit mount over it,
+    every `containers.run(..., remove=True)` leaves an anonymous volume behind
+    (remove=True reaps the container, not its anonymous volumes). Mounting a
+    tmpfs at /git prevents the anonymous volume from ever being created."""
+
+    def test_given_clone_when_run_then_tmpfs_mounts_over_git_volume(self):
+        client = MagicMock()
+        client.containers.run.return_value = b"a" * 40 + b"\n"
+        ops.clone_and_resolve_ref(
+            client, volume_name="ws", repo_url="u", ref="r", codebase_path=WORKSPACE_CODEBASE_PATH
+        )
+        assert client.containers.run.call_args.kwargs.get("tmpfs") == {"/git": ""}
+
+    def test_given_list_remote_branches_when_run_then_tmpfs_mounts_over_git_volume(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+        ops.list_remote_branches(client, volume_name="ws", codebase_path=WORKSPACE_CODEBASE_PATH)
+        assert client.containers.run.call_args.kwargs.get("tmpfs") == {"/git": ""}
+
+    def test_given_create_branch_when_run_then_tmpfs_mounts_over_git_volume(self):
+        client = MagicMock()
+        ops.create_and_checkout_branch(
+            client, volume_name="ws", codebase_path=WORKSPACE_CODEBASE_PATH, branch_name="b"
+        )
+        assert client.containers.run.call_args.kwargs.get("tmpfs") == {"/git": ""}
