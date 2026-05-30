@@ -148,6 +148,7 @@ class TestBootstrapIntegration:
             ],
             entrypoint="",
             volumes={result.workspace_handle.volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
+            tmpfs={"/git": ""},
             remove=True,
         ).decode("utf-8", errors="replace")
 
