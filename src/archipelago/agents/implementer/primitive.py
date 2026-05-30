@@ -24,9 +24,14 @@ def implementer_prompt_builder(state: ImplementerInput) -> str:
     )
 
 
-def implementer_instructions_provider(_state: ImplementerInput) -> str:
+def implementer_instructions_provider(state: ImplementerInput) -> str:
     template_text = _TEMPLATE_PATH.read_text(encoding="utf-8")
-    return resolve(template_text, TDDPlan=TDDPlan)
+    return resolve(
+        template_text,
+        TDDPlan=TDDPlan,
+        current_task_path=state.workspace_handle.current_task_path,
+        design_document_path=state.workspace_handle.design_document_path,
+    )
 
 
 implementer = AgentAction[ImplementerInput, ImplementerOutput](

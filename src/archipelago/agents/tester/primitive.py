@@ -24,9 +24,14 @@ def tester_prompt_builder(state: TesterInput) -> str:
     )
 
 
-def tester_instructions_provider(_state: TesterInput) -> str:
+def tester_instructions_provider(state: TesterInput) -> str:
     template_text = _TEMPLATE_PATH.read_text(encoding="utf-8")
-    return resolve(template_text, TDDPlan=TDDPlan)
+    return resolve(
+        template_text,
+        TDDPlan=TDDPlan,
+        current_task_path=state.workspace_handle.current_task_path,
+        design_document_path=state.workspace_handle.design_document_path,
+    )
 
 
 tester = AgentAction[TesterInput, TesterOutput](
