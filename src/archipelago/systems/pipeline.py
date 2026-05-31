@@ -18,10 +18,11 @@ fields it needs; the platform projects via field-level slicing.
 
 from __future__ import annotations
 
+import os
+
 from agent_foundry.orchestration import run_primitive_plan
 from agent_foundry.primitives.models import Loop, Retry, Sequence
 from agent_foundry.primitives.plan import PrimitivePlan
-from agent_foundry.primitives.retry_types import RetryExhaustion
 from agent_foundry.responders.protocol import static_provider
 from agent_foundry.responders.stdin import StdinResponder
 from pydantic import BaseModel
@@ -208,28 +209,8 @@ class DesignReviewState(BaseModel):
     design_review_history: list[DesignReviewVerdict] = []
 
 
-class DesignReviewNotApprovedError(RuntimeError):
-    """Raised when the design-review Retry exhausts all attempts without the
-    design passing. Carries the per-attempt verdict history for diagnosis."""
-
-    def __init__(self, history: list[DesignReviewVerdict], max_attempts: int) -> None:
-        self.history = history
-        super().__init__(
-            f"Design review did not pass after {max_attempts} attempts. "
-            f"Final verdict attempt_number="
-            f"{history[-1].attempt_number if history else 'unknown'}."
-        )
-
-
 def _design_review_passed(state: DesignReviewState) -> bool:
     return state.design_review_verdict is not None and state.design_review_verdict.passed
-
-
-def _design_review_exhausted(exhaustion: RetryExhaustion[DesignReviewState]) -> DesignReviewState:
-    raise DesignReviewNotApprovedError(
-        history=exhaustion.last_state.design_review_history,
-        max_attempts=exhaustion.max_attempts,
-    )
 
 
 # ============================================================
@@ -246,7 +227,6 @@ def _design_review_exhausted(exhaustion: RetryExhaustion[DesignReviewState]) -> 
 design_review_loop = Retry[DesignReviewState, DesignReviewState](
     max_attempts=3,
     until=_design_review_passed,
-    on_exhaustion=_design_review_exhausted,
     body=Sequence[DesignReviewState, DesignReviewState](
         steps=[
             designer,
@@ -320,6 +300,15 @@ async def run_full_pipeline(
     artifacts_parent, run_id = _run_artifacts_layout()
     extra_env = build_extra_env()
     extra_volumes = build_extra_volumes()
+    # MLflow telemetry is opt-in: set AF_MLFLOW_ENABLED to a truthy value to
+    # export traces and open an MLflow run. Off by default so the pipeline runs
+    # without a tracking server.
+    mlflow_enabled = os.environ.get("AF_MLFLOW_ENABLED", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     final = await run_primitive_plan(
         PrimitivePlan(root=full_pipeline),
         initial_state=initial_state,
@@ -328,8 +317,8 @@ async def run_full_pipeline(
         workspace_volume=volume_name,
         base_image_tag=BASE_IMAGE_TAG,
         responder_provider=static_provider(StdinResponder()),
-        telemetry=telemetry_configuration,
-        on_run_starting=[attach_mlflow_adapter],
+        telemetry=telemetry_configuration if mlflow_enabled else None,
+        on_run_starting=[attach_mlflow_adapter] if mlflow_enabled else [],
         on_run_ended=[make_lessons_learned_hook(volume_name)],
         extra_env=extra_env,
         extra_volumes=extra_volumes,
