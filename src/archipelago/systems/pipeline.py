@@ -101,6 +101,8 @@ class FullPipelineState(BaseModel):
     design_review_verdict: DesignReviewVerdict | None = None
     design_review_history: list[DesignReviewVerdict] = []
     operator_guidance: str | None = None
+    disposition: ResolverDisposition | None = None
+    exhaustion_reason: RetryExhaustionReason | None = None
     # Change Set Planner's flat output:
     change_sets_document_path: str | None = None
     # PR Creator's flat output:
