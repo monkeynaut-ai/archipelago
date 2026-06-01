@@ -99,6 +99,7 @@ class FullPipelineState(BaseModel):
     quality_verdict: QualityVerdict | None = None
     design_review_verdict: DesignReviewVerdict | None = None
     design_review_history: list[DesignReviewVerdict] = []
+    operator_guidance: str | None = None
     # Change Set Planner's flat output:
     change_sets_document_path: str | None = None
     # PR Creator's flat output:
