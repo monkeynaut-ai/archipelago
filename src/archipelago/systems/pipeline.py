@@ -52,13 +52,11 @@ from archipelago.models import (
     ChangeSetRef,
     ChangeSetsDocument,
     CodebaseSource,
-    DesignDocument,
     DesignReviewVerdict,
     FeatureDefinition,
     Task,
     TDDPlan,
 )
-from archipelago.models.design_review import CorrectnessVerdict, QualityVerdict
 from archipelago.systems._artifacts import run_artifacts_layout as _run_artifacts_layout
 from archipelago.systems._container_extras import build_extra_env, build_extra_volumes
 from archipelago.systems._lessons_learned import make_lessons_learned_hook
@@ -80,9 +78,10 @@ class FullPipelineState(BaseModel):
     nesting them under a wrapper. For Designer this means
     ``investigation_summary_path`` and ``design_document_path`` (string
     paths written to disk, from DesignerOutput) appear here as top-level
-    optional strings; ``design_document`` is the parsed DesignDocument object
-    populated by ``load_design_into_state`` after the path is available.
-    Same flat shape for Change Set Planner's ``change_sets_document``.
+    optional strings. Design-review intermediates (loaded design document,
+    investigation summary text, per-dimension verdicts) are internal to
+    ``review_subsequence`` and do not appear here. Same flat shape for
+    Change Set Planner's ``change_sets_document``.
     """
 
     feature_definition: FeatureDefinition
@@ -93,11 +92,7 @@ class FullPipelineState(BaseModel):
     # Designer's flat output:
     investigation_summary_path: str | None = None
     design_document_path: str | None = None
-    # Design review's flat output (populated on revision passes):
-    design_document: DesignDocument | None = None
-    investigation_summary_text: str | None = None
-    correctness_verdict: CorrectnessVerdict | None = None
-    quality_verdict: QualityVerdict | None = None
+    # Design review loop output:
     design_review_verdict: DesignReviewVerdict | None = None
     design_review_history: list[DesignReviewVerdict] = []
     operator_guidance: str | None = None
@@ -185,10 +180,12 @@ def _tasks_over(state: TDDPlanLoopState) -> list[Task]:
 class DesignReviewState(BaseModel):
     """Retry I/O + body Sequence I/O for the design-review loop.
 
-    Carries Designer's inputs (feature_definition, workspace_handle), its
-    on-disk outputs (the two paths), the in-process review inputs loaded from
-    disk, the two reviewer verdicts, and the aggregated verdict + history the
-    Retry condition gates on.
+    Carries Designer's inputs (feature_definition, workspace_handle) and its
+    on-disk outputs (the two artifact paths) as loop-level fields. The loaded
+    design document, investigation summary text, and per-dimension verdicts are
+    internal to ``review_subsequence`` and do not appear here. The loop gates
+    on ``design_review_verdict`` and accumulates ``design_review_history`` across
+    retry attempts.
 
     `design_document_path` is typed Optional here — NOT because it is
     semantically optional, but because the body Sequence's `_scope_in`
@@ -208,10 +205,6 @@ class DesignReviewState(BaseModel):
     workspace_handle: WorkspaceHandle
     design_document_path: str | None = None
     investigation_summary_path: str | None = None
-    design_document: DesignDocument | None = None
-    investigation_summary_text: str | None = None
-    correctness_verdict: CorrectnessVerdict | None = None
-    quality_verdict: QualityVerdict | None = None
     design_review_verdict: DesignReviewVerdict | None = None
     design_review_history: list[DesignReviewVerdict] = []
     # Populated at loop exhaustion: resolver output, operator instructions for
@@ -220,6 +213,19 @@ class DesignReviewState(BaseModel):
     disposition: ResolverDisposition | None = None
     operator_guidance: str | None = None
     exhaustion_reason: RetryExhaustionReason | None = None
+
+
+class ReviewSubsequenceInput(BaseModel):
+    feature_definition: FeatureDefinition
+    workspace_handle: WorkspaceHandle
+    design_document_path: str | None = None
+    investigation_summary_path: str | None = None
+    design_review_history: list[DesignReviewVerdict] = []
+
+
+class ReviewSubsequenceOutput(BaseModel):
+    design_review_verdict: DesignReviewVerdict
+    design_review_history: list[DesignReviewVerdict]
 
 
 def _design_review_passed(state: DesignReviewState) -> bool:
@@ -243,19 +249,22 @@ operator_resolver = FunctionAction[DesignReviewState, DesignReviewState](
 #     ],
 # )
 
+review_subsequence = Sequence[ReviewSubsequenceInput, ReviewSubsequenceOutput](
+    steps=[
+        load_design_into_state,
+        load_investigation_into_state,
+        design_correctness_review,
+        design_quality_review,
+        aggregate_design_verdict,
+    ],
+)
+
 design_review_loop = Retry[DesignReviewState, DesignReviewState](
     max_attempts=3,
     until=_design_review_passed,
     on_max_attempts_resolver=operator_resolver,
     body=Sequence[DesignReviewState, DesignReviewState](
-        steps=[
-            designer,
-            load_design_into_state,
-            load_investigation_into_state,
-            design_correctness_review,
-            design_quality_review,
-            aggregate_design_verdict,
-        ],
+        steps=[designer, review_subsequence],
     ),
 )
 
