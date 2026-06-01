@@ -199,7 +199,9 @@ class DesignReviewState(BaseModel):
     the change-sets boundary. And by construction the loop only exits
     successfully when `design_review_verdict.passed`, which requires a design
     that was loaded from this path — so a passing exit always carries a real
-    path. The only None-exit is `on_exhaustion`, which raises.
+    path. The loop also exits via the operator resolver at exhaustion: ACCEPT
+    likewise follows a Designer run that wrote the path, ABORT raises
+    `RetryAborted`, and RETRY re-enters the body.
     """
 
     feature_definition: FeatureDefinition

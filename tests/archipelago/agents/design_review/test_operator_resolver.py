@@ -99,3 +99,25 @@ def test_blank_guidance_reprompts() -> None:
         out=lambda _m: None,
     )
     assert result.operator_guidance == "real guidance"
+
+
+def test_summary_output_includes_findings_and_inadequate() -> None:
+    captured: list[str] = []
+    resolve_operator_intervention(
+        _exhausted_state(),
+        prompt=_scripted(["accept"]),
+        out=captured.append,
+    )
+    text = "\n".join(captured)
+    assert "AC-2 missing" in text
+    assert "requirement_coverage" in text.lower()
+
+
+def test_abort_allows_empty_reason() -> None:
+    result = resolve_operator_intervention(
+        _exhausted_state(),
+        prompt=_scripted(["abort", ""]),
+        out=lambda _m: None,
+    )
+    assert result.disposition.kind is DispositionKind.ABORT
+    assert result.disposition.reason == ""

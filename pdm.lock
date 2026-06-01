@@ -12,7 +12,7 @@ requires_python = "==3.14.*"
 
 [[package]]
 name = "agent-foundry"
-version = "0.10.5"
+version = "0.10.6"
 requires_python = "==3.14.*"
 path = "../agent-foundry"
 summary = "Default template for PDM package"
@@ -1366,7 +1366,7 @@ files = [
 
 [[package]]
 name = "mlflow"
-version = "3.12.0"
+version = "3.13.0"
 requires_python = ">=3.10"
 summary = "MLflow is an open source platform for the complete machine learning lifecycle"
 groups = ["default"]
@@ -1375,17 +1375,17 @@ dependencies = [
     "Flask<4",
     "aiohttp<4",
     "alembic!=1.10.0,<2",
-    "cryptography<47,>=43.0.0",
+    "cryptography<49,>=43.0.0",
     "docker<8,>=4.0.0",
     "graphene<4",
-    "gunicorn<26; platform_system != \"Windows\"",
-    "huey<3,>=2.5.4",
+    "gunicorn<27; platform_system != \"Windows\"",
+    "huey<4,>=2.5.4",
     "matplotlib<4",
-    "mlflow-skinny==3.12.0",
-    "mlflow-tracing==3.12.0",
+    "mlflow-skinny==3.13.0",
+    "mlflow-tracing==3.13.0",
     "numpy<3",
     "pandas<3",
-    "pyarrow<24,>=4.0.0",
+    "pyarrow<25,>=4.0.0",
     "scikit-learn<2",
     "scipy<2",
     "skops<1",
@@ -1393,13 +1393,13 @@ dependencies = [
     "waitress<4; platform_system == \"Windows\"",
 ]
 files = [
-    {file = "mlflow-3.12.0-py3-none-any.whl", hash = "sha256:e1c28ed4c48557cc52c766f17f1ca5826753ddf241d43f30f99c45f7ea6b3ce0"},
-    {file = "mlflow-3.12.0.tar.gz", hash = "sha256:227ee31c6abf7ae3b3c38d4ca87c356e107578740c1efee89da43f2a5b9e3b47"},
+    {file = "mlflow-3.13.0-py3-none-any.whl", hash = "sha256:7ca9cb2f623f300dabadaf5e985c85af77c5db3d7c36f56769d22c101b132f6c"},
+    {file = "mlflow-3.13.0.tar.gz", hash = "sha256:a95198d592a8a15fad3db7f56b228acc9422c09f0daa7c6c976a9996ab73c3e2"},
 ]
 
 [[package]]
 name = "mlflow-skinny"
-version = "3.12.0"
+version = "3.13.0"
 requires_python = ">=3.10"
 summary = "MLflow is an open source platform for the complete machine learning lifecycle"
 groups = ["default"]
@@ -1421,18 +1421,18 @@ dependencies = [
     "pyyaml<7,>=5.1",
     "requests<3,>=2.17.3",
     "sqlparse<1,>=0.4.0",
-    "starlette<1",
+    "starlette<2",
     "typing-extensions<5,>=4.0.0",
     "uvicorn<1",
 ]
 files = [
-    {file = "mlflow_skinny-3.12.0-py3-none-any.whl", hash = "sha256:0498f3697abcabcc6204c432ef179840f6a7a34ce123837c98c1913064fda6dd"},
-    {file = "mlflow_skinny-3.12.0.tar.gz", hash = "sha256:74d27066bc9553d281e0c31d25f07deb39dbe99d190e4f7c257703e5c8ee6d10"},
+    {file = "mlflow_skinny-3.13.0-py3-none-any.whl", hash = "sha256:ced3d9a580564fae093d14732df8531fb180574f6483d4c642b6083879eb86fc"},
+    {file = "mlflow_skinny-3.13.0.tar.gz", hash = "sha256:d2273bfa21f776359f7d6ab2267967e3a6732a5fb00996ad433d0e777dfa3b71"},
 ]
 
 [[package]]
 name = "mlflow-tracing"
-version = "3.12.0"
+version = "3.13.0"
 requires_python = ">=3.10"
 summary = "MLflow Tracing SDK is an open-source, lightweight Python package that only includes the minimum set of dependencies and functionality to instrument your code/models/agents with MLflow Tracing."
 groups = ["default"]
@@ -1447,8 +1447,8 @@ dependencies = [
     "pydantic<3,>=2.0.0",
 ]
 files = [
-    {file = "mlflow_tracing-3.12.0-py3-none-any.whl", hash = "sha256:c6072553f47b42505dc7ee62946688a4a0dde8f06b78fbc60e946397b20e1518"},
-    {file = "mlflow_tracing-3.12.0.tar.gz", hash = "sha256:8702a34a1d4f1517ba904d716f5a8fca4675e6526f7d164d02bdaabececa2d80"},
+    {file = "mlflow_tracing-3.13.0-py3-none-any.whl", hash = "sha256:2f8187ce2b1af7419be71d2d8ab5fec53d207d4b8d703cd15e5db64939098d72"},
+    {file = "mlflow_tracing-3.13.0.tar.gz", hash = "sha256:42c435b0fdcab00f1865cab4a52f7a85a2a08d68a959f36bcf90a1c9fe65db0a"},
 ]
 
 [[package]]
