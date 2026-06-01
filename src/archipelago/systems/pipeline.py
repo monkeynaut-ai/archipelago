@@ -21,6 +21,7 @@ from __future__ import annotations
 import os
 
 from agent_foundry.orchestration import run_primitive_plan
+from agent_foundry.primitives import ResolverDisposition, RetryExhaustionReason
 from agent_foundry.primitives.models import Loop, Retry, Sequence
 from agent_foundry.primitives.plan import PrimitivePlan
 from agent_foundry.responders.protocol import static_provider
@@ -207,6 +208,12 @@ class DesignReviewState(BaseModel):
     quality_verdict: QualityVerdict | None = None
     design_review_verdict: DesignReviewVerdict | None = None
     design_review_history: list[DesignReviewVerdict] = []
+    # Populated at loop exhaustion: resolver output, operator instructions for
+    # the guided re-attempt, and the exhaustion reason the compiler wrote before
+    # entering the resolver node.
+    disposition: ResolverDisposition | None = None
+    operator_guidance: str | None = None
+    exhaustion_reason: RetryExhaustionReason | None = None
 
 
 def _design_review_passed(state: DesignReviewState) -> bool:
