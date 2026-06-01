@@ -22,7 +22,7 @@ import os
 
 from agent_foundry.orchestration import run_primitive_plan
 from agent_foundry.primitives import ResolverDisposition, RetryExhaustionReason
-from agent_foundry.primitives.models import Loop, Retry, Sequence
+from agent_foundry.primitives.models import FunctionAction, Loop, Retry, Sequence
 from agent_foundry.primitives.plan import PrimitivePlan
 from agent_foundry.responders.protocol import static_provider
 from agent_foundry.responders.stdin import StdinResponder
@@ -42,6 +42,7 @@ from archipelago.actions import (
 )
 from archipelago.agents.change_set_planner import change_set_planner
 from archipelago.agents.design_review import design_correctness_review, design_quality_review
+from archipelago.agents.design_review.operator_resolver import operator_intervention_fn
 from archipelago.agents.designer import designer
 from archipelago.agents.implementer import implementer
 from archipelago.agents.pr_creator import pr_creator
@@ -221,6 +222,12 @@ def _design_review_passed(state: DesignReviewState) -> bool:
     return state.design_review_verdict is not None and state.design_review_verdict.passed
 
 
+operator_resolver = FunctionAction[DesignReviewState, DesignReviewState](
+    function=operator_intervention_fn,
+    name="operator-intervention",
+)
+
+
 # ============================================================
 # Composed topology
 # ============================================================
@@ -235,6 +242,7 @@ def _design_review_passed(state: DesignReviewState) -> bool:
 design_review_loop = Retry[DesignReviewState, DesignReviewState](
     max_attempts=3,
     until=_design_review_passed,
+    on_max_attempts_resolver=operator_resolver,
     body=Sequence[DesignReviewState, DesignReviewState](
         steps=[
             designer,
