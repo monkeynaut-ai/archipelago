@@ -119,7 +119,7 @@ class DesignReviewVerdict(BaseModel):
     attempt_number: int
 
 
-class DesignReviewInput(BaseModel):
+class DesignReviewerInput(BaseModel):
     """Projected slice the reviewer AICalls read from loop state.
 
     Correctness reads feature_definition + design_document; quality reads

@@ -80,7 +80,7 @@ class FullPipelineState(BaseModel):
     paths written to disk, from DesignerOutput) appear here as top-level
     optional strings. Design-review intermediates (loaded design document,
     investigation summary text, per-dimension verdicts) are internal to
-    ``review_subsequence`` and do not appear here. Same flat shape for
+    ``design_review`` and do not appear here. Same flat shape for
     Change Set Planner's ``change_sets_document``.
     """
 
@@ -183,7 +183,7 @@ class DesignReviewState(BaseModel):
     Carries Designer's inputs (feature_definition, workspace_handle) and its
     on-disk outputs (the two artifact paths) as loop-level fields. The loaded
     design document, investigation summary text, and per-dimension verdicts are
-    internal to ``review_subsequence`` and do not appear here. The loop gates
+    internal to ``design_review`` and do not appear here. The loop gates
     on ``design_review_verdict`` and accumulates ``design_review_history`` across
     retry attempts.
 
@@ -215,7 +215,7 @@ class DesignReviewState(BaseModel):
     exhaustion_reason: RetryExhaustionReason | None = None
 
 
-class ReviewSubsequenceInput(BaseModel):
+class DesignReviewInput(BaseModel):
     feature_definition: FeatureDefinition
     workspace_handle: WorkspaceHandle
     design_document_path: str | None = None
@@ -223,7 +223,7 @@ class ReviewSubsequenceInput(BaseModel):
     design_review_history: list[DesignReviewVerdict] = []
 
 
-class ReviewSubsequenceOutput(BaseModel):
+class DesignReviewOutput(BaseModel):
     design_review_verdict: DesignReviewVerdict
     design_review_history: list[DesignReviewVerdict]
 
@@ -249,7 +249,7 @@ operator_resolver = FunctionAction[DesignReviewState, DesignReviewState](
 #     ],
 # )
 
-review_subsequence = Sequence[ReviewSubsequenceInput, ReviewSubsequenceOutput](
+design_review = Sequence[DesignReviewInput, DesignReviewOutput](
     steps=[
         load_design_into_state,
         load_investigation_into_state,
@@ -259,12 +259,12 @@ review_subsequence = Sequence[ReviewSubsequenceInput, ReviewSubsequenceOutput](
     ],
 )
 
-design_review_loop = Retry[DesignReviewState, DesignReviewState](
+design = Retry[DesignReviewState, DesignReviewState](
     max_attempts=3,
     until=_design_review_passed,
     on_max_attempts_resolver=operator_resolver,
     body=Sequence[DesignReviewState, DesignReviewState](
-        steps=[designer, review_subsequence],
+        steps=[designer, design_review],
     ),
 )
 
@@ -272,7 +272,7 @@ full_pipeline = Sequence[FullPipelineState, FullPipelineState](
     steps=[
         workspace_bootstrap,
         setup_python_workspace,
-        design_review_loop,
+        design,
         change_set_planner,
         Loop[ChangeSetsLoopState, ChangeSetsLoopState](
             over=_change_sets_over,

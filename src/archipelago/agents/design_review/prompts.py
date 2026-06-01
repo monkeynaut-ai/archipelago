@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from archetype.markdown import render_instance
 
-from archipelago.models.design_review import DesignReviewInput
+from archipelago.models.design_review import DesignReviewerInput
 
 _CORRECTNESS_INSTRUCTIONS = """\
 You review a software design document for CORRECTNESS against a feature \
@@ -40,11 +40,11 @@ must_fix finding citing that dimension. Put concrete reasoning in reviewer_notes
 """
 
 
-def correctness_instructions(_state: DesignReviewInput) -> str:
+def correctness_instructions(_state: DesignReviewerInput) -> str:
     return _CORRECTNESS_INSTRUCTIONS
 
 
-def correctness_prompt(state: DesignReviewInput) -> str:
+def correctness_prompt(state: DesignReviewerInput) -> str:
     return (
         "# Feature Definition\n\n"
         f"{render_instance(state.feature_definition)}\n\n"
@@ -53,11 +53,11 @@ def correctness_prompt(state: DesignReviewInput) -> str:
     )
 
 
-def quality_instructions(_state: DesignReviewInput) -> str:
+def quality_instructions(_state: DesignReviewerInput) -> str:
     return _QUALITY_INSTRUCTIONS
 
 
-def quality_prompt(state: DesignReviewInput) -> str:
+def quality_prompt(state: DesignReviewerInput) -> str:
     return (
         "# Design Document\n\n"
         f"{render_instance(state.design_document)}\n\n"

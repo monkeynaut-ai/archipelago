@@ -26,7 +26,7 @@ class TestPublicAPI:
             "Dependencies",
             "DesignDocument",
             "DesignDocumentFrontmatter",
-            "DesignReviewInput",
+            "DesignReviewerInput",
             "DesignReviewVerdict",
             "DesiredOutcomes",
             "DimensionScore",

@@ -3,7 +3,7 @@ from __future__ import annotations
 from archipelago.agents.design_review.prompts import correctness_prompt, quality_prompt
 from archipelago.constants import FEATURE_DEFINITION_FILENAME, WORKSPACE_DOCUMENTS_PATH
 from archipelago.models.design_document import DesignDocument, DesignDocumentFrontmatter
-from archipelago.models.design_review import DesignReviewInput
+from archipelago.models.design_review import DesignReviewerInput
 
 
 def _minimal_design_document() -> DesignDocument:
@@ -29,7 +29,7 @@ def _minimal_design_document() -> DesignDocument:
 
 
 def test_prompts_render_real_documents(minimal_feature_definition) -> None:
-    state = DesignReviewInput(
+    state = DesignReviewerInput(
         feature_definition=minimal_feature_definition,
         design_document=_minimal_design_document(),
         investigation_summary_text="codebase notes",
