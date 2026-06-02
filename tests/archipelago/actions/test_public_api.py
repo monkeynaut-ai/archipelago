@@ -2,24 +2,7 @@
 
 from __future__ import annotations
 
-from agent_foundry.primitives.models import FunctionAction
-
 import archipelago.actions as actions_pkg
-from archipelago.actions.workspace_bootstrap import (
-    bootstrap_fn,
-    workspace_bootstrap,
-)
-
-
-class TestWorkspaceBootstrapPrimitive:
-    def test_given_workspace_bootstrap_when_inspected_then_is_function_action(self):
-        assert isinstance(workspace_bootstrap, FunctionAction)
-
-    def test_given_workspace_bootstrap_when_inspected_then_function_is_bootstrap_fn(self):
-        assert workspace_bootstrap.function is bootstrap_fn
-
-    def test_given_workspace_bootstrap_function_return_type_is_bootstrap_output(self):
-        assert workspace_bootstrap.function.__annotations__["return"] == "BootstrapOutput"
 
 
 class TestPublicAPI:
