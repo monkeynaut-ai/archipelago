@@ -76,3 +76,25 @@ def test_revision_without_path_raises() -> None:
         designer_prompt_builder(
             _input(design_review_verdict=_failing_verdict(), design_document_path=None)
         )
+
+
+def test_revision_prompt_includes_operator_guidance() -> None:
+    prompt = designer_prompt_builder(
+        _input(
+            design_review_verdict=_failing_verdict(),
+            design_document_path="/workspace/documents/design.md",
+            operator_guidance="Use an event queue instead of polling.",
+        )
+    )
+    assert "Use an event queue instead of polling." in prompt
+    assert "operator" in prompt.lower()
+
+
+def test_revision_prompt_omits_guidance_section_when_absent() -> None:
+    prompt = designer_prompt_builder(
+        _input(
+            design_review_verdict=_failing_verdict(),
+            design_document_path="/workspace/documents/design.md",
+        )
+    )
+    assert "operator guidance" not in prompt.lower()

@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 
 from agent_foundry.orchestration.errors import AgentFailedError
+from agent_foundry.primitives import ResolverDidNotConvergeError, RetryAborted
 from archetype.markdown import MarkdownValidationError, validate_markdown
 from dotenv import load_dotenv
 
@@ -78,6 +79,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         final = asyncio.run(run_full_pipeline(feature_definition=feature, codebase_source=source))
+    except RetryAborted as exc:
+        print(f"aborted by operator: {exc.reason}", file=sys.stderr)
+        return 1
+    except ResolverDidNotConvergeError as exc:
+        print(f"error: operator retries did not converge: {exc}", file=sys.stderr)
+        return 1
     except AgentFailedError as exc:
         print(f"error: agent failed: {exc}", file=sys.stderr)
         return 1

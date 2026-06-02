@@ -21,16 +21,16 @@ from archipelago.agents.design_review.prompts import (
 from archipelago.config import DESIGN_REVIEW_MODEL
 from archipelago.models.design_review import (
     CorrectnessReviewOutput,
-    DesignReviewInput,
+    DesignReviewerInput,
     QualityReviewOutput,
 )
 
 _REVIEW_PARAMETERS = InferenceParameters(temperature=0.0, max_tokens=8_000)
 
 
-design_correctness_review = AICall[DesignReviewInput, CorrectnessReviewOutput](
+design_correctness_review = AICall[DesignReviewerInput, CorrectnessReviewOutput](
     name="design_correctness_review",
-    model_input=ModelInput[DesignReviewInput](
+    model_input=ModelInput[DesignReviewerInput](
         instructions=correctness_instructions,
         prompt=correctness_prompt,
     ),
@@ -39,9 +39,9 @@ design_correctness_review = AICall[DesignReviewInput, CorrectnessReviewOutput](
     timeout_seconds=120,
 )
 
-design_quality_review = AICall[DesignReviewInput, QualityReviewOutput](
+design_quality_review = AICall[DesignReviewerInput, QualityReviewOutput](
     name="design_quality_review",
-    model_input=ModelInput[DesignReviewInput](
+    model_input=ModelInput[DesignReviewerInput](
         instructions=quality_instructions,
         prompt=quality_prompt,
     ),

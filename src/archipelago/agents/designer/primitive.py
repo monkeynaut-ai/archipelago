@@ -48,6 +48,12 @@ def designer_prompt_builder(state: DesignerInput) -> str:
         for d, s in scores.items()
         if s == DimensionScore.INADEQUATE
     ]
+    guidance_section = ""
+    if state.operator_guidance is not None:
+        guidance_section = (
+            f"\n\nAn operator reviewed the failed attempts and provided this "
+            f"guidance — treat it as the top priority:\n{state.operator_guidance}"
+        )
     return (
         f"The workspace is mounted at {state.workspace_handle.root}. "
         f"Your prior design at {state.design_document_path} did not pass review "
@@ -55,6 +61,7 @@ def designer_prompt_builder(state: DesignerInput) -> str:
         f"resolve the following must-fix findings:\n\n{findings_text}\n\n"
         f"Dimensions scored INADEQUATE: {', '.join(inadequate)}. "
         f"Write the revised design document to the same path."
+        f"{guidance_section}"
     )
 
 

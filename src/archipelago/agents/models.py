@@ -26,6 +26,9 @@ class DesignerInput(AgentInputBase):
     # on the first pass. Drives designer_prompt_builder's revise-vs-fresh branch.
     design_review_verdict: DesignReviewVerdict | None = None
     design_document_path: str | None = None
+    # Set only when an operator chose RETRY at design-review exhaustion; steers
+    # the revision alongside the reviewer findings.
+    operator_guidance: str | None = None
 
 
 class DesignerOutput(BaseModel):
