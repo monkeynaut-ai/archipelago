@@ -14,7 +14,7 @@ from __future__ import annotations
 import docker
 import structlog
 from agent_foundry.primitives.models import FunctionAction
-from archetype.markdown import render_instance
+from archetype.markdown import render_markdown
 from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops
@@ -44,7 +44,7 @@ class WriteTaskContextOutput(BaseModel):
 def write_task_context_fn(state: WriteTaskContextInput) -> WriteTaskContextOutput:
     _log.info(
         "task",
-        title=state.current_task.title,
+        title=state.current_task.heading,
         slug=state.current_task.slug,
     )
     document = CurrentTaskDocument(
@@ -54,7 +54,7 @@ def write_task_context_fn(state: WriteTaskContextInput) -> WriteTaskContextOutpu
             tdd_plan_path=state.tdd_plan_path,
         ),
         change_set=ChangeSetContext(
-            title=state.current_change_set.title,
+            heading=state.current_change_set.heading,
             purpose=state.current_change_set.purpose,
             acceptance_criteria=state.current_change_set.acceptance_criteria,
         ),
@@ -64,7 +64,7 @@ def write_task_context_fn(state: WriteTaskContextInput) -> WriteTaskContextOutpu
         docker.from_env(),
         volume_name=state.workspace_handle.volume_name,
         path=state.workspace_handle.current_task_path,
-        content=render_instance(document),
+        content=render_markdown(document),
     )
     return WriteTaskContextOutput()
 

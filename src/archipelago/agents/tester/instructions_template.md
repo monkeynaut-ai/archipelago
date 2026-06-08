@@ -11,7 +11,7 @@ Read `{{ current_task_path }}` before doing anything else. Its frontmatter carri
 The TDD plan identified in `{{ current_task_path }}` is a `TDDPlan` document with the following structure (descriptions taken from the model definition):
 
 ````markdown
-{{ render_template(TDDPlan) }}
+{{ generate_contract(TDDPlan) }}
 ````
 
 Each `Task` in the plan's ordered `tasks` list contains a `Task Details` section that fully specifies the failing test for that task: exact file paths, complete test code, exact test command, and the expected failure message.

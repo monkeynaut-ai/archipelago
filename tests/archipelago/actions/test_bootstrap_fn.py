@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from archetype.markdown import render_instance
+from archetype.markdown import render_markdown
 
 from archipelago.actions.workspace_bootstrap import (
     BootstrapInput,
@@ -99,14 +99,14 @@ class TestBootstrapFn:
         assert kwargs["path"] == f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}"
         assert kwargs["mode"] == "444"
 
-    def test_given_input_when_bootstrap_then_feature_def_rendered_via_render_instance(
+    def test_given_input_when_bootstrap_then_feature_def_rendered_via_render_markdown(
         self, patched_ops, minimal_feature_definition
     ):
         ops_mod, _ = patched_ops
         bootstrap_fn(_input(minimal_feature_definition))
 
         kwargs = ops_mod.write_file.call_args.kwargs
-        assert kwargs["content"] == render_instance(minimal_feature_definition)
+        assert kwargs["content"] == render_markdown(minimal_feature_definition)
 
     def test_given_input_when_bootstrap_then_handle_records_ref_and_resolved_sha(
         self, patched_ops, minimal_feature_definition

@@ -13,7 +13,7 @@ directly.
 from __future__ import annotations
 
 import docker
-from archetype.markdown import MarkdownHeader, validate_markdown
+from archetype.markdown import MarkdownHeader, parse_markdown_as
 
 from archipelago.actions import workspace_ops
 from archipelago.actions.workspace_bootstrap import WorkspaceHandle
@@ -41,7 +41,7 @@ def read_markdown[T: MarkdownHeader](
         volume_name=workspace_handle.volume_name,
         path=path,
     )
-    return validate_markdown(text, model_type)
+    return parse_markdown_as(text, model_type)
 
 
 def read_workspace_file(workspace_handle: WorkspaceHandle, path: str) -> str:

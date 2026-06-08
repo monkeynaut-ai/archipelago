@@ -25,7 +25,7 @@ def test_main_handles_operator_abort(monkeypatch, tmp_path, capsys) -> None:
     feature = tmp_path / "feature.md"
     feature.write_text("placeholder", encoding="utf-8")
 
-    monkeypatch.setattr(cli, "validate_markdown", lambda *a, **k: object())
+    monkeypatch.setattr(cli, "parse_markdown_as", lambda *a, **k: object())
 
     async def _raise(**_kwargs):
         raise RetryAborted("operator aborted: blocked on infra")
@@ -43,7 +43,7 @@ def test_main_handles_resolver_nonconvergence(monkeypatch, tmp_path, capsys) -> 
     cli = _load_cli()
     feature = tmp_path / "feature.md"
     feature.write_text("placeholder", encoding="utf-8")
-    monkeypatch.setattr(cli, "validate_markdown", lambda *a, **k: object())
+    monkeypatch.setattr(cli, "parse_markdown_as", lambda *a, **k: object())
 
     async def _raise(**_kwargs):
         raise ResolverDidNotConvergeError(50)

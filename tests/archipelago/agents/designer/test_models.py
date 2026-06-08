@@ -36,7 +36,7 @@ class TestDesignerInput:
             feature_definition=minimal_feature_definition,
         )
         assert state.workspace_handle.root == WORKSPACE_ROOT
-        assert state.feature_definition.title == "Demo Feature"
+        assert state.feature_definition.heading == "Demo Feature"
 
     def test_given_missing_workspace_handle_when_constructed_then_validation_error(
         self, minimal_feature_definition

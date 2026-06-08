@@ -27,7 +27,7 @@ def _minimal_design_document() -> DesignDocument:
             codebase_resolved_sha="a" * 40,
             generated_at="2026-04-21T12:00:00Z",
         ),
-        title="Demo Feature",
+        heading="Demo Feature",
         summary="One-paragraph framing.",
         current_state_context="Relevant existing state.",
         components="Component A, Component B.",

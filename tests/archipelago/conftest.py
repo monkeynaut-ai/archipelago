@@ -45,7 +45,7 @@ def minimal_feature_definition():
             feature_slug="demo",
             created_at="2026-04-21",
         ),
-        title="Demo Feature",
+        heading="Demo Feature",
         problem_statement="A gap exists.",
         feature_intent="Close the gap.",
         desired_outcomes=DesiredOutcomes(

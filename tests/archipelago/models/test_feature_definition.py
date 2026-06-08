@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from archetype.markdown import render_instance, template_fields, validate_markdown
+from archetype.markdown import parse_markdown_as, render_markdown, template_fields
 from pydantic import ValidationError
 
 from archipelago.models.feature_definition import (
@@ -25,34 +25,34 @@ class TestWrapperDefaults:
     for the corresponding top-level field name."""
 
     def test_given_user_outcomes_when_default_constructed_then_title_is_user_outcomes(self):
-        assert UserOutcomes(items=["x"]).title == "User Outcomes"
+        assert UserOutcomes(items=["x"]).heading == "User Outcomes"
 
     def test_given_business_outcomes_when_default_constructed_then_title_is_business_outcomes(self):
-        assert BusinessOutcomes(items=["x"]).title == "Business Outcomes"
+        assert BusinessOutcomes(items=["x"]).heading == "Business Outcomes"
 
     def test_given_scope_boundaries_when_default_constructed_then_title_is_scope_boundaries(self):
-        assert ScopeBoundaries(items=["x"]).title == "Scope Boundaries"
+        assert ScopeBoundaries(items=["x"]).heading == "Scope Boundaries"
 
     def test_given_assumptions_when_default_constructed_then_title_is_assumptions(self):
-        assert Assumptions(items=["x"]).title == "Assumptions"
+        assert Assumptions(items=["x"]).heading == "Assumptions"
 
     def test_given_dependencies_when_default_constructed_then_title_is_dependencies(self):
-        assert Dependencies(items=["x"]).title == "Dependencies"
+        assert Dependencies(items=["x"]).heading == "Dependencies"
 
     def test_given_constraints_when_default_constructed_then_title_is_constraints(self):
-        assert Constraints(items=["x"]).title == "Constraints"
+        assert Constraints(items=["x"]).heading == "Constraints"
 
     def test_given_acceptance_criteria_when_default_constructed_then_title_is_acceptance_criteria(
         self,
     ):
-        assert AcceptanceCriteria(items=["x"]).title == "Acceptance Criteria"
+        assert AcceptanceCriteria(items=["x"]).heading == "Acceptance Criteria"
 
     def test_given_desired_outcomes_when_default_constructed_then_title_is_desired_outcomes(self):
         wrapper = DesiredOutcomes(
             user_outcomes=UserOutcomes(items=["u"]),
             business_outcomes=BusinessOutcomes(items=["b"]),
         )
-        assert wrapper.title == "Desired Outcomes"
+        assert wrapper.heading == "Desired Outcomes"
 
 
 class TestSimpleWrapperContent:
@@ -92,7 +92,7 @@ class TestFeatureDefinitionFrontmatter:
 class TestFeatureDefinitionConstruction:
     def test_given_all_sections_when_constructed_then_no_error(self, minimal_feature_definition):
         fd = minimal_feature_definition
-        assert fd.title == "Demo Feature"
+        assert fd.heading == "Demo Feature"
         assert fd.problem_statement == "A gap exists."
         assert fd.assumptions.items == ["a1"]
 
@@ -100,7 +100,7 @@ class TestFeatureDefinitionConstruction:
         with pytest.raises(ValidationError):
             FeatureDefinition(
                 frontmatter=FeatureDefinitionFrontmatter(feature_slug="x", created_at="x"),
-                title="x",
+                heading="x",
                 feature_intent="x",
                 desired_outcomes=DesiredOutcomes(
                     user_outcomes=UserOutcomes(items=[]),
@@ -141,13 +141,13 @@ class TestFeatureDefinitionTemplateFields:
 
 class TestFeatureDefinitionRoundTrip:
     def test_given_instance_when_rendered_then_h1_present(self, minimal_feature_definition):
-        rendered = render_instance(minimal_feature_definition)
+        rendered = render_markdown(minimal_feature_definition)
         assert "# Demo Feature" in rendered
 
     def test_given_instance_when_rendered_then_all_h2_sections_present(
         self, minimal_feature_definition
     ):
-        rendered = render_instance(minimal_feature_definition)
+        rendered = render_markdown(minimal_feature_definition)
         for heading in [
             "## Problem Statement",
             "## Feature Intent",
@@ -163,6 +163,6 @@ class TestFeatureDefinitionRoundTrip:
     def test_given_instance_when_rendered_and_parsed_then_semantically_equal(
         self, minimal_feature_definition
     ):
-        rendered = render_instance(minimal_feature_definition)
-        reparsed = validate_markdown(rendered, FeatureDefinition)
+        rendered = render_markdown(minimal_feature_definition)
+        reparsed = parse_markdown_as(rendered, FeatureDefinition)
         assert reparsed == minimal_feature_definition

@@ -28,7 +28,7 @@ class Task(MarkdownHeader):
     (instructions - commit)
     """
 
-    title: Annotated[str, TextTemplate("{value}")] = Field(
+    heading: Annotated[str, TextTemplate("{value}")] = Field(
         description="Human-readable name of this task; renders as the heading."
     )
 
@@ -49,7 +49,7 @@ class Task(MarkdownHeader):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def slug(self) -> str:
-        return slugify(self.title)
+        return slugify(self.heading)
 
 
 class TDDPlanFrontmatter(BaseModel):
@@ -67,7 +67,7 @@ class TDDPlanFrontmatter(BaseModel):
 
 class TDDPlan(MarkdownDocument):
     frontmatter: TDDPlanFrontmatter | None = None
-    title: Annotated[str, TextTemplate("TDD Plan for change set {value}")]
+    heading: Annotated[str, TextTemplate("TDD Plan for change set {value}")]
 
     # List of files: file, action, responsibility
     tasks: list[Task] = Field(

@@ -30,7 +30,7 @@ def slugify(text: str) -> str:
 
 
 class ChangeSetRef(MarkdownHeader):
-    title: Annotated[str, TextTemplate("{value}")] = Field(
+    heading: Annotated[str, TextTemplate("{value}")] = Field(
         description="Human-readable name of this change set; renders as the heading."
     )
 
@@ -64,7 +64,7 @@ class ChangeSetRef(MarkdownHeader):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def slug(self) -> str:
-        return slugify(self.title)
+        return slugify(self.heading)
 
 
 class ChangeSetsDocumentFrontmatter(BaseModel):
@@ -82,7 +82,7 @@ class ChangeSetsDocumentFrontmatter(BaseModel):
 
 class ChangeSetsDocument(MarkdownDocument):
     frontmatter: ChangeSetsDocumentFrontmatter | None = None
-    title: Annotated[str, TextTemplate("Change sets for {value}")]
+    heading: Annotated[str, TextTemplate("Change sets for {value}")]
     tech_stack: Annotated[str, AsHeading()] = Field(
         description="Key technologies, libraries, frameworks etc relevant to the implementation"
     )

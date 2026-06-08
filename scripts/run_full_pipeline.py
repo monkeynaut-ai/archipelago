@@ -24,7 +24,7 @@ from pathlib import Path
 
 from agent_foundry.orchestration.errors import AgentFailedError
 from agent_foundry.primitives import ResolverDidNotConvergeError, RetryAborted
-from archetype.markdown import MarkdownValidationError, validate_markdown
+from archetype.markdown import MarkdownValidationError, parse_markdown_as
 from dotenv import load_dotenv
 
 from archipelago.models import CodebaseSource, FeatureDefinition
@@ -67,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         text = feature_path.read_text(encoding="utf-8")
-        feature = validate_markdown(text, FeatureDefinition)
+        feature = parse_markdown_as(text, FeatureDefinition)
     except MarkdownValidationError as exc:
         print(f"error: failed to parse feature: {exc}", file=sys.stderr)
         return 2

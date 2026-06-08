@@ -18,7 +18,7 @@ import re
 
 import docker
 from agent_foundry.primitives.models import FunctionAction
-from archetype.markdown import render_instance
+from archetype.markdown import render_markdown
 from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops
@@ -154,7 +154,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
             codebase_path=WORKSPACE_CODEBASE_PATH,
         )
         branch_name = _unique_branch_name(
-            state.feature_definition.title,
+            state.feature_definition.heading,
             remote_branches,
         )
 
@@ -196,7 +196,7 @@ def bootstrap_fn(state: BootstrapInput) -> BootstrapOutput:
             client,
             volume_name=state.volume_name,
             path=f"{WORKSPACE_DOCUMENTS_PATH}/{FEATURE_DEFINITION_FILENAME}",
-            content=render_instance(state.feature_definition),
+            content=render_markdown(state.feature_definition),
             mode="444",
         )
     except Exception:

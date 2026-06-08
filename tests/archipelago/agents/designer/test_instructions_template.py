@@ -129,7 +129,7 @@ class TestTemplateResolution:
             FeatureDefinition=FeatureDefinition,
             DesignDocument=DesignDocument,
         )
-        assert minimal_feature_definition.title in resolved
+        assert minimal_feature_definition.heading in resolved
 
     def test_given_resolved_when_checked_then_does_not_inline_feature_prose(
         self, minimal_feature_definition

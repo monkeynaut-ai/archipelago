@@ -27,7 +27,7 @@ class LogChangeSetNameOutput(BaseModel):
 def log_change_set_name_fn(state: LogChangeSetNameInput) -> LogChangeSetNameOutput:
     _log.info(
         "change_set",
-        title=state.current_change_set.title,
+        title=state.current_change_set.heading,
         slug=state.current_change_set.slug,
     )
     return LogChangeSetNameOutput()
@@ -51,7 +51,7 @@ def log_tdd_plan_task_fn(
 ) -> LogTddPlanTaskOutput:
     _log.info(
         "task",
-        title=state.current_task.title,
+        title=state.current_task.heading,
         slug=state.current_task.slug,
     )
     return LogTddPlanTaskOutput()
