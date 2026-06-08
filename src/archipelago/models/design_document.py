@@ -39,7 +39,7 @@ class DesignDocumentFrontmatter(BaseModel):
 
 class DesignDocument(MarkdownDocument):
     frontmatter: DesignDocumentFrontmatter | None = None
-    title: Annotated[str, TextTemplate("Design for {value}")]
+    heading: Annotated[str, TextTemplate("Design for {value}")]
 
     summary: Annotated[str, AsHeading()] = Field(
         description="A one-paragraph framing of the proposed design."

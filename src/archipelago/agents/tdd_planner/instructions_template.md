@@ -17,7 +17,7 @@ The TDD implemnation plan you generate is composed of a sequence of tasks. Each 
 Write the TDD implementation plan at `{{ tdd_plan_path }}`. It must match the syntax and semantics of the following structure exactly:
 
 ````markdown
-{{ render_template(TDDPlan) }}
+{{ generate_contract(TDDPlan) }}
 ````
 
 ### Bite-Sized Task Granularity

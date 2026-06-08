@@ -69,10 +69,10 @@ def _steps_doc() -> TDDPlan:
             change_set_name="Slice One",
             generated_at=date(2026, 4, 30).isoformat(),
         ),
-        title="Slice One",
+        heading="Slice One",
         tasks=[
-            Task(title="First Step", summary="Red.", task_details="d1"),
-            Task(title="Second Step", summary="Green.", task_details="d2"),
+            Task(heading="First Step", summary="Red.", task_details="d1"),
+            Task(heading="Second Step", summary="Green.", task_details="d2"),
         ],
     )
 

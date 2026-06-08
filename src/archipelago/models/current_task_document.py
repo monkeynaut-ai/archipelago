@@ -18,7 +18,7 @@ from archipelago.models.tdd_plan import Task
 
 
 class ChangeSetContext(MarkdownHeader):
-    title: Annotated[str, TextTemplate("{value}")]
+    heading: Annotated[str, TextTemplate("{value}")]
     purpose: Annotated[str, AsHeading()]
     acceptance_criteria: Annotated[str, AsHeading()]
 
@@ -31,7 +31,7 @@ class CurrentTaskFrontmatter(BaseModel):
 
 class CurrentTaskDocument(MarkdownDocument):
     frontmatter: CurrentTaskFrontmatter | None = None
-    title: Annotated[str, TextTemplate("Current Task")] = "Current Task"
+    heading: Annotated[str, TextTemplate("Current Task")] = "Current Task"
 
     change_set: ChangeSetContext
     task: Task

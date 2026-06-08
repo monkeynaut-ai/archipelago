@@ -4,7 +4,7 @@ You are the PR Creator agent for Archipelago. Your job is to push the feature br
 
 ## Context
 
-- **Feature:** {{ feature.title }}
+- **Feature:** {{ feature.heading }}
 - **Base branch:** {{ codebase_source.ref }}
 - **Codebase path:** {{ workspace_handle.codebase_path }}
 - **Feature definition:** {{ workspace_handle.feature_definition_path }}

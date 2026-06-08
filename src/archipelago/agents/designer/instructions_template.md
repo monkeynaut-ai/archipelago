@@ -9,7 +9,7 @@ and implementation. Write for them.
 
 ## Your input
 
-This run, you are designing for the feature **{{ feature.title }}**.
+This run, you are designing for the feature **{{ feature.heading }}**.
 
 Read the feature definition at `{{ workspace_handle.feature_definition_path }}`.
 It has these sections:
@@ -25,7 +25,7 @@ Write the design document at `{{ workspace_handle.design_document_path }}`. It m
 match this structure exactly:
 
 ````markdown
-{{ render_template(DesignDocument) }}
+{{ generate_contract(DesignDocument) }}
 ````
 
 The placeholder comments describe what each section is for.

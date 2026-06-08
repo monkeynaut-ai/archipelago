@@ -8,7 +8,7 @@ the Designer-captured investigation summary as codebase context.
 
 from __future__ import annotations
 
-from archetype.markdown import render_instance
+from archetype.markdown import render_markdown
 
 from archipelago.models.design_review import DesignReviewerInput
 
@@ -47,9 +47,9 @@ def correctness_instructions(_state: DesignReviewerInput) -> str:
 def correctness_prompt(state: DesignReviewerInput) -> str:
     return (
         "# Feature Definition\n\n"
-        f"{render_instance(state.feature_definition)}\n\n"
+        f"{render_markdown(state.feature_definition)}\n\n"
         "# Design Document\n\n"
-        f"{render_instance(state.design_document)}\n"
+        f"{render_markdown(state.design_document)}\n"
     )
 
 
@@ -60,7 +60,7 @@ def quality_instructions(_state: DesignReviewerInput) -> str:
 def quality_prompt(state: DesignReviewerInput) -> str:
     return (
         "# Design Document\n\n"
-        f"{render_instance(state.design_document)}\n\n"
+        f"{render_markdown(state.design_document)}\n\n"
         "# Investigation Summary (codebase context)\n\n"
         "```\n"
         f"{state.investigation_summary_text}\n"

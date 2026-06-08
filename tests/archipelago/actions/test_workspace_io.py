@@ -12,7 +12,7 @@ from datetime import date
 from unittest.mock import MagicMock, patch
 
 import pytest
-from archetype.markdown import MarkdownValidationError, render_instance
+from archetype.markdown import MarkdownValidationError, render_markdown
 
 from archipelago.actions import WorkspaceHandle, workspace_io
 from archipelago.constants import (
@@ -48,18 +48,18 @@ def _sample_change_sets_doc() -> ChangeSetsDocument:
             feature_name="Demo Feature",
             generated_at=date(2026, 4, 30).isoformat(),
         ),
-        title="Demo Feature",
+        heading="Demo Feature",
         tech_stack="marshall amps",
         change_sets=[
             ChangeSetRef(
-                title="First Slice",
+                heading="First Slice",
                 purpose="Stand it up.",
                 details="wow, more!",
                 files="files",
                 acceptance_criteria="great finale",
             ),
             ChangeSetRef(
-                title="Second Slice",
+                heading="Second Slice",
                 purpose="Wire it together.",
                 details="on and on",
                 files="files",
@@ -86,7 +86,7 @@ def patched_io():
 class TestReadMarkdown:
     def test_given_handle_when_called_then_read_file_called_with_volume_and_path(self, patched_io):
         read_file, _, client = patched_io
-        read_file.return_value = render_instance(_sample_change_sets_doc())
+        read_file.return_value = render_markdown(_sample_change_sets_doc())
 
         workspace_io.read_markdown(
             _handle("my-vol"),
@@ -103,7 +103,7 @@ class TestReadMarkdown:
     def test_given_valid_markdown_when_called_then_returns_validated_instance(self, patched_io):
         read_file, _, _ = patched_io
         expected = _sample_change_sets_doc()
-        read_file.return_value = render_instance(expected)
+        read_file.return_value = render_markdown(expected)
 
         result = workspace_io.read_markdown(
             _handle(),
@@ -138,7 +138,7 @@ class TestReadMarkdown:
 
     def test_given_call_when_invoked_then_docker_from_env_called_once(self, patched_io):
         read_file, from_env, _ = patched_io
-        read_file.return_value = render_instance(_sample_change_sets_doc())
+        read_file.return_value = render_markdown(_sample_change_sets_doc())
 
         workspace_io.read_markdown(
             _handle(),

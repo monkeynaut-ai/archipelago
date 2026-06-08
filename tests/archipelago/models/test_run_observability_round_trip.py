@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from archetype.markdown import render_instance, validate_markdown
+from archetype.markdown import parse_markdown_as, render_markdown
 
 from archipelago.models.feature_definition import FeatureDefinition
 
@@ -19,8 +19,8 @@ class TestRunObservabilityParse:
         text = (repo_root / "examples" / "features" / "run-observability.md").read_text(
             encoding="utf-8"
         )
-        fd = validate_markdown(text, FeatureDefinition)
-        assert fd.title == "Run Observability"
+        fd = parse_markdown_as(text, FeatureDefinition)
+        assert fd.heading == "Run Observability"
 
     def test_given_committed_file_when_parsed_then_frontmatter_slug_is_correct(
         self, repo_root: Path
@@ -28,14 +28,14 @@ class TestRunObservabilityParse:
         text = (repo_root / "examples" / "features" / "run-observability.md").read_text(
             encoding="utf-8"
         )
-        fd = validate_markdown(text, FeatureDefinition)
+        fd = parse_markdown_as(text, FeatureDefinition)
         assert fd.frontmatter.feature_slug == "run-observability"
 
     def test_given_committed_file_when_parsed_then_body_sections_non_empty(self, repo_root: Path):
         text = (repo_root / "examples" / "features" / "run-observability.md").read_text(
             encoding="utf-8"
         )
-        fd = validate_markdown(text, FeatureDefinition)
+        fd = parse_markdown_as(text, FeatureDefinition)
         assert len(fd.problem_statement) > 50
         assert len(fd.feature_intent) > 50
         assert len(fd.desired_outcomes.user_outcomes.items) >= 3
@@ -54,7 +54,7 @@ class TestRunObservabilityRoundTrip:
         text = (repo_root / "examples" / "features" / "run-observability.md").read_text(
             encoding="utf-8"
         )
-        fd = validate_markdown(text, FeatureDefinition)
-        rendered = render_instance(fd)
-        reparsed = validate_markdown(rendered, FeatureDefinition)
+        fd = parse_markdown_as(text, FeatureDefinition)
+        rendered = render_markdown(fd)
+        reparsed = parse_markdown_as(rendered, FeatureDefinition)
         assert reparsed == fd

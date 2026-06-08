@@ -26,7 +26,7 @@ def tdd_planner_prompt_builder(state: TDDPlannerInput) -> str:
     return (
         f"The workspace is mounted at {state.workspace_handle.root}. "
         f"Plan TDD steps for change set "
-        f"'{state.current_change_set.title}'."
+        f"'{state.current_change_set.heading}'."
     )
 
 

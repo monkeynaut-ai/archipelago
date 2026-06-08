@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from archetype.markdown import render_instance, template_fields, validate_markdown
+from archetype.markdown import parse_markdown_as, render_markdown, template_fields
 from pydantic import ValidationError
 
 from archipelago.constants import FEATURE_DEFINITION_FILENAME, WORKSPACE_DOCUMENTS_PATH
@@ -23,7 +23,7 @@ def _minimal_design_document() -> DesignDocument:
             codebase_resolved_sha="a" * 40,
             generated_at="2026-04-21T12:00:00Z",
         ),
-        title="Demo Feature",
+        heading="Demo Feature",
         summary="One-paragraph framing.",
         current_state_context="Relevant existing state.",
         components="Component A, Component B.",
@@ -62,7 +62,7 @@ class TestDesignDocumentFrontmatter:
 class TestDesignDocumentConstruction:
     def test_given_all_sections_when_constructed_then_no_error(self):
         dd = _minimal_design_document()
-        assert dd.title == "Demo Feature"
+        assert dd.heading == "Demo Feature"
         assert dd.summary == "One-paragraph framing."
 
     def test_given_missing_architecture_when_constructed_then_validation_error(self):
@@ -76,7 +76,7 @@ class TestDesignDocumentConstruction:
                     codebase_resolved_sha="a" * 40,
                     generated_at="ts",
                 ),
-                title="X",
+                heading="X",
                 summary="s",
                 current_state_context="c",
                 components="c",
@@ -109,20 +109,20 @@ class TestDesignDocumentTemplateFields:
 class TestDesignDocumentTitleTextTemplate:
     def test_given_instance_when_rendered_then_h1_uses_design_for_prefix(self):
         dd = _minimal_design_document()
-        rendered = render_instance(dd)
+        rendered = render_markdown(dd)
         assert "# Design for Demo Feature" in rendered
 
 
 class TestDesignDocumentRoundTrip:
     def test_given_instance_when_rendered_and_parsed_then_semantically_equal(self):
         dd = _minimal_design_document()
-        rendered = render_instance(dd)
-        reparsed = validate_markdown(rendered, DesignDocument)
+        rendered = render_markdown(dd)
+        reparsed = parse_markdown_as(rendered, DesignDocument)
         assert reparsed == dd
 
     def test_given_instance_when_rendered_then_all_frontmatter_fields_present(self):
         dd = _minimal_design_document()
-        rendered = render_instance(dd)
+        rendered = render_markdown(dd)
         for key in [
             "feature_slug:",
             "feature_name:",

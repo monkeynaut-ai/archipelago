@@ -22,7 +22,7 @@ The change sets must adhere to the following rules
 
 ## Your input
 
-You are planning change sets for the feature **{{ feature.title }}**.  Read the design document for this feature at `{{ design_document_path }}`.
+You are planning change sets for the feature **{{ feature.heading }}**.  Read the design document for this feature at `{{ design_document_path }}`.
 
 The feature definition at `{{ workspace_handle.feature_definition_path }}` is also available if you need to consult the original outcomes, scope, or acceptance criteria.
 
@@ -31,7 +31,7 @@ The feature definition at `{{ workspace_handle.feature_definition_path }}` is al
 Write the change-sets document at `{{ workspace_handle.change_sets_document_path }}`. It must match the syntax and semantics of this structure exactly:
 
 ````markdown
-{{ render_template(ChangeSetsDocument) }}
+{{ generate_contract(ChangeSetsDocument) }}
 ````
 
 ## Output protocol
