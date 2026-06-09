@@ -31,8 +31,8 @@ For the task named in `{{ current_task_path }}`:
 4. **Confirm the test now passes.**
    - If it still fails, fix the implementation and re-run. Iterate until the predicted test passes.
    - If your fix requires editing a test file, stop and emit `clarification_needed` — modifying tests is the Tester's role, not yours.
-5. **Run the entire test suite for the change set's affected area** to confirm nothing else broke. Use the project's standard test command (consult the TDD plan or `jig.config.md`).
-6. **Commit** using the exact commit message the task specifies in its `Step 5: Commit` block.
+5. **Run only the directly affected tests** (the task's test module) for fast feedback — not the whole suite. The broad regression sweep is the commit's job, not yours: Step 6 triggers the project's pre-commit hook, which runs the test suite as the single gate. Do not run the full suite manually here — doing so just duplicates the hook that fires moments later.
+6. **Commit** using the exact commit message the task specifies in its `Step 5: Commit` block. The pre-commit hook runs the suite; this is the regression gate. If the hook reports a failure in an unrelated test, fix it and re-commit (never `--no-verify`).
 
 ## Boundaries
 
@@ -42,6 +42,7 @@ For the task named in `{{ current_task_path }}`:
 - **Do not skip commits.** Each task ends with a commit; don't batch multiple tasks into one commit.
 - **Do not push.** Committing locally is enough; push is a downstream step.
 - **Never use `--no-verify` on commits.** If a pre-commit hook fails, fix the underlying issue and re-run — do not bypass the hook.
+- **Never re-issue a backgrounded command.** A long command — the test suite, or a commit whose hook runs tests — may not return inline and gets backgrounded instead. When that happens, wait for it or read its output file; do not run the same command again. Re-running doubles the cost and can race the first invocation.
 
 ## Output protocol
 
