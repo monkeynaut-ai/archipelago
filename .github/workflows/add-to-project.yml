@@ -1,0 +1,27 @@
+name: Add issues to project
+
+# Adds every newly opened/reopened issue in this repo to the
+# "Run improvements" project board (Status defaults to Todo via the
+# project's built-in "Item added to project" workflow). Priority is
+# intentionally left unset so new issues land in the backlog for triage.
+#
+# Requires a repository secret ADD_TO_PROJECT_PAT: a token with
+# read/write access to the project (the default GITHUB_TOKEN cannot
+# write to user/org-level Projects v2). See README/CI notes.
+
+on:
+  issues:
+    types: [opened, reopened, transferred]
+
+permissions:
+  contents: read
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add issue to project
+        uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
+        with:
+          project-url: https://github.com/users/730alchemy/projects/2
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
