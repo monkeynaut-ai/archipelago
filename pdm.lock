@@ -1446,14 +1446,14 @@ files = [
 
 [[package]]
 name = "mlflow"
-version = "3.13.0"
+version = "3.14.0"
 requires_python = ">=3.10"
 summary = "MLflow is an open source platform for the complete machine learning lifecycle"
 groups = ["default"]
 dependencies = [
     "Flask-CORS<7",
     "Flask<4",
-    "aiohttp<4",
+    "aiohttp<4,>=3.7.0",
     "alembic!=1.10.0,<2",
     "cryptography<49,>=43.0.0",
     "docker<8,>=4.0.0",
@@ -1461,8 +1461,8 @@ dependencies = [
     "gunicorn<27; platform_system != \"Windows\"",
     "huey<4,>=2.5.4",
     "matplotlib<4",
-    "mlflow-skinny==3.13.0",
-    "mlflow-tracing==3.13.0",
+    "mlflow-skinny==3.14.0",
+    "mlflow-tracing==3.14.0",
     "numpy<3",
     "pandas<3",
     "pyarrow<25,>=4.0.0",
@@ -1473,13 +1473,13 @@ dependencies = [
     "waitress<4; platform_system == \"Windows\"",
 ]
 files = [
-    {file = "mlflow-3.13.0-py3-none-any.whl", hash = "sha256:7ca9cb2f623f300dabadaf5e985c85af77c5db3d7c36f56769d22c101b132f6c"},
-    {file = "mlflow-3.13.0.tar.gz", hash = "sha256:a95198d592a8a15fad3db7f56b228acc9422c09f0daa7c6c976a9996ab73c3e2"},
+    {file = "mlflow-3.14.0-py3-none-any.whl", hash = "sha256:dbf77f7cdb5b5c0ec59b4671c61730b1b914b4dff7a2892e267a547cb5454f56"},
+    {file = "mlflow-3.14.0.tar.gz", hash = "sha256:5a1f818fa003035c724162096ce3ded7bc7bc47a1cae595df6173961983f4718"},
 ]
 
 [[package]]
 name = "mlflow-skinny"
-version = "3.13.0"
+version = "3.14.0"
 requires_python = ">=3.10"
 summary = "MLflow is an open source platform for the complete machine learning lifecycle"
 groups = ["default"]
@@ -1506,13 +1506,13 @@ dependencies = [
     "uvicorn<1",
 ]
 files = [
-    {file = "mlflow_skinny-3.13.0-py3-none-any.whl", hash = "sha256:ced3d9a580564fae093d14732df8531fb180574f6483d4c642b6083879eb86fc"},
-    {file = "mlflow_skinny-3.13.0.tar.gz", hash = "sha256:d2273bfa21f776359f7d6ab2267967e3a6732a5fb00996ad433d0e777dfa3b71"},
+    {file = "mlflow_skinny-3.14.0-py3-none-any.whl", hash = "sha256:a4880e086365871ef9d78e727a34ea5fb1ce615689579998d48e8c65ee1665a9"},
+    {file = "mlflow_skinny-3.14.0.tar.gz", hash = "sha256:e50f4506422c7737157ae6643c165122af7898345f2e828fa93c4f10128653cf"},
 ]
 
 [[package]]
 name = "mlflow-tracing"
-version = "3.13.0"
+version = "3.14.0"
 requires_python = ">=3.10"
 summary = "MLflow Tracing SDK is an open-source, lightweight Python package that only includes the minimum set of dependencies and functionality to instrument your code/models/agents with MLflow Tracing."
 groups = ["default"]
@@ -1527,8 +1527,8 @@ dependencies = [
     "pydantic<3,>=2.0.0",
 ]
 files = [
-    {file = "mlflow_tracing-3.13.0-py3-none-any.whl", hash = "sha256:2f8187ce2b1af7419be71d2d8ab5fec53d207d4b8d703cd15e5db64939098d72"},
-    {file = "mlflow_tracing-3.13.0.tar.gz", hash = "sha256:42c435b0fdcab00f1865cab4a52f7a85a2a08d68a959f36bcf90a1c9fe65db0a"},
+    {file = "mlflow_tracing-3.14.0-py3-none-any.whl", hash = "sha256:854488dd18068f15e2a56f1cc7b8868c611d09ea39068d0a691a3f07e0048cae"},
+    {file = "mlflow_tracing-3.14.0.tar.gz", hash = "sha256:c2f701e001d35964f23fbbdfdda36c818a76c157b912ae83781199fd714be09a"},
 ]
 
 [[package]]
@@ -2208,7 +2208,7 @@ files = [
 
 [[package]]
 name = "pytest"
-version = "9.0.3"
+version = "9.1.1"
 requires_python = ">=3.10"
 summary = "pytest: simple powerful testing with Python"
 groups = ["default", "dev"]
@@ -2222,8 +2222,8 @@ dependencies = [
     "tomli>=1; python_version < \"3.11\"",
 ]
 files = [
-    {file = "pytest-9.0.3-py3-none-any.whl", hash = "sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9"},
-    {file = "pytest-9.0.3.tar.gz", hash = "sha256:b86ada508af81d19edeb213c681b1d48246c1a91d304c6c81a427674c17eb91c"},
+    {file = "pytest-9.1.1-py3-none-any.whl", hash = "sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c"},
+    {file = "pytest-9.1.1.tar.gz", hash = "sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313"},
 ]
 
 [[package]]

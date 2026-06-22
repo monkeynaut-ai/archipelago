@@ -2,7 +2,7 @@
 
 Runnable systems land per-run artifacts under
 `cwd/runs/<YYYY-MM-DD-HH-MM-SS>/`. The helper returns (parent, run_id)
-so callers can pass them to ``run_primitive_plan`` directly;
+so callers can pass them to ``run_process`` directly;
 ``agent_foundry`` always creates ``<artifacts_dir>/<run_id>/``, so this
 shape collapses to a single timestamp-named layer.
 """

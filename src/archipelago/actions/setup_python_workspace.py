@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import docker
 import docker.errors
-from agent_foundry.primitives.models import FunctionAction
+from agent_foundry.constructs.models import FunctionAction
 from pydantic import BaseModel
 
 from archipelago.actions.workspace_bootstrap import WorkspaceHandle

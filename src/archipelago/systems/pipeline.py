@@ -20,10 +20,9 @@ from __future__ import annotations
 
 import os
 
-from agent_foundry.orchestration import run_primitive_plan
-from agent_foundry.primitives import ResolverDisposition, RetryExhaustionReason
-from agent_foundry.primitives.models import FunctionAction, Loop, Retry, Sequence
-from agent_foundry.primitives.plan import PrimitivePlan
+from agent_foundry.constructs import Process, ResolverDisposition, RetryExhaustionReason
+from agent_foundry.constructs.models import FunctionAction, Loop, Retry, Sequence
+from agent_foundry.orchestration import run_process
 from agent_foundry.responders.protocol import static_provider
 from agent_foundry.responders.stdin import StdinResponder
 from pydantic import BaseModel
@@ -310,7 +309,7 @@ async def run_full_pipeline(
     """Run the full working-session pipeline and return the final state.
 
     Generates the workspace-volume name once and threads it into both
-    the initial state (for bootstrap_fn) and the run_primitive_plan
+    the initial state (for bootstrap_fn) and the run_process
     workspace_volume kwarg (for the container registry), so both sides
     agree on the name of the Docker volume containers will mount.
     """
@@ -338,8 +337,8 @@ async def run_full_pipeline(
         "yes",
         "on",
     }
-    final = await run_primitive_plan(
-        PrimitivePlan(root=full_pipeline),
+    final = await run_process(
+        Process(root=full_pipeline),
         initial_state=initial_state,
         artifacts_dir=artifacts_parent,
         run_id=run_id,
@@ -353,6 +352,6 @@ async def run_full_pipeline(
         extra_volumes=extra_volumes,
     )
     assert isinstance(final, FullPipelineState), (
-        f"run_primitive_plan returned {type(final).__name__}, expected FullPipelineState"
+        f"run_process returned {type(final).__name__}, expected FullPipelineState"
     )
     return final
