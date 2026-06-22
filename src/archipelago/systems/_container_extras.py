@@ -1,5 +1,5 @@
 """Single-source builders for ``extra_env`` and ``extra_volumes`` passed
-to ``run_primitive_plan``.
+to ``run_process``.
 
 Coordinates contributions from individual env-var-driven helpers
 (``_proxy_config``, ``_git_config``, …) so call sites only need to
@@ -15,7 +15,7 @@ def build_extra_env() -> dict[str, str] | None:
     """Merge every env-var contribution into a single dict.
 
     Returns ``None`` when nothing contributes, matching the contract
-    ``run_primitive_plan`` expects for "no extras."
+    ``run_process`` expects for "no extras."
     """
     combined: dict[str, str] = {}
     proxy = build_proxy_env()

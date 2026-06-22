@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from agent_foundry.primitives import DispositionKind, RetryExhaustionReason
+from agent_foundry.constructs import DispositionKind, RetryExhaustionReason
 
 from archipelago.agents.design_review.operator_resolver import (
     resolve_operator_intervention,

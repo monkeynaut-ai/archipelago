@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 def run_artifacts_layout() -> tuple[Path, str]:
-    """Return ``(parent_dir, run_id)`` for ``run_primitive_plan``.
+    """Return ``(parent_dir, run_id)`` for ``run_process``.
 
     ``agent_foundry`` always creates ``<parent_dir>/<run_id>/``. Passing
     ``Path.cwd() / "runs"`` as the parent and a second-resolution

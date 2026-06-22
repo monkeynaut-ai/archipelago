@@ -10,7 +10,7 @@ catch provider exceptions, so there is no reason to import them.
 from __future__ import annotations
 
 from agent_foundry.ai_models.inference import InferenceParameters
-from agent_foundry.primitives.ai_call import AICall, ModelInput
+from agent_foundry.constructs.ai_call import AICall, ModelInput
 
 from archipelago.agents.design_review.prompts import (
     correctness_instructions,

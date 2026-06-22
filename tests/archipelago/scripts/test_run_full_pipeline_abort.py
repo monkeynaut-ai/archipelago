@@ -4,7 +4,7 @@ import importlib.util
 from pathlib import Path
 from types import ModuleType
 
-from agent_foundry.primitives import RetryAborted
+from agent_foundry.constructs import RetryAborted
 
 import archipelago
 
@@ -38,7 +38,7 @@ def test_main_handles_operator_abort(monkeypatch, tmp_path, capsys) -> None:
 
 
 def test_main_handles_resolver_nonconvergence(monkeypatch, tmp_path, capsys) -> None:
-    from agent_foundry.primitives.retry_types import ResolverDidNotConvergeError
+    from agent_foundry.constructs.retry_types import ResolverDidNotConvergeError
 
     cli = _load_cli()
     feature = tmp_path / "feature.md"

@@ -8,7 +8,7 @@ structured run-event emission replaces this logging.
 from __future__ import annotations
 
 import structlog
-from agent_foundry.primitives.models import FunctionAction
+from agent_foundry.constructs.models import FunctionAction
 from pydantic import BaseModel
 
 from archipelago.models import ChangeSetRef, Task

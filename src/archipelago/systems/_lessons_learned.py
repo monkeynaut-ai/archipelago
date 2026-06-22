@@ -10,7 +10,7 @@ volume and writes a copy alongside ``lifecycle.jsonl`` and
 ``inspect-workspace.sh``.
 
 Built as a factory because the volume name is not on ``RunContext`` —
-each pipeline knows it at the call site of ``run_primitive_plan`` and
+each pipeline knows it at the call site of ``run_process`` and
 binds it into the closure here.
 """
 

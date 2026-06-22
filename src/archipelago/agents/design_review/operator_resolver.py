@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from agent_foundry.primitives import DispositionKind, ResolverDisposition
+from agent_foundry.constructs import DispositionKind, ResolverDisposition
 
 from archipelago.models.design_review import DimensionScore
 
