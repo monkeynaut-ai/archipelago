@@ -11,6 +11,7 @@ GITHUB_TOKEN in the environment before running:
 from __future__ import annotations
 
 import contextlib
+import os
 
 import docker
 import pytest
@@ -50,6 +51,18 @@ def docker_client():
 
 
 @pytest.fixture
+def require_github_token():
+    """Skip when no token is available to clone the pinned private repo.
+
+    bootstrap reads GH_TOKEN/GITHUB_TOKEN; without it the in-container clone
+    is anonymous and fails on the private repo. A missing token is an
+    environment limit, so skip rather than fail.
+    """
+    if not (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")):
+        pytest.skip("No GH_TOKEN/GITHUB_TOKEN for private-repo clone")
+
+
+@pytest.fixture
 def cleanup_volumes(docker_client, archipelago_volume_registry):
     created: list[str] = []
     try:
@@ -63,7 +76,7 @@ def cleanup_volumes(docker_client, archipelago_volume_registry):
 
 class TestBootstrapIntegration:
     def test_given_real_repo_when_bootstrap_then_volume_populated_correctly(
-        self, docker_client, cleanup_volumes, minimal_feature_definition
+        self, docker_client, require_github_token, cleanup_volumes, minimal_feature_definition
     ):
         import time
 
@@ -122,7 +135,7 @@ class TestBootstrapIntegration:
         assert "filemode = false" in output.lower()
 
     def test_given_real_repo_when_bootstrap_then_git_log_still_works(
-        self, docker_client, cleanup_volumes, minimal_feature_definition
+        self, docker_client, require_github_token, cleanup_volumes, minimal_feature_definition
     ):
         """Regression guard: .git/ must remain writable so git tooling works."""
         import time
@@ -155,7 +168,7 @@ class TestBootstrapIntegration:
         assert output.strip(), "git log produced no output"
 
     def test_given_real_repo_when_bootstrap_then_resolved_sha_is_40_hex(
-        self, docker_client, cleanup_volumes, minimal_feature_definition
+        self, docker_client, require_github_token, cleanup_volumes, minimal_feature_definition
     ):
         import time
 
