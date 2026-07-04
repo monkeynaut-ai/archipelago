@@ -4,7 +4,12 @@ import importlib.util
 from pathlib import Path
 from types import ModuleType
 
-from agent_foundry.constructs import RetryAborted
+from agent_foundry.orchestration.run_outcome import (
+    FailureKind,
+    RunAborted,
+    RunCompleted,
+    RunFailed,
+)
 
 import archipelago
 
@@ -20,36 +25,63 @@ def _load_cli() -> ModuleType:
     return module
 
 
-def test_main_handles_operator_abort(monkeypatch, tmp_path, capsys) -> None:
-    cli = _load_cli()
+def _run_cli(cli: ModuleType, tmp_path: Path, outcome):
     feature = tmp_path / "feature.md"
     feature.write_text("placeholder", encoding="utf-8")
 
+    import pytest
+
+    monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setattr(cli, "parse_markdown_as", lambda *a, **k: object())
 
-    async def _raise(**_kwargs):
-        raise RetryAborted("operator aborted: blocked on infra")
+    async def _return(**_kwargs):
+        return outcome
 
-    monkeypatch.setattr(cli, "run_full_pipeline", _raise)
+    monkeypatch.setattr(cli, "run_full_pipeline", _return)
+    try:
+        return cli.main(["--feature", str(feature), "--repo", "https://x/y.git", "--ref", "main"])
+    finally:
+        monkeypatch.undo()
 
-    code = cli.main(["--feature", str(feature), "--repo", "https://x/y.git", "--ref", "main"])
+
+def test_main_handles_operator_abort(tmp_path, capsys) -> None:
+    cli = _load_cli()
+    code = _run_cli(cli, tmp_path, RunAborted(reason="blocked on infra"))
     assert code == 1
-    assert "operator aborted: blocked on infra" in capsys.readouterr().err
+    assert "blocked on infra" in capsys.readouterr().err
 
 
-def test_main_handles_resolver_nonconvergence(monkeypatch, tmp_path, capsys) -> None:
-    from agent_foundry.constructs.retry_types import ResolverDidNotConvergeError
-
+def test_main_handles_run_failure(tmp_path, capsys) -> None:
     cli = _load_cli()
-    feature = tmp_path / "feature.md"
-    feature.write_text("placeholder", encoding="utf-8")
-    monkeypatch.setattr(cli, "parse_markdown_as", lambda *a, **k: object())
-
-    async def _raise(**_kwargs):
-        raise ResolverDidNotConvergeError(50)
-
-    monkeypatch.setattr(cli, "run_full_pipeline", _raise)
-    code = cli.main(["--feature", str(feature), "--repo", "https://x/y.git", "--ref", "main"])
+    code = _run_cli(
+        cli,
+        tmp_path,
+        RunFailed(
+            error_kind=FailureKind.BACKSTOP,
+            error_type="ResolverDidNotConvergeError",
+            message="operator retries did not converge",
+        ),
+    )
     assert code == 1
     err = capsys.readouterr().err
     assert "converge" in err.lower()
+
+
+def test_main_prints_artifacts_on_success(tmp_path, capsys, minimal_feature_definition) -> None:
+    cli = _load_cli()
+    from archipelago.models import CodebaseSource
+    from archipelago.systems import FullPipelineState
+
+    state = FullPipelineState(
+        feature_definition=minimal_feature_definition,
+        codebase_source=CodebaseSource(repo_url="https://x/y.git", ref="main"),
+        volume_name="v",
+        base_image_tag="t",
+        design_document_path="/runs/x/design.md",
+        pr_url="https://github.com/o/r/pull/1",
+    )
+    code = _run_cli(cli, tmp_path, RunCompleted(output=state))
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "/runs/x/design.md" in out
+    assert "https://github.com/o/r/pull/1" in out

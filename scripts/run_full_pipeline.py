@@ -22,12 +22,16 @@ import asyncio
 import sys
 from pathlib import Path
 
-from agent_foundry.constructs import ResolverDidNotConvergeError, RetryAborted
-from agent_foundry.orchestration.errors import AgentFailedError
+from agent_foundry.orchestration.run_outcome import (
+    RunAborted,
+    RunCompleted,
+    RunFailed,
+)
 from archetype.markdown import MarkdownValidationError, parse_markdown_as
 from dotenv import load_dotenv
 
 from archipelago.models import CodebaseSource, FeatureDefinition
+from archipelago.systems import FullPipelineState
 from archipelago.systems.pipeline import run_full_pipeline
 
 
@@ -77,32 +81,33 @@ def main(argv: list[str] | None = None) -> int:
 
     source = CodebaseSource(repo_url=args.repo, ref=args.ref)
 
-    try:
-        final = asyncio.run(run_full_pipeline(feature_definition=feature, codebase_source=source))
-    except RetryAborted as exc:
-        print(f"aborted by operator: {exc.reason}", file=sys.stderr)
-        return 1
-    except ResolverDidNotConvergeError as exc:
-        print(f"error: operator retries did not converge: {exc}", file=sys.stderr)
-        return 1
-    except AgentFailedError as exc:
-        print(f"error: agent failed: {exc}", file=sys.stderr)
-        return 1
-    except RuntimeError as exc:
-        print(f"error: pipeline failed: {exc}", file=sys.stderr)
-        return 1
+    outcome = asyncio.run(run_full_pipeline(feature_definition=feature, codebase_source=source))
 
-    if final.investigation_summary_path is not None:
-        print(f"Investigation summary: {final.investigation_summary_path}")
-    if final.design_document_path is not None:
-        print(f"Design document: {final.design_document_path}")
-    if final.change_sets_document_path is not None:
-        print(f"Change-sets document: {final.change_sets_document_path}")
-    if final.workspace_handle is not None:
-        print(f"Workspace volume: {final.workspace_handle.volume_name}")
-    if final.pr_url is not None:
-        print(f"Pull request: {final.pr_url}")
-    return 0
+    match outcome:
+        case RunAborted(reason=reason):
+            print(f"aborted by operator: {reason}", file=sys.stderr)
+            return 1
+        case RunFailed(error_kind=kind, message=message):
+            print(f"error: pipeline failed ({kind}): {message}", file=sys.stderr)
+            return 1
+        case RunCompleted(output=final):
+            if not isinstance(final, FullPipelineState):
+                print(
+                    f"error: run completed with unexpected output {type(final).__name__}",
+                    file=sys.stderr,
+                )
+                return 1
+            if final.investigation_summary_path is not None:
+                print(f"Investigation summary: {final.investigation_summary_path}")
+            if final.design_document_path is not None:
+                print(f"Design document: {final.design_document_path}")
+            if final.change_sets_document_path is not None:
+                print(f"Change-sets document: {final.change_sets_document_path}")
+            if final.workspace_handle is not None:
+                print(f"Workspace volume: {final.workspace_handle.volume_name}")
+            if final.pr_url is not None:
+                print(f"Pull request: {final.pr_url}")
+            return 0
 
 
 if __name__ == "__main__":  # pragma: no cover

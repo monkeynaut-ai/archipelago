@@ -1,0 +1,4 @@
+Scenarios to test for the design review loop
+
+1) needs_improvement is set but inadequate is empty
+2) 

@@ -23,6 +23,7 @@ import os
 from agent_foundry.constructs import Process, ResolverDisposition, RetryExhaustionReason
 from agent_foundry.constructs.models import FunctionAction, Loop, Retry, Sequence
 from agent_foundry.orchestration import run_process
+from agent_foundry.orchestration.run_outcome import RunOutcome
 from agent_foundry.responders.protocol import static_provider
 from agent_foundry.responders.stdin import StdinResponder
 from pydantic import BaseModel
@@ -305,13 +306,18 @@ async def run_full_pipeline(
     *,
     feature_definition: FeatureDefinition,
     codebase_source: CodebaseSource,
-) -> FullPipelineState:
-    """Run the full working-session pipeline and return the final state.
+) -> RunOutcome:
+    """Run the full working-session pipeline and return its terminal outcome.
 
     Generates the workspace-volume name once and threads it into both
     the initial state (for bootstrap_fn) and the run_process
     workspace_volume kwarg (for the container registry), so both sides
     agree on the name of the Docker volume containers will mount.
+
+    Hands back the runner's ``RunOutcome`` envelope verbatim: a clean run
+    yields ``RunCompleted`` whose ``output`` is the ``FullPipelineState``;
+    an operator ABORT yields ``RunAborted``; a backstop trip or crash
+    yields ``RunFailed``. Callers branch on the variant.
     """
     slug = (
         feature_definition.frontmatter.feature_slug
@@ -350,8 +356,5 @@ async def run_full_pipeline(
         on_run_ended=[make_lessons_learned_hook(volume_name)],
         extra_env=extra_env,
         extra_volumes=extra_volumes,
-    )
-    assert isinstance(final, FullPipelineState), (
-        f"run_process returned {type(final).__name__}, expected FullPipelineState"
     )
     return final
