@@ -11,7 +11,7 @@ paths from convention.
 from __future__ import annotations
 
 import docker
-from agent_foundry.constructs.models import FunctionAction
+from agent_foundry.constructs import FunctionAction
 from pydantic import BaseModel
 
 from archipelago.actions import workspace_ops as _ops

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from agent_foundry.models.markers import AgentFilePath
+from agent_foundry.models import AgentFilePath
 from pydantic import BaseModel
 
 from archipelago.actions import WorkspaceHandle

@@ -8,7 +8,7 @@ investigation summary as raw markdown text.
 
 from __future__ import annotations
 
-from agent_foundry.constructs.models import FunctionAction
+from agent_foundry.constructs import FunctionAction
 from pydantic import BaseModel
 
 from archipelago.actions.workspace_bootstrap import WorkspaceHandle

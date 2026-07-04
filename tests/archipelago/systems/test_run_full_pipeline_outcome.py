@@ -8,7 +8,7 @@ its caller unchanged rather than type-asserting against the inner state.
 from __future__ import annotations
 
 import pytest
-from agent_foundry.orchestration.run_outcome import (
+from agent_foundry.orchestration import (
     FailureKind,
     RunAborted,
     RunCompleted,

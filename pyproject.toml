@@ -82,10 +82,28 @@ select = [
     "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
     "RUF",  # ruff-specific
+    "TID",  # flake8-tidy-imports
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E501"]
+
+# Guard against reaching into agent-foundry's Internal-tier deep modules when a
+# public package facade re-exports the same symbols. See agent-foundry's
+# docs/reference/public-api.md ("Avoid deep imports when a package export exists").
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"agent_foundry.constructs.models".msg = "Import from the agent_foundry.constructs facade."
+"agent_foundry.constructs.ai_call".msg = "Import from the agent_foundry.constructs facade."
+"agent_foundry.ai_models.model".msg = "Import from the agent_foundry.ai_models facade."
+"agent_foundry.ai_models.inference".msg = "Import from the agent_foundry.ai_models facade."
+"agent_foundry.models.markers".msg = "Import from the agent_foundry.models facade."
+"agent_foundry.agents.lifecycle".msg = "Import from the agent_foundry.agents facade."
+"agent_foundry.compiler.compiler".msg = "Import from the agent_foundry.compiler facade."
+"agent_foundry.orchestration.container_executor".msg = "Import from the agent_foundry.orchestration facade."
+"agent_foundry.orchestration.run_context".msg = "Import from the agent_foundry.orchestration facade."
+"agent_foundry.orchestration.run_outcome".msg = "Import from the agent_foundry.orchestration facade."
+"agent_foundry.responders.protocol".msg = "Import from the agent_foundry.responders facade."
+"agent_foundry.responders.stdin".msg = "Import from the agent_foundry.responders facade."
 
 [tool.ruff.format]
 quote-style = "double"

@@ -4,7 +4,7 @@ import importlib.util
 from pathlib import Path
 from types import ModuleType
 
-from agent_foundry.orchestration.run_outcome import (
+from agent_foundry.orchestration import (
     FailureKind,
     RunAborted,
     RunCompleted,

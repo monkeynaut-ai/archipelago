@@ -30,7 +30,7 @@ from archipelago.constants import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from agent_foundry.orchestration.run_context import RunEndedEvent
+    from agent_foundry.orchestration import RunEndedEvent
 
 _LESSONS_LEARNED_PATH_IN_VOLUME = f"{WORKSPACE_DOCUMENTS_PATH}/{LESSONS_LEARNED_FILENAME}"
 

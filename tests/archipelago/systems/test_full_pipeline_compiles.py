@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from agent_foundry.compiler.compiler import compile_process
+from agent_foundry.compiler import compile_process
 from agent_foundry.constructs import Process
 
 from archipelago.systems.pipeline import full_pipeline
