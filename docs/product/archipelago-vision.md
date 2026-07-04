@@ -198,6 +198,7 @@ Full framing: the "this is an experimentation platform, not a frozen pipeline" s
 - **AC ladder.** Tentatively: feature-level AC lives in the job spec (input); change-set-level AC emerges from Decomposer; step-level AC emerges from Planner. Confirm during I/O design.
 - **Test-strategy ladder.** Tentatively: feature-level in Designer; CS-level in Decomposer; step-level in Planner. Confirm during I/O design.
 - **Agent Foundry Phase 2 scope.** Driven by Designer agent's concrete platform needs, not pre-scoped.
+- **Experimental-tier platform couplings.** Agent Foundry's public-API policy (its `docs/reference/public-api.md`) marks `agent_foundry.agents` (incl. `ContainerConfig`), `orchestration.run_agent_in_container`, run-hook event types, and `mlflow_adapter` as Experimental — importable but liable to change pre-1.0. Archipelago's containerized-agent path depends on all of these; expect re-migrations on future syncs. A ruff banned-api guard keeps imports on the sanctioned facades so a shape change surfaces in one place.
 
 ---
 
