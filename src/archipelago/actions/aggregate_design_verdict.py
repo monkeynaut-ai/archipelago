@@ -9,7 +9,7 @@ should ever block, edit here, not the model.
 from __future__ import annotations
 
 from agent_foundry import runtime
-from agent_foundry.constructs.models import FunctionAction
+from agent_foundry.constructs import FunctionAction
 from pydantic import BaseModel
 
 from archipelago.models.design_review import (

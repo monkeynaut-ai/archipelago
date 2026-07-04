@@ -37,8 +37,7 @@ from archipelago.systems.pipeline import (
     _change_sets_over,
     _tasks_over,
 )
-
-from ..actions.test_workspace_io import _sample_change_sets_doc
+from tests.archipelago.actions.test_workspace_io import _sample_change_sets_doc
 
 
 def _handle(volume_name: str = "ws") -> WorkspaceHandle:

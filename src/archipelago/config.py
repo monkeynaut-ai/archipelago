@@ -1,4 +1,4 @@
-from agent_foundry.ai_models.model import Model
+from agent_foundry.ai_models import Model
 from agent_foundry.constructs import ClaudeEffort, ClaudeModel
 
 DESIGNER_MODEL: ClaudeModel = ClaudeModel.HAIKU_4_5

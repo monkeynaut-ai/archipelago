@@ -17,7 +17,7 @@ import os
 import re
 
 import docker
-from agent_foundry.constructs.models import FunctionAction
+from agent_foundry.constructs import FunctionAction
 from archetype.markdown import render_markdown
 from pydantic import BaseModel
 
