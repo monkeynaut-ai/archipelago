@@ -11,7 +11,7 @@ repo + ref, and prints the produced documents' paths. Exit codes:
 Usage:
     python scripts/run_full_pipeline.py \\
         --feature examples/features/run-observability.md \\
-        --repo https://github.com/730alchemy/agent-foundry.git \\
+        --repo https://github.com/monkeynaut-ai/agent-foundry.git \\
         --ref main
 """
 
@@ -22,7 +22,7 @@ import asyncio
 import sys
 from pathlib import Path
 
-from agent_foundry.orchestration.run_outcome import (
+from agent_foundry.orchestration import (
     RunAborted,
     RunCompleted,
     RunFailed,

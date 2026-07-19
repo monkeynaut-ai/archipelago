@@ -5,7 +5,7 @@
 # Auth:
 #   CLAUDE_CODE_OAUTH_TOKEN: must be in .env (the CLI loads .env itself).
 #   GITHUB_TOKEN: this script prefers `gh auth token` (the host's
-#     credentials, which have access to private 730alchemy repos) over
+#     credentials, which have access to private monkeynaut-ai repos) over
 #     whatever is in .env, since .env tokens have historically been
 #     stale or under-scoped for the private clone path. Falls back to
 #     whatever the CLI loads from .env if `gh` isn't authenticated.
@@ -38,6 +38,6 @@ fi
 
 PYTHONPATH=src pdm run python scripts/run_full_pipeline.py \
     --feature "$feature" \
-    --repo https://github.com/730alchemy/agent-foundry.git \
+    --repo https://github.com/monkeynaut-ai/agent-foundry.git \
     --ref "$ref"
 

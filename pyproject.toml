@@ -49,9 +49,9 @@ test-all.cmd = "pytest tests/ -m 'not benchmark and not e2e'"
 test-all.env = {PYTHONPATH = "src"}
 test-e2e.cmd = "pytest {args:tests/} -m 'e2e'"
 test-e2e.env = {PYTHONPATH = "src"}
-lint.cmd = "ruff check src/ tests/"
+lint.cmd = "ruff check src/ tests/ scripts/"
 lint.env = {PYTHONPATH = "src"}
-format.cmd = "ruff format src/ tests/"
+format.cmd = "ruff format src/ tests/ scripts/"
 format.env = {PYTHONPATH = "src"}
 typecheck.cmd = "pyright"
 typecheck.env = {PYTHONPATH = "src"}
@@ -114,7 +114,7 @@ pythonPlatform = "Linux"
 venvPath = "."
 venv = ".venv"
 extraPaths = ["src"]
-include = ["src"]
+include = ["src", "scripts"]
 typeCheckingMode = "basic"
 reportMissingImports = "warning"
 reportMissingTypeStubs = false

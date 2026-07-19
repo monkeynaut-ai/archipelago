@@ -100,7 +100,7 @@ Python 3.14 · Pydantic · Docker · Pytest · [PDM](https://pdm-project.org/).
 
 ## Reporting bugs and security issues
 
-Bugs and feature requests go in [GitHub Issues](https://github.com/730alchemy/archipelago/issues).
+Bugs and feature requests go in [GitHub Issues](https://github.com/monkeynaut-ai/archipelago/issues).
 Security vulnerabilities do **not** — see [SECURITY.md](SECURITY.md) for private
 reporting channels.
 

@@ -72,7 +72,7 @@ consumed as a **sibling checkout**, so clone both into the same parent directory
 
 ```bash
 git clone https://github.com/monkeynaut-ai/agent-foundry.git
-git clone https://github.com/730alchemy/archipelago.git
+git clone https://github.com/monkeynaut-ai/archipelago.git
 cd archipelago
 pdm install
 ```

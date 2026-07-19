@@ -28,7 +28,7 @@ from archipelago.constants import (
 )
 from archipelago.models import CodebaseSource
 
-PINNED_REPO = "https://github.com/730alchemy/agent-foundry.git"
+PINNED_REPO = "https://github.com/monkeynaut-ai/agent-foundry.git"
 PINNED_SHA = "c8da88e081575bf2b25c85cf1f176d0297700a31"
 
 pytestmark = pytest.mark.integration

@@ -133,7 +133,7 @@ class TestBootstrapInputOutput:
         state = BootstrapInput(
             feature_definition=minimal_feature_definition,
             codebase_source=CodebaseSource(
-                repo_url="https://github.com/730alchemy/agent-foundry.git",
+                repo_url="https://github.com/monkeynaut-ai/agent-foundry.git",
                 ref="main",
             ),
             volume_name="archipelago-ws-demo-1000000000000000000",
