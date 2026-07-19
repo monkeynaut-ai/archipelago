@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:8b35f414d039f4205626e6bb6f6d882ff643557a3257871692ac6490aed119fd"
+content_hash = "sha256:81672211c8e781dab48f9e0f2457fec6745761b91ef47e9ee7d79ae184b8eed3"
 
 [[metadata.targets]]
 requires_python = "==3.14.*"
@@ -14,7 +14,6 @@ requires_python = "==3.14.*"
 name = "agent-foundry-ai"
 version = "0.12.0"
 requires_python = "==3.14.*"
-path = "../agent-foundry"
 summary = "Typed framework for declaring and running agentic systems"
 groups = ["default"]
 dependencies = [
@@ -34,6 +33,10 @@ dependencies = [
     "pytest>=9.0.2",
     "python-dotenv>=1.2.1",
     "uvicorn[standard]>=0.47.0",
+]
+files = [
+    {file = "agent_foundry_ai-0.12.0-py3-none-any.whl", hash = "sha256:12265af94f1d824f48bec07d68ec04b7b304953fcafc0e1d17247f6ad9825980"},
+    {file = "agent_foundry_ai-0.12.0.tar.gz", hash = "sha256:f83fc9361dc2fb94e751026e53173d578d805c4568a4f0ae00e83b932988da6f"},
 ]
 
 [[package]]

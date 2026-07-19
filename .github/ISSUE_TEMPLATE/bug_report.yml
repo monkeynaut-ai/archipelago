@@ -67,8 +67,8 @@ body:
   - type: input
     id: foundry-version
     attributes:
-      label: Agent Foundry version or commit
-      description: The sibling checkout's `git rev-parse --short HEAD`, or the installed version.
+      label: Agent Foundry version
+      description: Output of `pdm run python -c "import importlib.metadata as m; print(m.version('agent-foundry-ai'))"`.
 
   - type: textarea
     id: environment

@@ -18,7 +18,7 @@ A system of agents (AI, human, services, programs) for autonomous software engin
 
 - **Python 3.14**, `src/` layout, managed with PDM. Run code via the `pdm` scripts (they set `PYTHONPATH=src`); a bare `pytest`/`python` won't resolve the package.
 - Package: `src/archipelago/` → `models/`, `actions/`, `agents/`, `systems/`, `telemetry/`, `docker/`.
-- Depends on the sibling **agent-foundry** package (local); import from its public facades, not deep modules — see `.claude/rules/agent-foundry-imports.md`.
+- Depends on the published **agent-foundry-ai** package; import from its public facades, not deep modules — see `.claude/rules/agent-foundry-imports.md`.
 - `pdm add <package>`: Add a dependency
 - `pdm test-all`: Full suite — required before commit/PR (test conventions in `.claude/rules/testing.md`)
 - `pdm lint` / `pdm format`: ruff check / format

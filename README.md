@@ -67,11 +67,10 @@ Read that first if you want to understand the project rather than just run it.
 ## Install
 
 Archipelago builds on [Agent Foundry](https://github.com/monkeynaut-ai/agent-foundry), a
-typed framework for declaring and running agentic systems. Agent Foundry is currently
-consumed as a **sibling checkout**, so clone both into the same parent directory:
+typed framework for declaring and running agentic systems. It is a published dependency,
+so `pdm install` pulls it in:
 
 ```bash
-git clone https://github.com/monkeynaut-ai/agent-foundry.git
 git clone https://github.com/monkeynaut-ai/archipelago.git
 cd archipelago
 pdm install
