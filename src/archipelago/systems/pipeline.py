@@ -66,7 +66,7 @@ from archipelago.systems._artifacts import run_artifacts_layout as _run_artifact
 from archipelago.systems._container_extras import build_extra_env, build_extra_volumes
 from archipelago.systems._lessons_learned import make_lessons_learned_hook
 from archipelago.systems._workspace import BASE_IMAGE_TAG, generate_volume_name
-from archipelago.telemetry import attach_mlflow_adapter, telemetry_configuration
+from archipelago.telemetry import make_mlflow_hook, telemetry_configuration
 
 # ============================================================
 # State models
@@ -357,7 +357,9 @@ async def run_full_pipeline(
         base_image_tag=BASE_IMAGE_TAG,
         responder_provider=static_provider(StdinResponder()),
         telemetry=telemetry_configuration if mlflow_enabled else None,
-        on_run_starting=[attach_mlflow_adapter] if mlflow_enabled else [],
+        on_run_starting=(
+            [make_mlflow_hook(feature_definition, codebase_source)] if mlflow_enabled else []
+        ),
         on_run_ended=[make_lessons_learned_hook(volume_name)],
         extra_env=extra_env,
         extra_volumes=extra_volumes,

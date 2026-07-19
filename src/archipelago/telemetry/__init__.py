@@ -1,3 +1,3 @@
-from archipelago.telemetry.config import attach_mlflow_adapter, telemetry_configuration
+from archipelago.telemetry.config import make_mlflow_hook, telemetry_configuration
 
-__all__ = ["attach_mlflow_adapter", "telemetry_configuration"]
+__all__ = ["make_mlflow_hook", "telemetry_configuration"]
