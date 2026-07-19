@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/730alchemy/archipelago/security/advisories/new
+    about: Report privately. Do not open a public issue.
+  - name: Vision and design frame
+    url: https://github.com/730alchemy/archipelago/blob/main/docs/product/archipelago-vision.md
+    about: Why the system is shaped the way it is — read before proposing architectural changes.

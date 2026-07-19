@@ -1,0 +1,49 @@
+name: Idea or proposal
+description: Suggest a change to the agents, topology, or platform seams
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Archipelago is a research project with an opinionated frame. Proposals that
+        conflict with it are likely to be declined regardless of quality, so it is
+        worth reading [the vision doc](../blob/main/docs/product/archipelago-vision.md)
+        first — especially "harness competing tensions" and "experimentation-first."
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve
+      description: The situation, not the solution. What does the current system make hard?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+
+  - type: textarea
+    id: tensions
+    attributes:
+      label: What tensions does it hold
+      description: |
+        If this adds, splits, or merges an agent: which functions are being grouped,
+        what does each one naturally pull toward, and why do those pulls reinforce
+        rather than undermine each other?
+
+  - type: textarea
+    id: experimentation
+    attributes:
+      label: Effect on experimentation cost
+      description: |
+        Does this make varying topology, prompts, or I/O shape cheaper or more
+        expensive? Changes that lock a current configuration in place are the ones
+        most likely to be declined.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

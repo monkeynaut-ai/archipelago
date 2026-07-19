@@ -1,0 +1,79 @@
+name: Bug report
+description: Something behaves differently than documented or intended
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Archipelago is experimental and unsupported — issues may go unanswered.
+        A reproducible report is far more likely to get attention than a description.
+
+        Do not report security vulnerabilities here. See
+        [SECURITY.md](../blob/main/SECURITY.md) for private reporting.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you observed, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: |
+        The exact commands. If this came out of a pipeline run, include the feature
+        definition and the target repository/ref, or a minimal stand-in for them.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or run artifacts
+      description: |
+        Relevant output, tracebacks, or workspace artifacts.
+
+        **Redact tokens first** — run output can contain auth material.
+      render: text
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where in the pipeline
+      options:
+        - Not applicable / not a pipeline run
+        - Workspace bootstrap
+        - Designer
+        - Design review
+        - Change-set planner
+        - TDD planner
+        - Tester
+        - Implementer
+        - PR creator
+        - Unsure
+
+  - type: input
+    id: version
+    attributes:
+      label: Archipelago commit
+      description: Output of `git rev-parse --short HEAD`.
+    validations:
+      required: true
+
+  - type: input
+    id: foundry-version
+    attributes:
+      label: Agent Foundry version or commit
+      description: The sibling checkout's `git rev-parse --short HEAD`, or the installed version.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, Docker version.
+    validations:
+      required: true
