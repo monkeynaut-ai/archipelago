@@ -15,11 +15,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agent_foundry.agents import ContainerConfig
 from agent_foundry.constructs import AgentAction, ContainerReusePolicy
 from agent_foundry.orchestration import run_agent_in_container
 from archetype.templating import resolve
 
+from archipelago.agents._container import agent_container_config
 from archipelago.agents.models import ChangeSetPlannerInput, ChangeSetPlannerOutput
 from archipelago.config import CHANGE_SET_PLANNER_EFFORT, CHANGE_SET_PLANNER_MODEL
 from archipelago.constants import GID_DOCUMENTS
@@ -58,6 +58,6 @@ change_set_planner = AgentAction[ChangeSetPlannerInput, ChangeSetPlannerOutput](
     skip_permissions=True,
     model=CHANGE_SET_PLANNER_MODEL,
     effort=CHANGE_SET_PLANNER_EFFORT,
-    container_config=ContainerConfig(mem_limit_mb=3072),
+    container_config=agent_container_config(mem_limit_mb=3072),
     cwd="/workspace/codebase",
 )

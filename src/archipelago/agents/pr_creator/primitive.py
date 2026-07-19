@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agent_foundry.agents import ContainerConfig
 from agent_foundry.constructs import AgentAction, ContainerReusePolicy
 from agent_foundry.orchestration import run_agent_in_container
 from archetype.templating import resolve
 
+from archipelago.agents._container import agent_container_config
 from archipelago.agents.models import PrCreatorInput, PrCreatorOutput
 from archipelago.config import PR_CREATOR_MODEL
 from archipelago.constants import GID_CODEBASE, GID_DOCUMENTS
@@ -44,6 +44,6 @@ pr_creator = AgentAction[PrCreatorInput, PrCreatorOutput](
     gids=[GID_DOCUMENTS, GID_CODEBASE],
     skip_permissions=True,
     model=PR_CREATOR_MODEL,
-    container_config=ContainerConfig(mem_limit_mb=6144),
+    container_config=agent_container_config(mem_limit_mb=6144),
     cwd="/workspace/codebase",
 )
