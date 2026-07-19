@@ -6,14 +6,12 @@ authors = [
     {name = "Mark Norman", email = "mark@marknorman.com"},
 ]
 dependencies = [
-    "agent-foundry @ file:///${PROJECT_ROOT}/../agent-foundry",
+    "agent-foundry-ai @ file:///${PROJECT_ROOT}/../agent-foundry",
     "structlog>=25.5.0",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
     "python-dotenv>=1.2.1",
-    "jsonschema>=4.26.0",
     "docker>=7.1.0",
-    "pexpect>=4.9.0",
     "mlflow>=3.11.1",
 ]
 requires-python = "==3.14.*"
