@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  PDM_CHECK_UPDATE: "false"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+
+      - uses: pdm-project/setup-pdm@94a823180e06fcde4ad29308721954a521c96ed0 # v4
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pdm install
+
+      - name: Lint
+        run: pdm lint
+
+      - name: Check formatting
+        run: pdm run ruff format --check src/ tests/ scripts/
+
+      - name: Typecheck
+        run: pdm typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+
+      - uses: pdm-project/setup-pdm@94a823180e06fcde4ad29308721954a521c96ed0 # v4
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pdm install
+
+      # `-n 4` overrides the `-n 8` in pyproject's addopts: a public-repo runner
+      # has 4 cores and 16 GB, and each xdist worker imports the full suite.
+      - name: Test
+        run: pdm test-all -- -n 4
