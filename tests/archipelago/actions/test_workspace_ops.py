@@ -91,11 +91,12 @@ class TestCloneAndResolveRef:
         )
 
         call = client.containers.run.call_args
+        env = call.kwargs["environment"]
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "https://example.com/repo.git" in rendered
-        assert "abc123" in rendered
-        assert WORKSPACE_CODEBASE_PATH in rendered
+        assert env["AF_REPO_URL"] == "https://example.com/repo.git"
+        assert env["AF_GIT_REF"] == "abc123"
+        assert env["AF_CODEBASE_PATH"] == WORKSPACE_CODEBASE_PATH
         assert "rev-parse HEAD" in rendered
 
     def test_given_trailing_whitespace_when_clone_then_sha_stripped(self):
@@ -155,9 +156,10 @@ class TestCloneAndResolveRef:
         )
 
         call = client.containers.run.call_args
-        cmd = call.kwargs["command"]
-        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "x-access-token:secret-token@github.com/owner/repo.git" in rendered
+        assert (
+            call.kwargs["environment"]["AF_REPO_URL"]
+            == "https://x-access-token:secret-token@github.com/owner/repo.git"
+        )
 
     def test_given_github_token_and_non_github_url_when_clone_then_url_unchanged(self):
         client = MagicMock()
@@ -173,10 +175,9 @@ class TestCloneAndResolveRef:
         )
 
         call = client.containers.run.call_args
-        cmd = call.kwargs["command"]
-        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "secret-token" not in rendered
-        assert "https://gitlab.com/owner/repo.git" in rendered
+        env = call.kwargs["environment"]
+        assert "secret-token" not in env["AF_REPO_URL"]
+        assert env["AF_REPO_URL"] == "https://gitlab.com/owner/repo.git"
 
     def test_given_no_token_when_clone_then_url_unchanged(self):
         client = MagicMock()
@@ -191,9 +192,7 @@ class TestCloneAndResolveRef:
         )
 
         call = client.containers.run.call_args
-        cmd = call.kwargs["command"]
-        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
-        assert "x-access-token" not in rendered
+        assert "x-access-token" not in call.kwargs["environment"]["AF_REPO_URL"]
 
     def test_given_container_error_when_clone_then_original_url_in_message_not_token(self):
         import docker.errors
@@ -435,6 +434,45 @@ class TestListRemoteBranches:
         assert "origin" in rendered
 
 
+class TestShellMetacharacterHandling:
+    def test_given_ref_with_shell_metacharacters_when_clone_then_not_in_script(self):
+        client = MagicMock()
+        client.containers.run.return_value = b"a" * 40 + b"\n"
+        malicious = "main; touch /tmp/pwned"
+
+        ops.clone_and_resolve_ref(
+            client,
+            volume_name="ws",
+            repo_url="https://example.com/repo.git",
+            ref=malicious,
+            codebase_path=WORKSPACE_CODEBASE_PATH,
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert malicious not in rendered
+        assert call.kwargs["environment"]["AF_GIT_REF"] == malicious
+
+    def test_given_branch_with_shell_metacharacters_when_branch_then_not_in_script(self):
+        client = MagicMock()
+        client.containers.run.return_value = b""
+        malicious = "feature; touch /tmp/pwned"
+
+        ops.create_and_checkout_branch(
+            client,
+            volume_name="ws",
+            codebase_path=WORKSPACE_CODEBASE_PATH,
+            branch_name=malicious,
+        )
+
+        call = client.containers.run.call_args
+        cmd = call.kwargs["command"]
+        rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        assert malicious not in rendered
+        assert call.kwargs["environment"]["AF_BRANCH_NAME"] == malicious
+
+
 class TestCreateAndCheckoutBranch:
     def test_given_branch_name_when_create_branch_then_checkout_b_called(self):
         client = MagicMock()
@@ -450,10 +488,11 @@ class TestCreateAndCheckoutBranch:
         call = client.containers.run.call_args
         cmd = call.kwargs["command"]
         rendered = " ".join(cmd) if isinstance(cmd, list) else cmd
+        env = call.kwargs["environment"]
         assert "checkout" in rendered
         assert "-b" in rendered
-        assert "my-feature" in rendered
-        assert WORKSPACE_CODEBASE_PATH in rendered
+        assert env["AF_BRANCH_NAME"] == "my-feature"
+        assert env["AF_CODEBASE_PATH"] == WORKSPACE_CODEBASE_PATH
 
     def test_given_volume_when_create_branch_then_volume_mounted_rw(self):
         client = MagicMock()

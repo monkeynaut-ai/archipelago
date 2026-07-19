@@ -90,18 +90,27 @@ def clone_and_resolve_ref(
     The original repo_url (without token) is used in error messages.
     """
     effective_url = _with_github_token(repo_url, github_token)
+    # Values travel as environment variables, not interpolated text: the shell
+    # parses this script before expanding them, so a ref containing shell
+    # metacharacters cannot execute. It also keeps the token-bearing URL off the
+    # command line, where `docker inspect` would expose it.
     script = (
-        f"set -e && "
-        f"git clone {effective_url} {codebase_path} && "
-        f"git -C {codebase_path} checkout {ref} && "
-        f"git -C {codebase_path} config core.fileMode false && "
-        f"git -C {codebase_path} rev-parse HEAD"
+        "set -e && "
+        'git clone "$AF_REPO_URL" "$AF_CODEBASE_PATH" && '
+        'git -C "$AF_CODEBASE_PATH" checkout "$AF_GIT_REF" && '
+        'git -C "$AF_CODEBASE_PATH" config core.fileMode false && '
+        'git -C "$AF_CODEBASE_PATH" rev-parse HEAD'
     )
     try:
         raw = client.containers.run(
             GIT_IMAGE,
             command=["sh", "-c", script],
             entrypoint="",
+            environment={
+                "AF_REPO_URL": effective_url,
+                "AF_CODEBASE_PATH": codebase_path,
+                "AF_GIT_REF": ref,
+            },
             volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             tmpfs=_GIT_VOLUME_TMPFS,
             remove=True,
@@ -162,12 +171,16 @@ def create_and_checkout_branch(
     branch_name: str,
 ) -> None:
     """Create a new local branch and check it out in the cloned workspace."""
-    script = f"git -C {codebase_path} checkout -b {branch_name}"
+    script = 'git -C "$AF_CODEBASE_PATH" checkout -b "$AF_BRANCH_NAME"'
     try:
         client.containers.run(
             GIT_IMAGE,
             command=["sh", "-c", script],
             entrypoint="",
+            environment={
+                "AF_CODEBASE_PATH": codebase_path,
+                "AF_BRANCH_NAME": branch_name,
+            },
             volumes={volume_name: {"bind": WORKSPACE_ROOT, "mode": "rw"}},
             tmpfs=_GIT_VOLUME_TMPFS,
             remove=True,
