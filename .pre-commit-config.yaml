@@ -26,3 +26,10 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-push]
+      - id: typecheck
+        name: pyright
+        entry: pdm run typecheck
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, pre-push]
