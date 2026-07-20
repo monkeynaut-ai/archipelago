@@ -6,14 +6,12 @@ Archipelago follows **trunk-based development** with pull requests. `main` is th
 
 ## Branch Naming
 
-Suggested convention: `<type>/<short-description>`
+Convention: `{type}/gh-{number}-{kebab-title}`
 
 Examples:
-- `feature/add-login`
-- `fix/null-pointer`
-- `chore/update-deps`
-
-No strict enforcement, but keep names descriptive.
+- `feature/gh-42-add-login`
+- `fix/gh-108-null-pointer`
+- `chore/gh-73-update-deps`
 
 ## Linear History
 
