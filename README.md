@@ -18,23 +18,6 @@ of specialist agents that design the change, review that design, decompose it in
 shippable change sets, plan each change set as a sequence of TDD steps, write the
 tests, write the implementation, and open a pull request.
 
-The pipeline's current shape:
-
-```
-workspace bootstrap
-  └─ designer                      produce a design for the feature
-       └─ design review            correctness + quality reviewers, retried until
-          (retry, with operator    they pass; on exhaustion the operator is asked
-           intervention)           to accept, abort, or retry with guidance
-            └─ change-set planner  design → ordered, shippable change sets
-                 └─ for each change set
-                      ├─ TDD planner         change set → ordered tasks
-                      │    └─ for each task
-                      │         ├─ tester        write the failing test
-                      │         └─ implementer   make it pass
-                      └─ PR creator
-```
-
 Agents do not talk to each other. They exchange work through structured markdown
 artifacts in a shared workspace, each rendered from and parsed back into a Pydantic
 model. Splitting one agent into two means new files in the workspace, not a schema
@@ -52,7 +35,7 @@ The second bet is that this only compounds if **experimentation is cheap**. Topo
 instructions, task division, I/O shape, prompts, and control flow are all treated as
 parameters to vary, not defaults to lock in.
 
-Both bets, the north stars they serve, and the open questions they leave are argued in
+Both bets, the beacons they serve, and the open questions they leave are argued in
 full in [`docs/product/archipelago-vision.md`](docs/product/archipelago-vision.md).
 Read that first if you want to understand the project rather than just run it.
 
@@ -150,7 +133,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions and workflow.
 
 | Document | What it covers |
 |---|---|
-| [`docs/product/archipelago-vision.md`](docs/product/archipelago-vision.md) | The canonical frame: vision, north stars, operating philosophy, open threads |
+| [`docs/product/archipelago-vision.md`](docs/product/archipelago-vision.md) | The canonical frame: vision, beacons, operating philosophy, open threads |
 | [`docs/engineering/`](docs/engineering/) | Development workflow and engineering notes |
 | [`docs/architecture-wins.md`](docs/architecture-wins.md) | Architectural decisions that paid off |
 | [`docs/run-reports/`](docs/run-reports/) | Postmortems from real pipeline runs |
