@@ -28,7 +28,7 @@ Archipelago is a **system of agents** — AI models, humans, services, programs 
 
 ---
 
-## 2. North stars
+## 2. Beacons
 
 **Primary — autonomous software engineering.** The long-term goal is to do real software engineering work with minimal human involvement. Progress is measured by how much work Archipelago handles end-to-end without intervention, and at what quality.
 
@@ -45,7 +45,7 @@ Archipelago is a **system of agents** — AI models, humans, services, programs 
 
 ## 3. Operating philosophy
 
-The principles that shape every design decision. Each is load-bearing: if you remove it, the architecture changes shape.
+The principles that shape every design decision.
 
 ### 3.1 Harness competing tensions
 
@@ -119,19 +119,15 @@ Agents exchange work through structured artifacts in a shared workspace (current
 
 **Why it's a principle, not a detail.** It trades schema rigidity for experimentation velocity. Splitting one agent into two means both read and write additional files, not a schema migration. A new agent in the middle means new files in the workspace, not rewiring the boundary types of existing agents.
 
-Full argument: `docs/plans/2026-04-03-review-feedback-loop-design.md`; locked decisions in the design doc's "inter-agent communication model" section.
+Full argument: [inter-agent communication model](/docs/archive/topology-basic-stage-1/2026-04-17-cs7-plan4-archipelago-agents-plan.md#inter-agent-communication-model-locked-2026-04-17)
 
 ### 3.3 Single-source-of-truth data models
 
-One change to a Pydantic model — a field rename, a new field, a constraint tweak — propagates without any other edits to every artifact derived from it: rendered markdown templates, parsers, validators, JSON schemas, instruction appendices, generated skeletons, prompts (eventually), and downstream typed consumers. The architectural bet is that *this* is what makes the experimentation north star affordable.
-
-Mechanism and roadmap: `agent-foundry/docs/architecture/adr_markdown_template_model_shape.md` (ADR), with the gap list — currently uncovered touchpoints — carried in the parent plan `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`.
+One change to a Pydantic model — a field rename, a new field, a constraint tweak — propagates without any other edits to every artifact derived from it: rendered markdown templates, parsers, validators, JSON schemas, instruction appendices, generated skeletons, prompts (eventually), and downstream typed consumers. The architectural bet is that *this* is what makes experimentation affordable.
 
 ### 3.4 Experimentation-first
 
-Every architectural axis — topology, instructions, division of tasks, I/O shape, prompts, data flow, control flow — is treated as a parameter to experiment with, not a default to lock. If experimenting with a given axis is expensive, the architecture has failed, regardless of how well the current configuration works.
-
-Full framing: the "this is an experimentation platform, not a frozen pipeline" section of `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`.
+Every architectural axis — topology, instructions, division of tasks, I/O shape, prompts, data flow, control flow — is treated as a parameter to experiment with, not a default to lock. If 
 
 ### 3.5 [Further principles as they emerge]
 
@@ -139,7 +135,7 @@ Full framing: the "this is an experimentation platform, not a frozen pipeline" s
 
 ## 4. How philosophy shapes the architecture
 
-*This section bridges principles (§3) to concrete design decisions. Each principle should point to the choices it produced; if it can't, either the principle isn't load-bearing or the design hasn't absorbed it yet — both worth knowing.*
+*This section bridges principles (§3) to concrete design decisions. Each principle should point to the choices it produced; if it can't, either the principle isn't valuable or the design hasn't absorbed it yet — both worth knowing.*
 
 - **3.1 (tensions)** → Designer / Decomposer / Planner split for the feature-implementation middle layer (see worked example above). Further applications TBD as other pipelines are designed.
 - **3.2 (workspace-mediated)** → Agents consume markdown documents from known workspace paths and emit markdown to known workspace paths; envelopes are thin pointers, not payloads. Applied in Reviewer design in parent plan.
@@ -156,53 +152,18 @@ Full framing: the "this is an experimentation platform, not a frozen pipeline" s
 
 **Designed, under active brainstorm:**
 
-- **Designer** — Cluster A. Feature-level understanding and design.
-- **Decomposer** — Cluster B. Feature → ordered change sets with CS-level AC.
-- **Planner** — Cluster C. Per-change-set TDD step plan.
+- TBD
 
 **Planned, design not yet started:**
 
-- Reviewer — change-set-level code review (feedback-loop closing).
-- Integrator — merge/integrate change-set outputs.
-- Dispatcher — route work to agents.
-- `CommitAction` / `SubmitPRAction` — function actions for git operations.
-
-**Shipped in Archipelago:** none yet.
-
-### Platform (Agent Foundry) capabilities
-
-- CS1–CS3 primitives (models, validators, compiler) — shipped.
-- CS5 data-model layer — shipped.
-- CS6 / CS6.5 agent output models + structured-output protocol — shipped.
-- CS7 Plan 1 `AgentAction` primitive — shipped.
-- CS7 Plan 2 lifecycle orchestration — shipped.
-- CS7 Plan 3 base image — shipped.
-- CS7 Plan 4 Phase 1 markdown machinery — shipped (`agent_foundry.markdown` package).
+- TBD
 
 ### Active design docs
-
-- `docs/plans/2026-04-03-review-feedback-loop-design.md`
-- `docs/plans/2026-04-03-review-feedback-loop-roadmap.md`
-- `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`
-- `docs/plans/2026-04-17-cs7-plan4-phase1-markdown-machinery-design.md`
-- `docs/plans/2026-04-17-cs7-plan4-phase1-implementation-plan.md`
-- `agent-foundry/docs/architecture/adr_markdown_template_model_shape.md`
+- TBD
 
 ---
 
-## 6. Open threads
-
-- **Designer / Decomposer / Planner I/O shapes.** Under active brainstorm. Next up after vision doc lands.
-- **Codebase context: separate Investigator agent, or a tool Designer wields?** Open. Leaning tool-for-Designer at Archipelago-scale targets.
-- **Design-critic loop: now or later?** Leaning later — the creator-vs-critic tension (§3.1) is naturally served by the future Reviewer agent, not a separate critic in this phase.
-- **AC ladder.** Tentatively: feature-level AC lives in the job spec (input); change-set-level AC emerges from Decomposer; step-level AC emerges from Planner. Confirm during I/O design.
-- **Test-strategy ladder.** Tentatively: feature-level in Designer; CS-level in Decomposer; step-level in Planner. Confirm during I/O design.
-- **Agent Foundry Phase 2 scope.** Driven by Designer agent's concrete platform needs, not pre-scoped.
-- **Experimental-tier platform couplings.** Agent Foundry's public-API policy (its `docs/reference/public-api.md`) marks `agent_foundry.agents` (incl. `ContainerConfig`), `orchestration.run_agent_in_container`, run-hook event types, and `mlflow_adapter` as Experimental — importable but liable to change pre-1.0. Archipelago's containerized-agent path depends on all of these; expect re-migrations on future syncs. A ruff banned-api guard keeps imports on the sanctioned facades so a shape change surfaces in one place.
-
----
-
-## 7. Glossary
+## 6. Glossary
 
 - **Feature** — a cohesive unit of capability to add to the system. Usually requires multiple change sets.
 - **Change set** — a shippable slice of a feature. Independently valuable and testable. Archipelago's vocabulary matches its own development: this project's own roadmap is organized as CS1, CS2, ....
@@ -212,9 +173,3 @@ Full framing: the "this is an experimentation platform, not a frozen pipeline" s
 - **Workspace** — the shared substrate (file system, mounted volume, eventually a git-versioned repo) through which agents communicate.
 - **Harmony cluster** — a set of functions whose natural pulls reinforce rather than undermine, grouped into one agent per §3.1's method.
 - **Construction tier** — a level of platform support for building an agent, from Tier 0 (raw callables) to Tier 3 (objective-driven, generated). See `docs/plans/2026-04-17-cs7-plan4-archipelago-agents-plan.md`.
-
----
-
-## 8. Change log
-
-- **2026-04-20** — Initial draft. Vision framing, north stars, "harness competing tensions" principle articulated with worked example (Designer / Decomposer / Planner derivation). Other principles (§3.2–§3.4) stubbed with pointers to existing design docs and ADR. Current-shape index and open-threads list populated from active design state.
